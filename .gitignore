@@ -25,6 +25,11 @@ spike/**/build*/
 *.o
 *.a
 *.so
+# ...but the vendored engine artifact IS a shipped deliverable, not a build
+# output. It is 205 KB, and checking it in means `npm test` works without
+# installing the ~2 GB Emscripten toolchain — which matters for CI and for
+# agent-driven maintenance. Rebuild via spike/engine-wasm/build-wasm.sh.
+!packages/engine/vendor/*.wasm
 
 # OS / editor
 .DS_Store
