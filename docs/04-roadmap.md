@@ -1,0 +1,91 @@
+# Roadmap
+
+Phased so that every phase ships something usable and de-risks the next one.
+Durations assume nights-and-weekends effort by 1–2 people; compress accordingly.
+
+---
+
+## Phase 0 — Feasibility spike (2–4 weeks) 🔬
+
+Goal: prove the risky parts with throwaway code. **No product code.**
+
+- [ ] Run **dvoacap-python** and **ITURHFProp** on the same 10 reference circuits; compare outputs to VOACAP Online / voacapl. Pick the primary engine.
+- [ ] Benchmark: single point-to-point latency; 5°-grid area prediction wall time on one core / N cores.
+- [ ] Fetch + parse the ~8 SWPC JSON products; confirm update cadences.
+- [ ] Consume KC2G grid endpoints; overlay foF2 on a throwaway MapLibre page. Contact KC2G (and GIRO if going direct) about usage.
+- [ ] Subscribe to PSKReporter MQTT for 24h; measure volume, design the aggregate bucket schema.
+- [ ] Query wspr.live for one path's 12-month history; sketch the backtest method.
+- [ ] Write up **A-score v0** formula with real numbers from the above.
+- **Exit criteria:** engine picked, all five data sources demonstrated end-to-end, area-map compute budget known.
+
+## Phase 1 — MVP web app: "Conditions + Planner" (6–10 weeks) 🌐
+
+The smallest thing better than what exists.
+
+- [ ] Repo scaffolding: FastAPI + workers + Postgres/Timescale + Redis; React + MapLibre front-end; CI.
+- [ ] Ingestion live: SWPC indices + alerts, KC2G/ionosphere grids.
+- [ ] **Dashboard screen:** per-band health scores (model + ionosphere + disturbance components; no live-spot component yet), 24h forecast sparklines, indices with plain-English tooltips.
+- [ ] **Path planner screen:** two pins on a map, gray line + great circle, hour × frequency reliability matrix, "best frequencies right now / best window today."
+- [ ] Responsive + PWA installable from day one.
+- [ ] Deploy publicly (soft launch), attribution page.
+- **Exit criteria:** a stranger can answer "is 40 m any good to Europe from my QTH tonight?" in under 30 seconds on their phone.
+
+## Phase 2 — The A-score & live layer (4–8 weeks) 📡
+
+The differentiating feature.
+
+- [ ] PSKReporter MQTT aggregation pipeline → live activity API + map layer (spot density by band).
+- [ ] **User frequency lists:** arbitrary channels (ham/EMCOMM/ALE-style), grouped, saved locally (accounts optional/later).
+- [ ] **A-score v1** on frequencies and bands: full four-component blend, with "why this score" breakdown UI.
+- [ ] Backtest report vs wspr.live history; tune weights; publish the methodology (transparency = credibility in this community).
+- [ ] Storm/flare event handling: SID detection from GOES X-ray → immediate daytime HF degradation on affected paths.
+- **Exit criteria:** A-score demonstrably beats N0NBH-style banners in backtest and users can score their own channel plans.
+
+## Phase 3 — Coverage maps + self-hosted ionosphere (4–8 weeks) 🗺️
+
+- [ ] Area prediction jobs: "from here on 14.230 MHz at 100 W, where can I reach at 02:00?" — async compute, cached, time scrubber UI.
+- [ ] Precomputed coverage for the user's saved QTH refreshed on schedule.
+- [ ] Stand up our own GIRO→assimilation pipeline (KC2G's open-source approach) to remove the dependency on his server; fall back gracefully IRI-only.
+- [ ] Optional accounts + sync (saved QTHs, paths, frequency lists).
+- **Exit criteria:** coverage map returns in seconds warm / <1 min cold; ionosphere layer survives a KC2G outage.
+
+## Phase 4 — Phone app (6–10 weeks) 📱
+
+- [ ] Expo/React Native app sharing the TS API client + design tokens: dashboard, planner, coverage viewer.
+- [ ] Push notifications: band-opening predictions for saved paths, geomagnetic storm alerts.
+- [ ] Home-screen widgets (iOS/Android): band-health glance.
+- [ ] Offline mode: cache last forecasts + scores for field/portable/emergency use (the audience that most needs HF planning has no cell service).
+- [ ] App Store / Play Store release.
+
+## Phase 5 — Polish & advanced (ongoing) ✨
+
+Ideas parking lot, strictly after 0–4:
+- Learned A-score correction (train on wspr.live outcomes).
+- Antenna modeling depth (pattern files vs simple classes), takeoff-angle awareness.
+- Net/sked planning: "best common frequency for these 5 stations at 01:00."
+- Shared/team frequency plans (EMCOMM groups), exportable briefs (PDF "comms plan").
+- RBN integration, CW-specific views; contest mode.
+- Public API for the community; HamClock-style kiosk view as a nod to the incumbents.
+- Sporadic-E nowcasting (hard, separate research spike).
+
+---
+
+## Risk register
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| GIRO/ionosonde feed outage (post-2024 NOAA shutdown, single pipe) | Med | High | Cache, IRI-only fallback with UI staleness badge, mirror INGV/BOM, Phase-3 self-hosted pipeline |
+| KC2G endpoints not meant for third-party load | Med | Med | Ask first, cache hard, Phase-3 self-hosting removes dependency |
+| Area predictions too slow/costly at scale | Med | Med | Coarse grids + precompute + cache; measured in Phase 0 before committing |
+| dvoacap-python accuracy gaps (young port) | Med | Med | Phase-0 validation vs voacapl; ITURHFProp as swap-in alternative |
+| PSKReporter rate/volume handling | Low | Med | MQTT (push, not poll), aggregate-only storage |
+| Scope creep (this domain is bottomless) | High | High | The phase gates above; parking lot for everything else |
+| Solar cycle 25 declining → worsening high-band conditions reduce casual interest | Low | Low | Planner value is highest when conditions are marginal — lean into that |
+
+## Guiding principles
+
+1. **Plain English first, jargon on hover.** "40 m to Europe: good after sunset" beats "REL 0.72 @ 0400Z."
+2. **Never hide uncertainty.** Show data age and forecast confidence; degraded mode is labeled, not silent.
+3. **Precompute everything expensive.** The user should never wait on Fortran-era math.
+4. **Be a good upstream citizen.** Attribute, ask, cache, and eventually contribute back (our assimilation improvements, validation suites).
+5. **One score, explainable.** Every A-score can be expanded into its four components.
