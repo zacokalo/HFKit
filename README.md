@@ -29,6 +29,8 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 | [docs/02-existing-tools.md](docs/02-existing-tools.md) | What's already out there and where the gaps are |
 | [docs/03-architecture.md](docs/03-architecture.md) | Proposed system design: backend, frontend, mobile, the A-score model |
 | [docs/04-roadmap.md](docs/04-roadmap.md) | Phased roadmap from feasibility spike → web app → phone app |
+| [docs/05-engineering-principles.md](docs/05-engineering-principles.md) | Mothership data distribution (zero burden on upstreams), modularity contracts, resilience, updateability |
+| [docs/06-design-system.md](docs/06-design-system.md) | Token-based central theming, flat/contrasty first theme, map theming strategy |
 
 ## Feasibility verdict (TL;DR)
 

@@ -22,8 +22,10 @@ Goal: prove the risky parts with throwaway code. **No product code.**
 
 The smallest thing better than what exists.
 
-- [ ] Repo scaffolding: FastAPI + workers + Postgres/Timescale + Redis; React + MapLibre front-end; CI.
-- [ ] Ingestion live: SWPC indices + alerts, KC2G/ionosphere grids.
+- [ ] Repo scaffolding: FastAPI + workers + Postgres/Timescale + Redis; React + MapLibre front-end; CI (incl. lint rules for the token-only styling contract).
+- [ ] **Design system first:** `tokens.json` + generated CSS/Tailwind/TS/MapLibre outputs, `field-dark` + `field-light` themes, base components, living style guide page (see [06-design-system.md](06-design-system.md)).
+- [ ] **Module + bundle skeleton:** core/module layout, feature flags, versioned bundle publisher + CDN caching in place before the first feature module lands (see [05-engineering-principles.md](05-engineering-principles.md)).
+- [ ] Ingestion live: SWPC indices + alerts, KC2G/ionosphere grids — behind per-source adapters with circuit breakers and staleness flags.
 - [ ] **Dashboard screen:** per-band health scores (model + ionosphere + disturbance components; no live-spot component yet), 24h forecast sparklines, indices with plain-English tooltips.
 - [ ] **Path planner screen:** two pins on a map, gray line + great circle, hour × frequency reliability matrix, "best frequencies right now / best window today."
 - [ ] Responsive + PWA installable from day one.
@@ -89,3 +91,5 @@ Ideas parking lot, strictly after 0–4:
 3. **Precompute everything expensive.** The user should never wait on Fortran-era math.
 4. **Be a good upstream citizen.** Attribute, ask, cache, and eventually contribute back (our assimilation improvements, validation suites).
 5. **One score, explainable.** Every A-score can be expanded into its four components.
+6. **Clients never talk to upstreams.** All data flows through the mothership and out via cacheable bundles — upstream load stays O(1) no matter how many users we have.
+7. **Theme from tokens, features from modules.** No hardcoded colors, no cross-module imports — reskins and new features must never require refactoring.

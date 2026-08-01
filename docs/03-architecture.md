@@ -3,6 +3,15 @@
 Proposed system design. Optimized for: small team, cheap to run, every expensive
 thing precomputed and cached, one codebase serving web + mobile.
 
+Two companion docs extend this one with binding decisions:
+- [05-engineering-principles.md](05-engineering-principles.md) — the **mothership
+  pattern** (clients never contact upstream sources; one aggregation point fans
+  out versioned data bundles via CDN), module contracts for adding features
+  without refactoring, resilience/degradation rules, and update strategy.
+- [06-design-system.md](06-design-system.md) — token-based central theming
+  (flat, contrasty first theme; no stock "AI" styling), including themed
+  MapLibre basemap styles generated from the same tokens.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Data Ingestion                       │
@@ -25,11 +34,17 @@ thing precomputed and cached, one codebase serving web + mobile.
                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │        API (FastAPI): REST + WebSocket (live layer)         │
+│   + versioned data bundles published to CDN/edge cache      │
 └──────┬───────────────────────────────┬──────────────────────┘
        ▼                               ▼
   Web app (React + MapLibre)      Mobile (Expo/React Native,
   installable PWA                 same TS API client + design system)
 ```
+
+Everything above the API line is "the mothership": upstream sources are fetched
+exactly once regardless of user count, and clients consume only our API/CDN —
+see [05-engineering-principles.md](05-engineering-principles.md) for the bundle
+design and good-citizen enforcement.
 
 ## Backend — Python
 
