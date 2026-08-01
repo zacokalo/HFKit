@@ -18,7 +18,9 @@ dist/
 spike/**/out/cache/
 spike/**/toolchain/
 spike/**/emsdk/
-spike/**/build/
+# Vendored upstream source trees + build dirs (re-created by the build scripts).
+# Broad glob: agents create build/, build-wasm/, build-native/, etc.
+spike/**/build*/
 *.wasm
 *.o
 *.a

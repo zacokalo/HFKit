@@ -1,0 +1,61 @@
+{
+  "single_point_to_point": {
+    "description": "24 UTC hours x 10 frequencies, one circuit (NYC->London)",
+    "n_repeats": 20,
+    "times_s": [
+      0.35015128300005927,
+      0.34348486800001865,
+      0.361732040999982,
+      0.3419120279999106,
+      0.3271343149999666,
+      0.332816520999927,
+      0.33173688599993056,
+      0.3429901169999994,
+      0.33898941100005686,
+      0.3243876239999963,
+      0.3377862920000325,
+      0.3485703700000613,
+      0.33848878000003424,
+      0.33849686600001405,
+      0.4344080609999992,
+      0.3664607620000879,
+      0.3557808540000451,
+      0.3439249729999574,
+      0.34594093199996223,
+      0.3564668559999973
+    ],
+    "mean_s": 0.3480829920000019,
+    "min_s": 0.3243876239999963,
+    "max_s": 0.4344080609999992,
+    "mean_ms_per_predict_call": 14.50345800000008,
+    "predict_calls_per_run": 24,
+    "freqs_per_call": 10
+  },
+  "coverage_grid_subset": {
+    "description": "Subset of full 5deg global grid (2520 points), single fixed hour+ssn, single frequency-set, single core",
+    "full_grid_size_at_5deg": 2520,
+    "subset_size": 300,
+    "elapsed_s": 5.883115004000047,
+    "ms_per_point": 19.610383346666822,
+    "errors": [],
+    "extrapolation": {
+      "method": "linear scaling: (elapsed_s / subset_size) * full_grid_size",
+      "estimated_full_grid_s_single_core": 49.41816603360039
+    }
+  },
+  "multiprocessing": {
+    "description": "Same 300-point subset, single core vs. multiprocessing.Pool",
+    "n_points": 300,
+    "n_cores_available": 4,
+    "single_core_s": 5.7246752039999365,
+    "multi_core_s": 1.6604899439998917,
+    "speedup": 3.447581977045872,
+    "efficiency": 0.861895494261468
+  },
+  "full_grid_extrapolation_multicore": {
+    "method": "linear scaling from measured multiprocessing subset throughput",
+    "full_grid_size_at_5deg": 2520,
+    "n_cores_used": 4,
+    "estimated_full_grid_s_multicore": 13.94811552959909
+  }
+}
