@@ -1,0 +1,564 @@
+{
+  "per_circuit": {
+    "short_regional_nvis": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 1.8477032982484027,
+        "min_delta_muf_mhz": 1.2031080361699278,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 7.397858442665473,
+        "night_mean_muf_mhz": 6.593339710801106,
+        "ratio": 1.1220199120858914
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.25278961279938805,
+        "max_abs_hourly_muf_delta_mhz": 0.7295991292069868,
+        "max_jump_at": [
+          "low",
+          10,
+          11
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 0.9166666666666666,
+        "frac_hours_flat_zero_reliability": 0.0,
+        "counterexamples": [
+          {
+            "hour_utc": 8,
+            "snr_db_by_freq": {
+              "3.5": 50.5,
+              "5.0": 50.1,
+              "7.0": 42.8,
+              "10.1": 11.7,
+              "14.0": -4.2,
+              "18.1": -2.9,
+              "21.0": -2.4,
+              "24.9": -1.7,
+              "28.0": -1.3,
+              "29.7": -1.1
+            }
+          },
+          {
+            "hour_utc": 9,
+            "snr_db_by_freq": {
+              "3.5": 52.5,
+              "5.0": 52.0,
+              "7.0": 43.6,
+              "10.1": 9.4,
+              "14.0": -3.9,
+              "18.1": -2.6,
+              "21.0": -2.0,
+              "24.9": -1.4,
+              "28.0": -0.9,
+              "29.7": -0.7
+            }
+          }
+        ]
+      }
+    },
+    "short_equatorial": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 4.922944659950827,
+        "min_delta_muf_mhz": 3.14134149106375,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 13.198499526363266,
+        "night_mean_muf_mhz": 10.599109590604707,
+        "ratio": 1.2452460665245615
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.6703883160057492,
+        "max_abs_hourly_muf_delta_mhz": 3.114300987202631,
+        "max_jump_at": [
+          "high",
+          23,
+          0
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 0.9583333333333334,
+        "frac_hours_flat_zero_reliability": 0.0,
+        "counterexamples": [
+          {
+            "hour_utc": 22,
+            "snr_db_by_freq": {
+              "3.5": 43.7,
+              "5.0": 43.4,
+              "7.0": 35.9,
+              "10.1": 5.3,
+              "14.0": -11.7,
+              "18.1": -10.3,
+              "21.0": -9.7,
+              "24.9": -9.0,
+              "28.0": -8.6,
+              "29.7": -8.4
+            }
+          }
+        ]
+      }
+    },
+    "mid_range_domestic": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 2.917256234667819,
+        "min_delta_muf_mhz": 0.8417733767183382,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 18.487399014268966,
+        "night_mean_muf_mhz": 11.665292067893287,
+        "ratio": 1.5848209291863646
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.8683313374827367,
+        "max_abs_hourly_muf_delta_mhz": 2.594599764351253,
+        "max_jump_at": [
+          "high",
+          11,
+          12
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.0,
+        "counterexamples": []
+      }
+    },
+    "mid_range_south": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 6.057913778482432,
+        "min_delta_muf_mhz": 0.9506040637167192,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 28.129744072169146,
+        "night_mean_muf_mhz": 11.642722399982432,
+        "ratio": 2.4160795994080897
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 1.305053633750157,
+        "max_abs_hourly_muf_delta_mhz": 6.335902332888017,
+        "max_jump_at": [
+          "high",
+          20,
+          21
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.0,
+        "counterexamples": []
+      }
+    },
+    "long_dx_transatlantic": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 3.0086439535586553,
+        "min_delta_muf_mhz": 0.6913794836317564,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 19.088054626627404,
+        "night_mean_muf_mhz": 16.290836274005514,
+        "ratio": 1.1717050190409974
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.8094665380587917,
+        "max_abs_hourly_muf_delta_mhz": 3.0095991560606716,
+        "max_jump_at": [
+          "low",
+          9,
+          10
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.2916666666666667,
+        "counterexamples": []
+      }
+    },
+    "high_lat_auroral": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": false,
+        "mean_delta_muf_mhz": 0.7365765761959174,
+        "min_delta_muf_mhz": -0.36073122223396226,
+        "violations_at_hours": [
+          0,
+          1,
+          2,
+          22,
+          23
+        ],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 16.08296256437727,
+        "night_mean_muf_mhz": 14.215404442030966,
+        "ratio": 1.1313756587061607
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.3299673218946551,
+        "max_abs_hourly_muf_delta_mhz": 1.2795391933101232,
+        "max_jump_at": [
+          "high",
+          14,
+          15
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.4166666666666667,
+        "counterexamples": []
+      }
+    },
+    "equatorial_long": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 14.005106008720986,
+        "min_delta_muf_mhz": 6.828674358208364,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": true,
+        "day_mean_muf_mhz": 35.646518821199074,
+        "night_mean_muf_mhz": 27.950457514894847,
+        "ratio": 1.2753465234765113
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": false,
+        "mean_abs_hourly_muf_delta_mhz": 2.2161291271875867,
+        "max_abs_hourly_muf_delta_mhz": 8.0699247897848,
+        "max_jump_at": [
+          "high",
+          20,
+          21
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.75,
+        "counterexamples": []
+      }
+    },
+    "trans_polar": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 4.750766067430388,
+        "min_delta_muf_mhz": 3.484435151457074,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": false,
+        "day_mean_muf_mhz": 17.666271354638816,
+        "night_mean_muf_mhz": 19.872470458727975,
+        "ratio": 0.8889821419701647
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.5945044690938796,
+        "max_abs_hourly_muf_delta_mhz": 2.5155228151312325,
+        "max_jump_at": [
+          "low",
+          14,
+          15
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.5833333333333334,
+        "counterexamples": []
+      }
+    },
+    "trans_pacific_long": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 6.1072854217069015,
+        "min_delta_muf_mhz": 0.8515422829307457,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": false,
+        "day_mean_muf_mhz": 18.417206225695292,
+        "night_mean_muf_mhz": 29.841258249959402,
+        "ratio": 0.6171725760163062
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": false,
+        "mean_abs_hourly_muf_delta_mhz": 1.6370098511760542,
+        "max_abs_hourly_muf_delta_mhz": 9.952684940213896,
+        "max_jump_at": [
+          "high",
+          19,
+          20
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 0.875,
+        "counterexamples": []
+      }
+    },
+    "antipodal_very_long": {
+      "solar_activity": {
+        "property": "muf_rises_with_ssn",
+        "passed": true,
+        "mean_delta_muf_mhz": 3.2446351364937787,
+        "min_delta_muf_mhz": 0.9394981953947834,
+        "violations_at_hours": [],
+        "n_hours_checked": 24
+      },
+      "day_night": {
+        "property": "muf_higher_by_day",
+        "passed": false,
+        "day_mean_muf_mhz": 15.545765112780854,
+        "night_mean_muf_mhz": 17.799133677969923,
+        "ratio": 0.8734000987936804
+      },
+      "smoothness": {
+        "property": "smooth_hour_to_hour",
+        "passed": true,
+        "mean_abs_hourly_muf_delta_mhz": 0.9801095885188621,
+        "max_abs_hourly_muf_delta_mhz": 5.6149524228356285,
+        "max_jump_at": [
+          "high",
+          21,
+          22
+        ]
+      },
+      "reliability_shape": {
+        "property": "reliability_snr_unimodal_vs_frequency",
+        "passed": true,
+        "metric_used": "snr_db (reliability itself was ~flat-zero for this circuit; see caveat)",
+        "frac_hours_unimodal_snr": 1.0,
+        "frac_hours_flat_zero_reliability": 1.0,
+        "counterexamples": []
+      }
+    }
+  },
+  "cross_circuit": {
+    "distance_vs_muf": {
+      "property": "longer_paths_support_higher_muf",
+      "passed": true,
+      "shortest": {
+        "circuit": "short_equatorial",
+        "distance_km": 309,
+        "mean_muf_mhz": 11.584709676251586
+      },
+      "longest_in_short_path_regime": {
+        "circuit": "long_dx_transatlantic",
+        "distance_km": 5570,
+        "mean_muf_mhz": 17.471866100365805
+      },
+      "all_points_sorted_by_distance": [
+        {
+          "circuit": "short_equatorial",
+          "distance_km": 309,
+          "mean_muf_mhz": 11.584709676251586
+        },
+        {
+          "circuit": "short_regional_nvis",
+          "distance_km": 328,
+          "mean_muf_mhz": 7.053735757406112
+        },
+        {
+          "circuit": "mid_range_domestic",
+          "distance_km": 1506,
+          "mean_muf_mhz": 14.575524203987413
+        },
+        {
+          "circuit": "mid_range_south",
+          "distance_km": 2156,
+          "mean_muf_mhz": 18.891581577520867
+        },
+        {
+          "circuit": "high_lat_auroral",
+          "distance_km": 5418,
+          "mean_muf_mhz": 14.859539074890817
+        },
+        {
+          "circuit": "long_dx_transatlantic",
+          "distance_km": 5570,
+          "mean_muf_mhz": 17.471866100365805
+        },
+        {
+          "circuit": "equatorial_long",
+          "distance_km": 7455,
+          "mean_muf_mhz": 30.552347092946246
+        },
+        {
+          "circuit": "trans_polar",
+          "distance_km": 7700,
+          "mean_muf_mhz": 18.999104693430137
+        },
+        {
+          "circuit": "trans_pacific_long",
+          "distance_km": 12074,
+          "mean_muf_mhz": 23.085614246528227
+        },
+        {
+          "circuit": "antipodal_very_long",
+          "distance_km": 18701,
+          "mean_muf_mhz": 17.20275543715029
+        }
+      ]
+    },
+    "long_path_stub": {
+      "property": "long_path_model_is_a_stub (informational, not a physical-sanity pass/fail)",
+      "confirmed_short_path_used_beyond_10000km": true,
+      "circuits": {
+        "trans_pacific_long": {
+          "distance_km": 12074,
+          "methods_seen": [
+            "short"
+          ]
+        },
+        "antipodal_very_long": {
+          "distance_km": 18701,
+          "methods_seen": [
+            "short"
+          ]
+        }
+      },
+      "note": "prediction_engine.py explicitly documents _evaluate_long_model() as a stub returning an empty Prediction, and always uses the short-path result. Circuits beyond ~10000 km are therefore evaluated with a model VOACAP's own design says is invalid at that distance. Treat results for those circuits (trans_pacific_long, antipodal_very_long) as unvalidated."
+    }
+  },
+  "global": {
+    "determinism": {
+      "property": "deterministic_same_input_same_output",
+      "passed": true,
+      "sample_run_1": [
+        [
+          -348.99191540757033,
+          5.832008999617777e-06,
+          -495.8277748511967
+        ],
+        [
+          -146.9284462180737,
+          5.832008999617777e-06,
+          -301.9822200214599
+        ],
+        [
+          -13.286198286816699,
+          8.761659937794875e-06,
+          -176.4936958522384
+        ],
+        [
+          -72.80267325777822,
+          5.832008999617777e-06,
+          -241.11697347809945
+        ],
+        [
+          -287.78674539579947,
+          5.832008999617777e-06,
+          -459.5631971055943
+        ]
+      ],
+      "sample_run_2": [
+        [
+          -348.99191540757033,
+          5.832008999617777e-06,
+          -495.8277748511967
+        ],
+        [
+          -146.9284462180737,
+          5.832008999617777e-06,
+          -301.9822200214599
+        ],
+        [
+          -13.286198286816699,
+          8.761659937794875e-06,
+          -176.4936958522384
+        ],
+        [
+          -72.80267325777822,
+          5.832008999617777e-06,
+          -241.11697347809945
+        ],
+        [
+          -287.78674539579947,
+          5.832008999617777e-06,
+          -459.5631971055943
+        ]
+      ]
+    }
+  }
+}

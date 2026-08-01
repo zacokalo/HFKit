@@ -59,7 +59,7 @@
 
 	"statistics":
 	{
-		"elapsed": 0.001097843,
+		"elapsed": 0.001031992,
 		"rows_read": 20,
 		"bytes_read": 1435
 	}
