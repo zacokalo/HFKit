@@ -38,3 +38,6 @@ Thumbs.db
 # and FINDINGS.md are kept; the bulk row-level dumps they summarise are not.
 spike/engine-compare/out/predictions/
 spike/wspr-backtest/out/dataset*.csv
+
+# Node workspaces
+package-lock.json
