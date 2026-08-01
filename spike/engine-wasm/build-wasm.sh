@@ -67,7 +67,7 @@ echo "==> Compiling ${#SRC_FILES[@]} source files to wasm"
     -sALLOW_MEMORY_GROWTH=1 \
     -sSTACK_SIZE=8388608 \
     -sEXIT_RUNTIME=1 \
-    -sENVIRONMENT=node \
+    -sENVIRONMENT=node,web \
     -sMODULARIZE=1 \
     -sINVOKE_RUN=0 \
     -sFORCE_FILESYSTEM=1 \
