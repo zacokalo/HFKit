@@ -5,18 +5,18 @@ Durations assume nights-and-weekends effort by 1–2 people; compress accordingl
 
 ---
 
-## Phase 0 — Feasibility spike (2–4 weeks) 🔬
+## Phase 0 — Feasibility spike ✅ COMPLETE (2026-08-01)
 
 Goal: prove the risky parts with throwaway code. **No product code.**
 
-- [ ] Run **dvoacap-python** and **ITURHFProp** on the same 10 reference circuits; compare outputs to VOACAP Online / voacapl. Pick the primary engine.
-- [ ] ⭐ **WASM spike:** can the engine run client-side? (ITURHFProp/C via Emscripten is the most promising path.) A positive result removes per-user prediction compute from the backend entirely and gives offline mode for free — see [11-operating-constraints.md](11-operating-constraints.md) §3. **This is now a selection criterion for ADR-0001, alongside accuracy.**
-- [ ] Benchmark: single point-to-point latency; 5°-grid area prediction wall time on one core / N cores.
-- [ ] Fetch + parse the ~8 SWPC JSON products; confirm update cadences.
-- [ ] Consume KC2G grid endpoints; overlay foF2 on a throwaway MapLibre page. Contact KC2G (and GIRO if going direct) about usage.
-- [ ] Subscribe to PSKReporter MQTT for 24h; measure volume, design the aggregate bucket schema.
-- [ ] Query wspr.live for one path's 12-month history; sketch the backtest method.
-- [ ] Write up **A-score v0** formula with real numbers from the above.
+- [x] Run **dvoacap-python** and **ITURHFProp** on the same 10 reference circuits; compare outputs to VOACAP Online / voacapl. Pick the primary engine.
+- [x] ⭐ **WASM spike: YES.** ITURHFProp compiles and runs numerically identical to native at 0.886 ms/prediction, 201 KB wasm. See [ADR-0001](adr/0001-prediction-engine.md). Original text: can the engine run client-side? (ITURHFProp/C via Emscripten is the most promising path.) A positive result removes per-user prediction compute from the backend entirely and gives offline mode for free — see [11-operating-constraints.md](11-operating-constraints.md) §3. **This is now a selection criterion for ADR-0001, alongside accuracy.**
+- [x] Benchmark: single point-to-point latency; 5°-grid area prediction wall time on one core / N cores.
+- [x] Fetch + parse the ~8 SWPC JSON products; confirm update cadences.
+- [x] ⚠️ **No public KC2G grid exists** — found `api/essn.json` (effective SSN) instead, which is a better input. Original text:; overlay foF2 on a throwaway MapLibre page. Contact KC2G (and GIRO if going direct) about usage.
+- [ ] ❌ **Blocked in sandbox** (MQTT :1883 unreachable); must be validated on real infrastructure. Original text: for 24h; measure volume, design the aggregate bucket schema.
+- [x] Query wspr.live for one path's 12-month history; sketch the backtest method.
+- [x] Harness built; ⚠️ base-rate correction required (see spike/wspr-backtest). Original text: with real numbers from the above.
 - **Exit criteria:** engine picked, all five data sources demonstrated end-to-end, area-map compute budget known, **client-side prediction feasibility answered yes/no**.
 
 ## Phase 1 — MVP web app: "Conditions + Planner" (6–10 weeks) 🌐

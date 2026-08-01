@@ -1,0 +1,81 @@
+HFKit engine-wasm spike -- raw measurements
+Generated: 2026-08-01, on the spike's own build (gcc 13.3.0 native / emcc/emsdk 6.0.5 wasm, Node v22.16.0)
+
+=== Build artifact sizes ===
+iturhfprop.wasm            205,767 bytes  (~201 KiB)
+iturhfprop.js (glue/loader)  62,017 bytes  (~61 KiB)
+Total wasm+glue payload    267,784 bytes  (~262 KiB)
+
+=== Data file sizes ===
+Per-prediction-month data actually read by ITURHFProp (confirmed by tracing
+ReadIonParametersBin/ReadFamDud/ReadP1239 call sites in ITURHFProp.c):
+  ionosMM.bin (one month's ionospheric map)   11,197,844 bytes (~10.68 MiB)
+  COEFFMMW.txt (one month's noise coeffs)        235,275 bytes (~230 KiB)
+  P1239-3 Decile Factors.txt (whole year, once)   73,427 bytes (~72 KiB)
+  ---------------------------------------------------------------------
+  TOTAL per active month:                     11,506,546 bytes (~10.97 MiB)
+
+Full vendored P372/Data/ directory (12 months, .bin AND redundant .txt/.DAW
+copies of the ionosphere maps, decile file, etc. -- NOT all required at
+runtime): 132 MiB total; the 12 ionos*.bin files alone sum to 129 MiB.
+
+=== Cold init / data load / compute timings (Node v22.16.0, wasm) ===
+5 repeated runs of the 24-hour x 10-frequency benchmark circuit (240 P533()
+invocations per run), after cloning/patching/compiling from scratch:
+
+  run  initMs(module compile+instantiate)  dataLoadMs(11MB into MEMFS)  runMs(240 preds + I/O)
+  1    6.024                               11.339                       183.270
+  2    6.090                                9.692                       201.236
+  3    7.303                               11.708                       186.228
+  4    8.378                               11.552                       204.509
+  5    7.089                               13.012                       197.624
+  avg  6.977                               11.461                       194.573
+
+  => wasm end-to-end (init + data load + compute) for one circuit,
+     24 hours x 10 frequencies: ~213 ms
+  => per-prediction compute: ~0.81 ms (194.6 ms / 240 predictions)
+
+Single-circuit (1 hour x 1 frequency) wasm run, e.g. 1-5-85.in:
+  initMs=6.6-7.3, dataLoadMs=10.3-11.7, runMs=129-155
+  (runMs here is dominated by the fixed cost of reading/parsing the 11 MB
+  ionosphere file -- the same fixed cost amortizes across every additional
+  hour/frequency requested in the same call, hence the 24x10 case above
+  costing barely more per-prediction than the population of this warm-up.)
+
+=== Native reference timings (gcc -O2, same source, same host) ===
+5 repeated wall-clock runs of the same 24h x 10f benchmark (`time` around the
+whole ITURHFProp process: exec + read 11 MB ionos.bin from real disk + 240
+P533() calls + write output):
+
+  run 1: 0.2002 s
+  run 2: 0.2006 s
+  run 3: 0.1932 s
+  run 4: 0.1948 s
+  run 5: 0.1920 s
+  avg:   0.1962 s  (~0.82 ms/prediction)
+
+=> WASM compute is within ~1% of native for this workload -- no meaningful
+   performance penalty observed.
+
+=== Native vs WASM numeric correctness ===
+4 test circuits run through both the native CLI and the WASM build (compiled
+from the identical patched source), output files diffed with `diff` after
+stripping the 3-line run-timestamp header:
+
+  1-5-85.in            (short path, analog, single hour/freq)      MATCH (byte-identical)
+  1-8-84.in             (24-hour sweep)                             MATCH (byte-identical)
+  164-1-78.in            (single hour/freq)                         MATCH (byte-identical)
+  bench_24h_10f.in (24h x 10freq, custom fixture, 240 predictions)  MATCH (byte-identical)
+
+All four `diff` invocations returned exit code 0 -- zero numeric divergence
+between the native and WASM builds across the full set of MUF, field
+strength, SNR, noise, and reliability columns ITURHFProp reports.
+
+Caveat found and resolved during this spike: the ITU-R-HF repository ships
+STALE pre-built libp533.so/libp372.so binaries inside ITURHFProp/Linux/
+(reporting "Ver 14.1"/"Ver 14.2") that are out of sync with the current
+HEAD source (which is version 14.2/14.3). The first native reference run
+accidentally linked against these stale binaries via LD_LIBRARY_PATH search
+order; this was caught by the mismatched version banner in the output and
+fixed by pointing LD_LIBRARY_PATH only at the freshly-built P533/Linux and
+P372/Linux libraries. All comparisons above use the corrected reference.

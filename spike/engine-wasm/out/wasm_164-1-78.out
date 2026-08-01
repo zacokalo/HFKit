@@ -3,52 +3,52 @@
      ITURHFProp         Ver Aug  1 2026
      HF Model (P533)    Ver 14.2
      Noise Model (P372) Ver 14.3
-     Analysis Prepared  Sat Aug  1 06:35:40 2026
+     Analysis Prepared  Sat Aug  1 06:35:41 2026
 
 ---------------------------------------------------------------------------
 
 ***************************** P533 Input Parameters ****************************
 
-	Test case ID 1: Year 85 Month 5
-	Year          : 1985
-	Month         : May
-	Hour          : 20 (hour UTC)
-	SSN (R12)     : 18
-	Distance      : 174.728941 (km)
+	Test case ID 164: Year 78 Month 1
+	Year          : 1978
+	Month         : February
+	Hour          : 8 (hour UTC)
+	SSN (R12)     : 61
+	Distance      : 0.000000 (km)
 	dmax          : 4000.000000 (km)
 	Tx power      : 0.000000
-	Tx Location     LUXEMBURG
-	Tx latitude   :  49.666667 N
-	Tx longitude  :   6.316667 E
-	Rx Location     BOCKHACKEN
-	Rx latitude   :  51.116667 N
-	Rx longitude  :   7.266667 E
-	local time Rx : 20 (hour UTC)
-	local time Tx : 20 (hour UTC)
-	Frequency     : 6.100000
-	Bandwidth     : 1000.000000
+	Tx Location     CANBERRA
+	Tx latitude   :  40.000000 N
+	Tx longitude  :  10.000000 E
+	Rx Location     LUECHOW
+	Rx latitude   :  40.000000 N
+	Rx longitude  :  10.000000 E
+	local time Rx : 8 (hour UTC)
+	local time Tx : 8 (hour UTC)
+	Frequency     : 10.000000
+	Bandwidth     : 6000.000000
 	Modulation : ANALOG
-	Required signal-to-noise ratio : 10.000000
-	Required % of month signal-to-noise ratio :  10
+	Required signal-to-noise ratio : 38.400000
+	Required % of month signal-to-noise ratio :  43
 	Required signal-to-interference ratio : 23.760000
-	Man-made noise : RURAL
+	Man-made noise : RESIDENTIAL
 	Antenna configuration : User determined
 	Path Direction : SHORTPATH
 	Transmit antenna               ISOTROPIC
-	Transmit antenna bearing     : 106.868000
+	Transmit antenna bearing     : 0.000000
 	Transmit antenna gain offset : 0.000000
 	Receive antenna                ISOTROPIC
-	Receive antenna bearing      : 43.666000
+	Receive antenna bearing      : 0.000000
 	Receive antenna gain offset  : 0.000000
 
 ************************ End P533 Input Parameters *****************************
 
 ************************** ITURHFP Input Parameters *****************************
 
-	Upper left (North West) latitude   :  51.116667 N
-	Upper left (North West) longitude  :   7.266667 E
-	Lower right (South East) latitude  :  51.116667 N
-	Lower right (South East) longitude :   7.266667 E
+	Upper left (North West) latitude   :  40.000000 N
+	Upper left (North West) longitude  :  10.000000 E
+	Lower right (South East) latitude  :  40.000000 N
+	Lower right (South East) longitude :  10.000000 E
 	Number of frequencies : 1
 	Number of hours       : 1
 	Number of months      : 1
@@ -79,7 +79,7 @@ Column 15: FamT - Total noise (dB)
 
 ************************ Calculated Parameters ****************************
 
-05, 20,    6.100,  49.90,  45.45,  33.94,   8.74,   7.91,   9.20,   4.60,   2.00,   2.00,   7.92,   7.31,  51.31
+02, 08,   10.000,  34.24,  44.80,  29.00,   7.85,   6.46,  10.60,   5.30,   2.00,   2.00,  10.48,   4.93,  45.16
 
 **************************End Calculated Parameters ***********************
 

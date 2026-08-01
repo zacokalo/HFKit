@@ -21,7 +21,7 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 
 ## Project status
 
-🚧 **Planning phase.** This repo currently contains research and design documents:
+🚧 **Phase 0 complete.** Feasibility is proven by measurement; see `spike/` for raw evidence and [ADR-0001](docs/adr/0001-prediction-engine.md) for the engine decision. This repo contains research, design documents, and the Phase 0 spikes:
 
 | Doc | Contents |
 |---|---|
@@ -80,8 +80,8 @@ answer:
 
 | Decision | Status | Where |
 |---|---|---|
-| **Prediction engine** | ⬜ Open — dvoacap-python vs ITURHFProp, judged on accuracy *and* WASM compilability | [10](docs/10-project-setup.md) |
-| **On-device prediction** | ✅ Committed — Phase 0 decides how, not whether | [11](docs/11-operating-constraints.md) |
+| **Prediction engine** | ✅ **ITURHFProp (ITU-R P.533), compiled to WASM** — verified numerically identical to native, 0.886 ms/prediction, 201 KB | [ADR-0001](docs/adr/0001-prediction-engine.md) |
+| **On-device prediction** | ✅ **Confirmed by measurement**, not just committed | [ADR-0001](docs/adr/0001-prediction-engine.md) |
 | **License** | ✅ MIT | [09](docs/09-legal-privacy.md) |
 | **Commercial intent** | ✅ Free, non-commercial — resolves all upstream data-terms risk | [09](docs/09-legal-privacy.md) |
 | **Primary audience** | ⬜ Assumed EMCOMM-first, ham-friendly (channel plans first-class, NVIS properly supported) — correct me if wrong | [08](docs/08-domain-model.md) |
