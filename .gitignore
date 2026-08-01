@@ -51,3 +51,4 @@ package-lock.json
 # 128 MB for a full year). See apps/web/README.md.
 apps/web/data/itu/
 apps/web/vendor/
+# explorer.html is generated from packages/theme tokens + precomputed engine output
