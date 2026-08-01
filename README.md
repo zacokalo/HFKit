@@ -68,8 +68,10 @@ to exist. That shapes the engineering more than any feature decision:
 - **Designed for AI-assisted maintenance** — structured diagnostics, golden-file
   tests, and a canary that files issues with payload diffs, plus explicit limits
   on what an agent may change unsupervised.
-- **PWA over native apps.** With on-device prediction and offline bundles, a PWA
-  covers the field use case without the permanent app-store maintenance treadmill.
+- **PWA first, then native.** The PWA validates on-device prediction on real
+  phones at no extra cost; native follows for home-screen widgets, guaranteed
+  offline storage, and reliable background refresh — the things the offline field
+  use case actually depends on.
 
 ## Open decisions
 

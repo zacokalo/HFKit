@@ -165,15 +165,40 @@ recommended in §6.
 
 Plus one-off: domain (~$15/yr).
 
-**On the app stores:** Apple Developer is $99/**year** and Google Play $25 once —
-but the real cost isn't the fee, it's that both platforms force periodic SDK and
-policy updates whether or not the app changed. For a free tool with a
-minimal-overhead mandate, that's the single largest recurring maintenance burden
-in the entire plan, and it's the one an AI agent can't handle for you (store
-credentials, signing keys, review responses). **Recommendation: treat the PWA as
-the shipping target and native apps as optional-if-ever.** An installable PWA with
-offline support and home-screen presence covers nearly all of the mobile use case
-now that prediction runs on-device — see the roadmap's revised Phase 4.
+### On the app stores
+
+Apple Developer and Google Play accounts are **already active and paid**, so the
+fee argument is moot. What remains is an honest accounting of the real cost, and
+of what native actually buys.
+
+**The recurring cost is maintenance, not money.** Both platforms force periodic
+SDK bumps and policy compliance whether or not the app changed — expect roughly
+one to two forced-update cycles per year. This is also the one maintenance burden
+that **cannot be delegated to an AI agent**: signing keys, store credentials, and
+review responses are human-only work by design (`12-ai-maintainability.md` §5).
+Two things soften it considerably: **Expo/EAS** handles build and signing and has
+a well-trodden SDK upgrade path, and **OTA updates** mean routine changes ship
+without store review.
+
+**What native genuinely adds** — worth being precise, because some of the usual
+claims no longer hold:
+
+| Capability | Native only? | Notes |
+|---|---|---|
+| **Home-screen widgets** | ✅ Yes | Genuinely unavailable to PWAs. The band-health glance widget is plausibly the most-used surface of the product. |
+| **Guaranteed offline storage** | ✅ Effectively | An app container the OS won't reclaim. Installed iOS PWAs are exempt from the 7-day script-storage cap, but eviction under storage pressure remains possible — a real risk for a tool whose value peaks with no connectivity. |
+| **Reliable background refresh** | ✅ Largely | Keeps bundles current so the app is useful the moment it's opened offline. PWA background sync is limited, especially on iOS. |
+| Store discoverability | ✅ Yes | Matters for a free tool you want people to find. |
+| Push notifications | ❌ No longer | Web push works on Android and on iOS 16.4+ for installed PWAs. A reliability upgrade, not a new capability. |
+| Compute performance | ~ Marginal | Native avoids browser memory ceilings for WASM, but phones handle this workload fine either way. |
+
+**Revised recommendation: PWA first, native as a real Phase 4 deliverable.** Note
+that committing to on-device prediction *strengthens* the native case rather than
+weakening it — guaranteed storage and reliable background refresh are precisely
+what the offline field use case depends on, and that use case is the primary one.
+Ship the PWA first regardless: it's the same codebase, it validates on-device
+prediction on real hardware, and it makes native an informed decision instead of
+an assumed one.
 
 Note the **sublinear scaling**: 100× the users is nowhere near 100× the cost,
 because everyone downloads byte-identical cached bundles. If client-side

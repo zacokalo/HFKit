@@ -56,18 +56,30 @@ layer stays **switch-off-able** if it's ever not worth the cost or upkeep.
 - [ ] Optional accounts + sync (saved QTHs, paths, frequency lists).
 - **Exit criteria:** coverage map returns in seconds warm / <1 min cold; ionosphere layer survives a KC2G outage.
 
-## Phase 4 — Mobile: PWA-first (4–6 weeks) 📱
+## Phase 4 — Mobile: PWA first, then native (6–10 weeks) 📱
 
-**Revised:** native app demoted to optional. With prediction running on-device
-(WASM) and bundles cached offline, an installable PWA already delivers the field
-use case. Native's remaining exclusives — push notifications and home-screen
-widgets — cost a permanent app-store maintenance treadmill that conflicts with the
-minimal-overhead mandate (see [11-operating-constraints.md](11-operating-constraints.md) §4).
+**PWA ships first regardless** — it's the same codebase, costs nothing extra, and
+validates on-device prediction on real phones before any native work starts.
+Native then follows, justified by capabilities a PWA genuinely cannot match (see
+[11-operating-constraints.md](11-operating-constraints.md) §4 for the reasoning
+and the honest maintenance budget).
 
-- [ ] Harden the PWA: offline-first bundle caching, install prompt, home-screen presence, tested with no connectivity at all.
-- [ ] Verify on-device prediction performance on mid-range phones.
-- [ ] Field/portable mode: fully offline planning from the last downloaded bundle.
-- **Optional, only if genuinely wanted later:** Expo/React Native build for push notifications ("20 m to VK opening 02:00–04:00Z"), home-screen widgets, and store distribution. Deliberately deferred — recurring cost, human-only maintenance (signing keys, store reviews), and no benefit to the core planning workflow.
+### 4a — PWA hardening
+- [ ] Offline-first bundle caching, install prompt, home-screen presence, tested with the radio off.
+- [ ] Verify on-device WASM prediction performance on mid-range phones.
+- [ ] Field/portable mode: full planning from the last downloaded bundle.
+- [ ] **Measure iOS storage retention** — confirm whether cached bundles survive on an installed PWA across days of non-use. This is a functional test, not a nicety: if bundles get evicted, the offline promise breaks exactly when it matters most.
+
+### 4b — Native (Expo/React Native)
+Dev accounts for both stores are already active, so the marginal cost is
+engineering time, not fees.
+
+- [ ] Expo app sharing the TS client, design tokens, and the WASM engine.
+- [ ] **Home-screen widgets** — the band-health glance. Native-only, and arguably the single most-used surface of the whole product: the thing that replaces the N0NBH banner habit.
+- [ ] **Guaranteed offline storage** — an app container the OS won't evict, closing the risk measured in 4a.
+- [ ] **Reliable background refresh** so bundles are current when opened without signal.
+- [ ] Push notifications for saved paths and storm alerts. *(Note: web push now works on Android and on iOS 16.4+ for installed PWAs, so this is no longer a native exclusive — it's a reliability upgrade, not a new capability.)*
+- [ ] Store release. Use **Expo OTA updates** so routine JS changes ship without review; reserve store submissions for native-module changes.
 
 ## Phase 5 — Polish & advanced (ongoing) ✨
 
