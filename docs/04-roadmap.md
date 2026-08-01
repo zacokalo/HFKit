@@ -25,7 +25,8 @@ The smallest thing better than what exists. **Infrastructure target: Tier 0 —
 scheduled job + static hosting, no always-on server, no database**
 (see [11-operating-constraints.md](11-operating-constraints.md) §3a).
 
-- [ ] Repo scaffolding: FastAPI + workers + Postgres/Timescale + Redis; React + MapLibre front-end; CI (incl. lint rules for the token-only styling contract).
+- [ ] Repo scaffolding, **Tier 0 shaped**: a scheduled Python fetch/publish job (no FastAPI service, no Postgres, no Redis — those arrive in Tier 1/2 only if a feature demands them); React + MapLibre front-end; CI (incl. lint rules for the token-only styling contract).
+- [ ] **Package the WASM engine** (ADR-0001) as a TS module: load `.wasm`, mount the month's data file, expose a typed `predict(circuit, freqs, time)`. This is the single highest-risk Phase 1 item — everything on-device depends on it.
 - [ ] **Design system first:** `tokens.json` + generated CSS/Tailwind/TS/MapLibre outputs, `field-dark` + `field-light` themes, base components, living style guide page (see [06-design-system.md](06-design-system.md)).
 - [ ] **Module + bundle skeleton:** core/module layout, feature flags, versioned bundle publisher + CDN caching in place before the first feature module lands (see [05-engineering-principles.md](05-engineering-principles.md)).
 - [ ] Ingestion live: SWPC indices + alerts, KC2G/ionosphere grids — behind per-source adapters with circuit breakers and staleness flags.
