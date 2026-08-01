@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="field-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — on-device propagation demo</title>
+<link rel="stylesheet" href="./vendor/tokens.css">
+<style>
+  /* Every value below is a semantic token. No hardcoded colours (docs/06). */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: var(--hf-spacing-6);
+    background: var(--hf-surface-default); color: var(--hf-text-primary);
+    font-family: var(--hf-font-family-sans); font-size: var(--hf-font-size-md);
+    line-height: 1.5;
+  }
+  header { border-bottom: 1px solid var(--hf-border-subtle); padding-bottom: var(--hf-spacing-4); margin-bottom: var(--hf-spacing-5); }
+  h1 { margin: 0 0 var(--hf-spacing-1); font-size: var(--hf-font-size-xl); }
+  .sub { color: var(--hf-text-muted); font-size: var(--hf-font-size-sm); margin: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--hf-spacing-4); align-items: flex-end; margin-bottom: var(--hf-spacing-5); }
+  label { display: block; font-size: var(--hf-font-size-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--hf-text-muted); margin-bottom: 2px; }
+  select, input {
+    background: var(--hf-surface-sunken); color: var(--hf-text-primary);
+    border: 1px solid var(--hf-border-default); border-radius: var(--hf-radius-sm);
+    padding: var(--hf-spacing-2) var(--hf-spacing-3); font-family: var(--hf-font-family-mono);
+    font-size: var(--hf-font-size-sm);
+  }
+  button {
+    background: var(--hf-accent-interactive); color: var(--hf-accent-onAccent);
+    border: none; border-radius: var(--hf-radius-sm);
+    padding: var(--hf-spacing-2) var(--hf-spacing-4);
+    font-weight: var(--hf-font-weight-semibold); font-size: var(--hf-font-size-sm); cursor: pointer;
+  }
+  button:disabled { background: var(--hf-text-disabled); cursor: default; }
+  button:focus-visible { outline: 2px solid var(--hf-focus-ring); outline-offset: 2px; }
+  .card { background: var(--hf-surface-raised); border: 1px solid var(--hf-border-subtle); border-radius: var(--hf-radius-md); padding: var(--hf-spacing-4); margin-bottom: var(--hf-spacing-4); }
+  .status { font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-sm); color: var(--hf-text-secondary); white-space: pre-wrap; }
+  table { border-collapse: collapse; font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-xs); font-variant-numeric: tabular-nums; }
+  th, td { padding: 3px 6px; text-align: right; border: 1px solid var(--hf-border-subtle); }
+  th { color: var(--hf-text-muted); font-weight: var(--hf-font-weight-semibold); }
+  th.corner { text-align: left; }
+  td.hour { color: var(--hf-text-muted); text-align: left; }
+  .legend { display: flex; gap: var(--hf-spacing-3); flex-wrap: wrap; margin-top: var(--hf-spacing-3); font-size: var(--hf-font-size-xs); color: var(--hf-text-muted); align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; }
+  .sw { width: 14px; height: 14px; border-radius: var(--hf-radius-sm); border: 1px solid var(--hf-border-default); display: inline-block; }
+  .meta { color: var(--hf-text-muted); font-size: var(--hf-font-size-xs); font-family: var(--hf-font-family-mono); margin-top: var(--hf-spacing-2); }
+  .warn { color: var(--hf-status-fair-text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>HFKit — on-device propagation</h1>
+  <p class="sub">ITU-R P.533 running in WebAssembly, in this browser. No server computes anything.</p>
+  <p class="sub warn">Phase 1 demo — shows SNR margin, not the A-score. The engine's reliability column is a known open defect.</p>
+</header>
+
+<div class="row">
+  <div><label for="from">From</label><select id="from"></select></div>
+  <div><label for="to">To</label><select id="to"></select></div>
+  <div><label for="pwr">Power (W)</label><input id="pwr" type="number" value="100" min="1" max="10000" style="width:7rem"></div>
+  <div><button id="go" disabled>Predict 24 h</button></div>
+  <div><label for="theme">Theme</label><select id="theme">
+    <option value="field-dark">field-dark</option>
+    <option value="field-light">field-light</option>
+    <option value="night-ops">night-ops</option>
+  </select></div>
+</div>
+
+<div class="card"><div class="status" id="status">Loading engine…</div></div>
+<div class="card" id="resultCard" hidden>
+  <div id="grid"></div>
+  <div class="legend" id="legend"></div>
+  <div class="meta" id="meta"></div>
+</div>
+
+<script src="./vendor/iturhfprop.js"></script>
+<script type="module">
+import { HFEngine, BrowserDataProvider, setModuleFactory, greatCircleDistanceKm }
+  from './vendor/engine/browser.js';
+
+const SITES = {
+  'Boston, MA':  { latitude:  42.36, longitude:  -71.06 },
+  'London, UK':  { latitude:  51.51, longitude:   -0.13 },
+  'Tokyo, JP':   { latitude:  35.68, longitude:  139.69 },
+  'Sydney, AU':  { latitude: -33.87, longitude:  151.21 },
+  'Nairobi, KE': { latitude:  -1.29, longitude:   36.82 },
+  'Denver, CO':  { latitude:  39.74, longitude: -104.99 },
+};
+const FREQS = [3.5, 5.3, 7.1, 10.1, 14.1, 18.1, 21.1, 24.9, 28.3];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $('status');
+const log = (m) => { statusEl.textContent += (statusEl.textContent ? '\n' : '') + m; };
+
+for (const name of Object.keys(SITES)) {
+  for (const sel of [$('from'), $('to')]) {
+    const o = document.createElement('option'); o.value = o.textContent = name; sel.appendChild(o);
+  }
+}
+$('from').value = 'Boston, MA';
+$('to').value = 'London, UK';
+$('theme').addEventListener('change', (e) =>
+  document.documentElement.setAttribute('data-theme', e.target.value));
+
+// Shows SNR MARGIN (available SNR minus required SNR), in dB.
+//
+// Deliberately NOT the engine's reliability field: that column reads 0 for
+// every circuit/hour/frequency tested and does not respond to requiredSnrDb --
+// an open defect (see packages/engine/README.md). SNR, field strength, power
+// and MUF are all verified responsive and physically sensible, so this shows
+// those instead of a number known to be wrong.
+//
+// This is also NOT the A-score (docs/07), which is a calibrated probability
+// and does not exist yet.
+const REQUIRED_SNR_DB = 24;
+function marginToken(m) {
+  if (m >= 10) return 'good';
+  if (m >= 0)  return 'fair';
+  if (m >= -15) return 'poor';
+  return 'closed';
+}
+
+let engine;
+(async () => {
+  try {
+    setModuleFactory(window.Module);
+    const t0 = performance.now();
+    engine = await HFEngine.create({ dataProvider: new BrowserDataProvider('./data/itu') });
+    log(`engine instantiated in ${Math.round(performance.now() - t0)} ms`);
+    log('ready — first prediction also fetches ~11 MB of ITU data for the month');
+    $('go').disabled = false;
+  } catch (e) { log('FAILED: ' + e.message); }
+})();
+
+$('go').addEventListener('click', async () => {
+  $('go').disabled = true;
+  statusEl.textContent = '';
+  const fromName = $('from').value, toName = $('to').value;
+  const now = new Date();
+  const t0 = performance.now();
+  try {
+    const res = await engine.predict({
+      transmitter: SITES[fromName],
+      receiver: SITES[toName],
+      time: { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, hoursUtc: HOURS },
+      frequenciesMHz: FREQS,
+      transmitPowerWatts: Number($('pwr').value),
+      requiredSnrDb: 24,               // CW-ish threshold
+      requiredSnrBandwidthHz: 3000,
+      manMadeNoise: 'residential',
+      modulation: 'analog',
+      solarDriver: { ssn: 60 },        // Phase 1 will feed KC2G effective SSN here
+      label: { pathName: `${fromName} - ${toName}` },
+    });
+    const ms = performance.now() - t0;
+    log(`${fromName} → ${toName}  ${Math.round(res.circuit.distanceKm)} km`);
+    log(`${res.predictions.length} predictions in ${Math.round(ms)} ms (${(ms / res.predictions.length).toFixed(2)} ms each)`);
+    const tm = engine.timings;
+    log(`engine init ${tm.initMs.toFixed(1)} ms · data load ${tm.dataLoadMs.toFixed(1)} ms · run ${tm.runMs.toFixed(1)} ms`);
+    if (res.circuit.exceedsValidRange) log('⚠ ' + (res.circuit.validityWarning ?? 'beyond P.533 valid range'));
+    render(res, ms);
+  } catch (e) { log('prediction failed: ' + e.message); }
+  $('go').disabled = false;
+});
+
+function render(res, ms) {
+  const byHour = new Map();
+  for (const p of res.predictions) {
+    if (!byHour.has(p.hourUtc)) byHour.set(p.hourUtc, new Map());
+    byHour.get(p.hourUtc).set(Number(p.frequencyMHz.toFixed(2)), p);
+  }
+  const t = document.createElement('table');
+  const head = t.insertRow();
+  head.insertCell().outerHTML = '<th class="corner">UTC</th>';
+  for (const f of FREQS) head.insertCell().outerHTML = `<th>${f.toFixed(1)}</th>`;
+  head.insertCell().outerHTML = '<th>MUF</th>';
+  for (const hour of HOURS) {
+    const tr = t.insertRow();
+    const h = tr.insertCell(); h.className = 'hour';
+    h.textContent = String(hour).padStart(2, '0') + 'Z';
+    let muf;
+    for (const f of FREQS) {
+      const p = byHour.get(hour)?.get(Number(f.toFixed(2)));
+      const td = tr.insertCell();
+      const margin = p ? (p.snrAtReliabilityDb - REQUIRED_SNR_DB) : -99;
+      const tok = marginToken(margin);
+      td.style.background = `var(--hf-status-${tok}-fill)`;
+      td.style.color = `var(--hf-status-${tok}-on)`;
+      td.textContent = p ? (margin > 0 ? '+' : '') + margin.toFixed(0) : '—';
+      td.title = `${f} MHz @ ${String(hour).padStart(2,'0')}Z — SNR ${p?.snrAtReliabilityDb?.toFixed(1)} dB vs ${REQUIRED_SNR_DB} dB required (margin ${margin.toFixed(1)} dB)`;
+      if (muf === undefined && p?.basicMufMHz !== undefined) muf = p.basicMufMHz;
+    }
+    const m = tr.insertCell(); m.className = 'hour';
+    m.textContent = muf === undefined ? '—' : muf.toFixed(1);
+  }
+  $('grid').replaceChildren(t);
+  $('legend').innerHTML =
+    ['good','fair','poor','closed'].map((k) =>
+      `<span class="chip"><span class="sw" style="background:var(--hf-status-${k}-fill)"></span>${k}</span>`).join('')
+    + `<span>cell = SNR margin in dB vs ${REQUIRED_SNR_DB} dB required · isotropic antennas, so pessimistic vs a real station</span>`;
+  const mufs = res.predictions.map((p) => p.basicMufMHz).filter((x) => typeof x === 'number');
+  $('meta').textContent =
+    `${res.engine.p533Version ?? 'ITU-R P.533'} · path ${Math.round(res.circuit.distanceKm)} km · `
+    + (mufs.length ? `MUF ${Math.min(...mufs).toFixed(1)}–${Math.max(...mufs).toFixed(1)} MHz · ` : '')
+    + `computed on-device in ${Math.round(ms)} ms`;
+  $('resultCard').hidden = false;
+}
+</script>
+</body>
+</html>

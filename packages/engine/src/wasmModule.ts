@@ -14,7 +14,6 @@
 // `web,worker`) and swapped in here; nothing in this file's *interface*
 // would need to change, but the vendored artifact itself would.
 
-import { createRequire } from 'node:module';
 
 import type { DataProvider } from './dataProvider.js';
 import { monthFileSuffix } from './dataProvider.js';
@@ -36,21 +35,51 @@ type ModuleFactory = (moduleArg?: Record<string, unknown>) => Promise<Emscripten
 
 let cachedFactory: ModuleFactory | undefined;
 
-function loadFactory(): ModuleFactory {
+/**
+ * Supply the Emscripten factory explicitly, bypassing Node's `createRequire`.
+ *
+ * The vendored glue is CommonJS (`module.exports = Module`), which a browser
+ * cannot `import`. In a browser you load `vendor/iturhfprop.js` with a classic
+ * <script> tag -- which defines a global `Module` factory -- and hand it here
+ * before constructing an HFEngine. The artifact is built with
+ * `-sENVIRONMENT=node,web`, so the same .wasm runs in both (see ADR-0001
+ * addendum).
+ */
+export function setModuleFactory(factory: ModuleFactory): void {
+  cachedFactory = factory;
+}
+
+async function loadFactory(): Promise<ModuleFactory> {
   if (cachedFactory === undefined) {
-    // createRequire, not a static/dynamic `import`, because the vendored
-    // glue is CommonJS and does not have an ESM-compatible export shape
-    // (`module.exports = Module` with no named exports Node's CJS/ESM
-    // interop can reliably pick up as a default export in every resolver
-    // configuration). Explicit is more robust here than relying on interop.
+    // `node:module` is imported *dynamically*, not statically, so that this
+    // module can be evaluated in a browser at all. In a browser the caller
+    // injects the factory via setModuleFactory() and this branch never runs;
+    // a bundler will not eagerly resolve a dynamic import of a node: builtin.
+    //
+    // createRequire rather than `import()` of the glue itself, because the
+    // vendored glue is CommonJS (`module.exports = Module`) with no export
+    // shape Node's CJS/ESM interop picks up reliably as a default across
+    // resolver configurations. Explicit beats interop here.
+    if (!globalThis.process?.versions?.node) {
+      throw new Error(
+        'No Emscripten factory available. In a browser, load vendor/iturhfprop.js ' +
+          'via a <script> tag and call setModuleFactory(window.Module) before ' +
+          'creating an HFEngine.',
+      );
+    }
+    const { createRequire } = await import('node:module');
     const require = createRequire(import.meta.url);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     cachedFactory = require('../vendor/iturhfprop.js') as ModuleFactory;
   }
   return cachedFactory;
 }
 
 function now(): number {
+  // performance.now() exists in browsers and in Node >=16; fall back to
+  // hrtime only if some runtime lacks it.
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
   return Number(process.hrtime.bigint()) / 1e6;
 }
 
@@ -88,9 +117,9 @@ export class WasmRuntime {
 
   private async getModule(): Promise<EmscriptenModule> {
     if (this.modulePromise === undefined) {
-      const factory = loadFactory();
+      const factoryPromise = loadFactory();
       const t0 = now();
-      this.modulePromise = factory().then((mod) => {
+      this.modulePromise = factoryPromise.then((factory) => factory()).then((mod) => {
         this.lastInitMs = now() - t0;
         mod.FS.mkdir('/work');
         mod.FS.mkdir(WORK_BIN_DIR);

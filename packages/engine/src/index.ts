@@ -4,6 +4,10 @@ export type { DataProvider, EngineDataFiles } from './dataProvider.js';
 export { monthFileSuffix } from './dataProvider.js';
 
 export { NodeFsDataProvider, type NodeFsDataProviderOptions } from './nodeDataProvider.js';
+export { BrowserDataProvider } from './browserDataProvider.js';
+// Browsers must inject the Emscripten factory: the vendored glue is CommonJS
+// and is loaded via a classic <script> tag, which defines a global `Module`.
+export { setModuleFactory } from './wasmModule.js';
 
 export { greatCircleDistanceKm, pathDistanceKm, EARTH_RADIUS_KM } from './geo.js';
 

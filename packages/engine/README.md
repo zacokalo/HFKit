@@ -293,3 +293,44 @@ before shipping a mobile/low-memory target, but not a Phase 1 blocker.
 Reproduce: `HFKIT_ITU_DATA_DIR=... npx vitest run test/engine.test.ts` (see
 the `[measured]` console line in the "measures cold init..." test), or run
 many `HFEngine.create()` + `predict()` cycles directly.
+
+---
+
+## ⚠️ Open defect: the reliability columns read zero
+
+`overallReliability` (and `overallReliabilityWithScatter`) read **0 for every
+circuit, hour and frequency tested**, and do **not** respond to `requiredSnrDb`.
+
+Tested Boston→London (5,264 km), August, SSN 60, 100 W, isotropic, with
+`requiredSnrDb` at 24, 10, 0 and −10 dB against an available
+`snrAtReliabilityDb` of 12.47 dB. All four produced reliability 0.
+
+**Everything else is correct and responsive**, which is what makes this a
+narrow defect rather than a broken engine:
+
+| Field | Behaviour |
+|---|---|
+| `basicMufMHz` | ✅ sensible diurnal curve, 8.4–16.9 MHz on this path |
+| `snrDb`, `snrAtReliabilityDb` | ✅ responsive; falls off sharply above the MUF |
+| `medianReceivedPowerDbW`, `fieldStrengthDbuVm` | ✅ physically plausible |
+| `overallReliability` | ❌ always 0 |
+
+**Hypothesis tested and disproved:** that OCR degenerates for analog modulation
+because the time/frequency-spread inputs (`Path.A/TW/FW/T0/F0`) apply only to
+digital, so BCR would be the meaningful figure. Adding `RPT_BCR` to the report
+format showed **BCR reads 0 too**. That change was reverted — it altered the
+golden fixture's column set (the golden test caught it immediately) for no
+diagnostic gain.
+
+**Do not surface these fields to users until this is resolved.** The Phase 1 demo
+(`apps/web/`) deliberately displays SNR margin instead.
+
+This is the second engine in a row to ship a broken reliability field — see
+`spike/engine-compare/FINDINGS.md` §1 for dvoacap's version, where
+`bandwidth_hz` had zero read sites. It is exactly why ADR-0001 requires the
+reliability output to be validated through the backtest harness before the
+A-score trusts it. Resolving it is 🟡 tier (scoring math) per `CLAUDE.md`.
+
+Next steps: compare our generated `.in` against ITU's own reference input files
+(`ITURHFProp/Bin/*.in`) which are known to produce non-zero reliability, and
+diff the parameter sets.

@@ -1,0 +1,17 @@
+# Cloudflare Pages headers.
+# The engine and ITU data are immutable published artifacts — once a given
+# month's file exists it never changes — so they are cached hard. This is what
+# keeps repeat visits free of the 11 MB download and keeps bandwidth cheap.
+
+/vendor/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/itu/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

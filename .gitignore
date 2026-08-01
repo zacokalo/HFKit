@@ -46,3 +46,8 @@ spike/wspr-backtest/out/dataset*.csv
 
 # Node workspaces
 package-lock.json
+
+# ITU data files are fetched at build time, never committed (11 MB/month,
+# 128 MB for a full year). See apps/web/README.md.
+apps/web/data/itu/
+apps/web/vendor/
