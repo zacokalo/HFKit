@@ -68,7 +68,7 @@ Format: Context / Decision / Consequences / Status. Written when the decision is
 made, never retroactively.
 
 ADRs to write in Phase 0:
-- 0001 Prediction engine choice (dvoacap-python vs ITURHFProp) — **the** decision Phase 0 exists to answer
+- 0001 Prediction engine choice (dvoacap-python vs ITURHFProp) — **the** decision Phase 0 exists to answer. Criteria: accuracy vs reference, deployability, **and whether it compiles to WASM for client-side execution** (see `11-operating-constraints.md` §3)
 - 0002 Mothership + bundle distribution (already decided; record the reasoning)
 - 0003 Token-based theming (already decided; record it)
 - 0004 Local-first, accounts optional
@@ -89,6 +89,7 @@ ADRs to write in Phase 0:
 Throwaway code, permanent answers:
 
 - `spike/engine-compare/` — reference circuits through both engines vs published VOACAP output → ADR-0001
+- `spike/engine-wasm/` — attempt an Emscripten build of ITURHFProp (and/or a Pyodide load of dvoacap-python); measure bundle size and in-browser prediction latency. Determines whether prediction is a backend cost at all.
 - `spike/area-bench/` — grid prediction timing → decides whether coverage maps are on-demand or precomputed
 - `spike/ingest-smoke/` — all five sources fetched once, payloads recorded as future golden-test fixtures
 - `spike/score-v0.ipynb` — A-score v0 computed on real data for a handful of paths, sanity-checked against reality

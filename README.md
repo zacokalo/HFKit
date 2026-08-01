@@ -35,6 +35,7 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 | [docs/08-domain-model.md](docs/08-domain-model.md) | Entities, units conventions, and glossary — station, circuit, frequency plan |
 | [docs/09-legal-privacy.md](docs/09-legal-privacy.md) | License options, per-source terms audit, privacy posture, liability |
 | [docs/10-project-setup.md](docs/10-project-setup.md) | Monorepo layout, stack pinning, ADR process, definition of done |
+| [docs/11-operating-constraints.md](docs/11-operating-constraints.md) | Unattended operation and minimal backend cost as binding constraints; cost model and failure modes |
 
 ## Feasibility verdict (TL;DR)
 
@@ -63,3 +64,18 @@ flagged inline in the docs — none of them block Phase 0:
 | **License** | Apache-2.0 recommended; no `LICENSE` file added yet | [09](docs/09-legal-privacy.md) |
 | **Commercial intent** | Options kept open — restrictive sources isolated behind swappable adapters | [09](docs/09-legal-privacy.md) |
 | **Prediction engine** | dvoacap-python vs ITURHFProp — this is what Phase 0 exists to answer | [10](docs/10-project-setup.md) |
+| **Client-side prediction** | Pursue it — the Phase 0 WASM spike decides. Success removes per-user prediction compute from the backend and gives offline mode for free | [11](docs/11-operating-constraints.md) |
+
+## Operating targets
+
+Designed to run unattended for months at minimal cost — see
+[docs/11-operating-constraints.md](docs/11-operating-constraints.md):
+
+- **~$10–15/month** at Phase 1 scale, scaling *sublinearly* to ~$50–100/month at
+  tens of thousands of users (everyone downloads byte-identical cached bundles).
+- **Fixed-price infrastructure**, so the worst case when unattended is "slow,"
+  never a surprise bill.
+- **Bounded storage by design** via retention tiering — the database stays at a
+  few GB permanently and is mostly reconstructible from upstreams anyway.
+- **A few hours of attention per quarter** in steady state, mostly reacting to
+  upstream format changes.

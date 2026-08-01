@@ -11,6 +11,11 @@ Two companion docs extend this one with binding decisions:
 - [06-design-system.md](06-design-system.md) — token-based central theming
   (flat, contrasty first theme; no stock "AI" styling), including themed
   MapLibre basemap styles generated from the same tokens.
+- [11-operating-constraints.md](11-operating-constraints.md) — unattended
+  operation and minimal cost as binding constraints. **Note:** if the Phase 0
+  WASM spike succeeds, point-to-point prediction moves from the server-side
+  worker pool shown below to the client, and the backend becomes almost purely
+  a data pipeline.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

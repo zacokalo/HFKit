@@ -10,13 +10,14 @@ Durations assume nights-and-weekends effort by 1–2 people; compress accordingl
 Goal: prove the risky parts with throwaway code. **No product code.**
 
 - [ ] Run **dvoacap-python** and **ITURHFProp** on the same 10 reference circuits; compare outputs to VOACAP Online / voacapl. Pick the primary engine.
+- [ ] ⭐ **WASM spike:** can the engine run client-side? (ITURHFProp/C via Emscripten is the most promising path.) A positive result removes per-user prediction compute from the backend entirely and gives offline mode for free — see [11-operating-constraints.md](11-operating-constraints.md) §3. **This is now a selection criterion for ADR-0001, alongside accuracy.**
 - [ ] Benchmark: single point-to-point latency; 5°-grid area prediction wall time on one core / N cores.
 - [ ] Fetch + parse the ~8 SWPC JSON products; confirm update cadences.
 - [ ] Consume KC2G grid endpoints; overlay foF2 on a throwaway MapLibre page. Contact KC2G (and GIRO if going direct) about usage.
 - [ ] Subscribe to PSKReporter MQTT for 24h; measure volume, design the aggregate bucket schema.
 - [ ] Query wspr.live for one path's 12-month history; sketch the backtest method.
 - [ ] Write up **A-score v0** formula with real numbers from the above.
-- **Exit criteria:** engine picked, all five data sources demonstrated end-to-end, area-map compute budget known.
+- **Exit criteria:** engine picked, all five data sources demonstrated end-to-end, area-map compute budget known, **client-side prediction feasibility answered yes/no**.
 
 ## Phase 1 — MVP web app: "Conditions + Planner" (6–10 weeks) 🌐
 
@@ -93,3 +94,5 @@ Ideas parking lot, strictly after 0–4:
 5. **One score, explainable.** Every A-score can be expanded into its four components.
 6. **Clients never talk to upstreams.** All data flows through the mothership and out via cacheable bundles — upstream load stays O(1) no matter how many users we have.
 7. **Theme from tokens, features from modules.** No hardcoded colors, no cross-module imports — reskins and new features must never require refactoring.
+8. **Bounded by design, fixed by price.** Every resource has a designed ceiling and the infrastructure is fixed-price, so the worst case when unattended is "slow," never "expensive" or "disk full."
+9. **Match the cadence to the physics.** HF conditions move on 15-minute timescales; refreshing faster costs orders of magnitude more and tells users nothing new.
