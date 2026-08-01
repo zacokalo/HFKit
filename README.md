@@ -31,6 +31,10 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 | [docs/04-roadmap.md](docs/04-roadmap.md) | Phased roadmap from feasibility spike → web app → phone app |
 | [docs/05-engineering-principles.md](docs/05-engineering-principles.md) | Mothership data distribution (zero burden on upstreams), modularity contracts, resilience, updateability |
 | [docs/06-design-system.md](docs/06-design-system.md) | Token-based central theming, flat/contrasty first theme, map theming strategy |
+| [docs/07-scoring-spec.md](docs/07-scoring-spec.md) | The A-score: components, blending, physics gates, and the validation protocol that defines success |
+| [docs/08-domain-model.md](docs/08-domain-model.md) | Entities, units conventions, and glossary — station, circuit, frequency plan |
+| [docs/09-legal-privacy.md](docs/09-legal-privacy.md) | License options, per-source terms audit, privacy posture, liability |
+| [docs/10-project-setup.md](docs/10-project-setup.md) | Monorepo layout, stack pinning, ADR process, definition of done |
 
 ## Feasibility verdict (TL;DR)
 
@@ -47,3 +51,15 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 Biggest risks: upstream data fragility (GIRO is now a single point of failure for
 ionosonde data), and compute cost of area predictions at scale. Both have mitigations —
 see the roadmap.
+
+## Open decisions
+
+Planning is complete enough to start building. These are outstanding and are
+flagged inline in the docs — none of them block Phase 0:
+
+| Decision | Default assumed | Where |
+|---|---|---|
+| **Primary audience** | EMCOMM-first, ham-friendly (arbitrary channel plans are first-class; NVIS supported properly) | [08](docs/08-domain-model.md) |
+| **License** | Apache-2.0 recommended; no `LICENSE` file added yet | [09](docs/09-legal-privacy.md) |
+| **Commercial intent** | Options kept open — restrictive sources isolated behind swappable adapters | [09](docs/09-legal-privacy.md) |
+| **Prediction engine** | dvoacap-python vs ITURHFProp — this is what Phase 0 exists to answer | [10](docs/10-project-setup.md) |
