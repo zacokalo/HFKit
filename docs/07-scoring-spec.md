@@ -51,6 +51,20 @@ using the station config and current SSN/SFI.
 
 - `value` = engine reliability (REL), i.e. P(SNR ≥ required SNR for the mode).
   This is already a probability — no transformation needed.
+
+> ⚠️ **Phase 0 finding — this assumption is INVALID for dvoacap.**
+> Measured across 4,800 predictions, dvoacap's `reliability` never exceeds 0.055
+> and averages 0.0005, including on textbook-open circuits. Root cause verified:
+> its `bandwidth_hz` parameter is declared but never read anywhere in the
+> codebase, so the required-SNR threshold (default 73 dB) is never
+> bandwidth-corrected. See `spike/engine-compare/FINDINGS.md` §1.
+>
+> Consequences: (a) if we adopt dvoacap, the `model` component must be built
+> from its `snr_db` and `muf_day` outputs with our own probability layer, not
+> from its `reliability` field; (b) whichever engine we choose, **the REL output
+> must be validated against the backtest harness before it is trusted** — the
+> harness exists precisely to catch this class of error. Resolving this is 🟡
+> tier (scoring math) and needs a human decision.
 - `confidence` = 1.0 near-term, unchanged with horizon (it's climatological by
   nature), but *reduced* when the driving SSN/SFI is itself a forecast.
 - This is the **baseline**: with no live data at all, A-score ≈ 100 × REL.
