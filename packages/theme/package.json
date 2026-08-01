@@ -1,0 +1,35 @@
+{
+  "name": "@hfkit/theme",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HFKit design tokens: single source of truth for CSS variables, Tailwind theme, typed TS tokens, and MapLibre basemap styles.",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tokens.css": "./dist/tokens.css",
+    "./tailwind": {
+      "types": "./dist/tailwind.theme.d.ts",
+      "default": "./dist/tailwind.theme.mjs"
+    },
+    "./maplibre/*": "./dist/maplibre/*"
+  },
+  "files": [
+    "dist",
+    "tokens.json"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "node scripts/generate.mjs && node scripts/build-styleguide.mjs && tsc -p tsconfig.json",
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "styleguide": "node scripts/build-styleguide.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

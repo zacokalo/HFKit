@@ -26,7 +26,7 @@ export function loadTokens(path) {
 }
 
 export function themeNames(tokens) {
-  return Object.keys(tokens.semantic);
+  return Object.keys(tokens.semantic).filter((k) => !k.startsWith("$"));
 }
 
 function buildContext(tokens, themeName) {
