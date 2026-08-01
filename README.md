@@ -35,7 +35,9 @@ fragmented, and hostile to newcomers (see [docs/02-existing-tools.md](docs/02-ex
 | [docs/08-domain-model.md](docs/08-domain-model.md) | Entities, units conventions, and glossary — station, circuit, frequency plan |
 | [docs/09-legal-privacy.md](docs/09-legal-privacy.md) | License options, per-source terms audit, privacy posture, liability |
 | [docs/10-project-setup.md](docs/10-project-setup.md) | Monorepo layout, stack pinning, ADR process, definition of done |
-| [docs/11-operating-constraints.md](docs/11-operating-constraints.md) | Unattended operation and minimal backend cost as binding constraints; cost model and failure modes |
+| [docs/11-operating-constraints.md](docs/11-operating-constraints.md) | Unattended operation and minimal backend cost as binding constraints; deployment tiers, cost model, failure modes |
+| [docs/12-ai-maintainability.md](docs/12-ai-maintainability.md) | Designing the codebase so an AI agent can safely diagnose and repair it — autonomy tiers, diagnostics, alerting loop |
+| [CLAUDE.md](CLAUDE.md) | Working agreement for AI agents in this repo: invariants, conventions, blast-radius rules |
 
 ## Feasibility verdict (TL;DR)
 
@@ -53,29 +55,31 @@ Biggest risks: upstream data fragility (GIRO is now a single point of failure fo
 ionosonde data), and compute cost of area predictions at scale. Both have mitigations —
 see the roadmap.
 
+## What kind of project this is
+
+A **free, open-source, unpaid** tool, built primarily because its author wanted it
+to exist. That shapes the engineering more than any feature decision:
+
+- **Minimal operating overhead is a hard constraint.** Phase 1 targets a backend
+  with no always-on server and no database — a scheduled job publishing static
+  files, with all prediction math running on the user's device.
+- **~$0–5/month** to run at Phase 1, and cost is *independent of user count*
+  because everyone downloads byte-identical cached bundles.
+- **Designed for AI-assisted maintenance** — structured diagnostics, golden-file
+  tests, and a canary that files issues with payload diffs, plus explicit limits
+  on what an agent may change unsupervised.
+- **PWA over native apps.** With on-device prediction and offline bundles, a PWA
+  covers the field use case without the permanent app-store maintenance treadmill.
+
 ## Open decisions
 
-Planning is complete enough to start building. These are outstanding and are
-flagged inline in the docs — none of them block Phase 0:
+Planning is complete. One item remains, and it's exactly what Phase 0 exists to
+answer:
 
-| Decision | Default assumed | Where |
+| Decision | Status | Where |
 |---|---|---|
-| **Primary audience** | EMCOMM-first, ham-friendly (arbitrary channel plans are first-class; NVIS supported properly) | [08](docs/08-domain-model.md) |
-| **License** | Apache-2.0 recommended; no `LICENSE` file added yet | [09](docs/09-legal-privacy.md) |
-| **Commercial intent** | Options kept open — restrictive sources isolated behind swappable adapters | [09](docs/09-legal-privacy.md) |
-| **Prediction engine** | dvoacap-python vs ITURHFProp — this is what Phase 0 exists to answer | [10](docs/10-project-setup.md) |
-| **Client-side prediction** | Pursue it — the Phase 0 WASM spike decides. Success removes per-user prediction compute from the backend and gives offline mode for free | [11](docs/11-operating-constraints.md) |
-
-## Operating targets
-
-Designed to run unattended for months at minimal cost — see
-[docs/11-operating-constraints.md](docs/11-operating-constraints.md):
-
-- **~$10–15/month** at Phase 1 scale, scaling *sublinearly* to ~$50–100/month at
-  tens of thousands of users (everyone downloads byte-identical cached bundles).
-- **Fixed-price infrastructure**, so the worst case when unattended is "slow,"
-  never a surprise bill.
-- **Bounded storage by design** via retention tiering — the database stays at a
-  few GB permanently and is mostly reconstructible from upstreams anyway.
-- **A few hours of attention per quarter** in steady state, mostly reacting to
-  upstream format changes.
+| **Prediction engine** | ⬜ Open — dvoacap-python vs ITURHFProp, judged on accuracy *and* WASM compilability | [10](docs/10-project-setup.md) |
+| **On-device prediction** | ✅ Committed — Phase 0 decides how, not whether | [11](docs/11-operating-constraints.md) |
+| **License** | ✅ MIT | [09](docs/09-legal-privacy.md) |
+| **Commercial intent** | ✅ Free, non-commercial — resolves all upstream data-terms risk | [09](docs/09-legal-privacy.md) |
+| **Primary audience** | ⬜ Assumed EMCOMM-first, ham-friendly (channel plans first-class, NVIS properly supported) — correct me if wrong | [08](docs/08-domain-model.md) |

@@ -21,7 +21,9 @@ Goal: prove the risky parts with throwaway code. **No product code.**
 
 ## Phase 1 — MVP web app: "Conditions + Planner" (6–10 weeks) 🌐
 
-The smallest thing better than what exists.
+The smallest thing better than what exists. **Infrastructure target: Tier 0 —
+scheduled job + static hosting, no always-on server, no database**
+(see [11-operating-constraints.md](11-operating-constraints.md) §3a).
 
 - [ ] Repo scaffolding: FastAPI + workers + Postgres/Timescale + Redis; React + MapLibre front-end; CI (incl. lint rules for the token-only styling contract).
 - [ ] **Design system first:** `tokens.json` + generated CSS/Tailwind/TS/MapLibre outputs, `field-dark` + `field-light` themes, base components, living style guide page (see [06-design-system.md](06-design-system.md)).
@@ -35,7 +37,9 @@ The smallest thing better than what exists.
 
 ## Phase 2 — The A-score & live layer (4–8 weeks) 📡
 
-The differentiating feature.
+The differentiating feature. Moves us to **Tier 1** (one always-on process) — and
+because A-score components drop out cleanly with weights renormalizing, the live
+layer stays **switch-off-able** if it's ever not worth the cost or upkeep.
 
 - [ ] PSKReporter MQTT aggregation pipeline → live activity API + map layer (spot density by band).
 - [ ] **User frequency lists:** arbitrary channels (ham/EMCOMM/ALE-style), grouped, saved locally (accounts optional/later).
@@ -52,13 +56,18 @@ The differentiating feature.
 - [ ] Optional accounts + sync (saved QTHs, paths, frequency lists).
 - **Exit criteria:** coverage map returns in seconds warm / <1 min cold; ionosphere layer survives a KC2G outage.
 
-## Phase 4 — Phone app (6–10 weeks) 📱
+## Phase 4 — Mobile: PWA-first (4–6 weeks) 📱
 
-- [ ] Expo/React Native app sharing the TS API client + design tokens: dashboard, planner, coverage viewer.
-- [ ] Push notifications: band-opening predictions for saved paths, geomagnetic storm alerts.
-- [ ] Home-screen widgets (iOS/Android): band-health glance.
-- [ ] Offline mode: cache last forecasts + scores for field/portable/emergency use (the audience that most needs HF planning has no cell service).
-- [ ] App Store / Play Store release.
+**Revised:** native app demoted to optional. With prediction running on-device
+(WASM) and bundles cached offline, an installable PWA already delivers the field
+use case. Native's remaining exclusives — push notifications and home-screen
+widgets — cost a permanent app-store maintenance treadmill that conflicts with the
+minimal-overhead mandate (see [11-operating-constraints.md](11-operating-constraints.md) §4).
+
+- [ ] Harden the PWA: offline-first bundle caching, install prompt, home-screen presence, tested with no connectivity at all.
+- [ ] Verify on-device prediction performance on mid-range phones.
+- [ ] Field/portable mode: fully offline planning from the last downloaded bundle.
+- **Optional, only if genuinely wanted later:** Expo/React Native build for push notifications ("20 m to VK opening 02:00–04:00Z"), home-screen widgets, and store distribution. Deliberately deferred — recurring cost, human-only maintenance (signing keys, store reviews), and no benefit to the core planning workflow.
 
 ## Phase 5 — Polish & advanced (ongoing) ✨
 

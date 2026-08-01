@@ -44,10 +44,11 @@ and reconstructible from upstreams** — the database is effectively a cache. Lo
 it means re-fetching, not data loss. That eliminates most of the backup and
 disaster-recovery burden that normally makes unattended operation expensive.
 
-## 3. The big lever: run predictions on the client ⭐
+## 3. Run predictions on the client ⭐ **(committed direction)**
 
-**Proposal: compile the prediction engine to WebAssembly and run point-to-point
-predictions on the user's device.**
+**Decision: compile the prediction engine to WebAssembly and run point-to-point
+predictions on the user's device.** Phase 0 determines *which* engine and *how*,
+not *whether* — server-side prediction is now the fallback, not the plan.
 
 This is the single highest-leverage idea for both goals, and it's why it's being
 raised now rather than after we've built a server-side prediction pool.
@@ -93,6 +94,49 @@ which gets a high hit rate because users cluster geographically. Costs rise but
 stay manageable. **The spike is worth doing first because a positive result
 changes the architecture materially.**
 
+## 3a. What's left of the backend: deployment tiers
+
+Once prediction moves to the device, the backend shrinks dramatically — enough to
+change its shape, not just its size. Structured as tiers so overhead grows only
+when a feature demands it, and so the project **degrades gracefully in cost**: if
+paid hosting ever lapses, Tier 0 keeps working.
+
+### Tier 0 — Static (Phase 1 target) 🎯
+
+**There is no server.** A scheduled job fetches SWPC and the ionosphere grid,
+writes bundle files, and pushes them to static hosting. Clients download bundles
+and compute everything locally.
+
+- **No always-on process, no database, no API server, no container orchestration.**
+- Runs as a cron job on a tiny box, or as a **GitHub Actions scheduled workflow**
+  committing/publishing to static hosting — free for public repos, and the run
+  history is itself a monitoring surface an AI agent can read.
+  *Caveat: GitHub Actions cron is best-effort and can be delayed 15+ minutes under
+  load. Acceptable here because the ionosphere refreshes on a 15-minute cadence
+  and staleness is labeled, not fatal — but it's a real limitation to accept
+  knowingly.*
+- **Cost: ~$0–5/month.** Failure mode: bundles go stale, clients say so, nothing
+  breaks.
+- This is also the **minimum possible burden on upstreams** — one fetch every 15
+  minutes, forever, regardless of user count.
+
+### Tier 1 — Add live activity (Phase 2)
+The PSKReporter MQTT consumer is the only component that genuinely needs an
+always-on process (~300 msg/s sustained). It powers the `activity` component of
+the A-score.
+
+- Small fixed-price VPS. **~$5–10/month.**
+- Note the A-score is designed so components can drop out with weights
+  renormalizing — so **this is genuinely optional**. Tier 0 produces a complete,
+  useful product with a three-component score. If it's ever not worth the money or
+  the maintenance, turn it off and the app degrades honestly rather than breaking.
+
+### Tier 2 — Coverage precompute + history (Phase 3)
+Area maps too heavy for phones, plus climatology from wspr.live. Adds a database
+and a periodic compute job. **~$10–25/month**, still bounded.
+
+**The Phase 1 goal is to reach Tier 0 and stay there as long as possible.**
+
 ## 4. Cost model
 
 Rough, deliberately labeled as estimates, and sized for the fixed-price hosting
@@ -113,14 +157,23 @@ recommended in §6.
 
 **Estimated monthly cost:**
 
-| Phase | Scale | Infra | Estimate |
+| Tier | Scale | Infra | Estimate |
 |---|---|---|---|
-| 1 | Hundreds of users | One small fixed-price VPS (2–4 GB), Cloudflare free tier CDN | **~$10–15/mo** |
-| 2–3 | Thousands | 8 GB VPS, same CDN, coverage precompute | **~$25–40/mo** |
-| 4+ | Tens of thousands | Larger VPS or two, CDN bandwidth grows | **~$50–100/mo** |
+| **0** | Any — cost is user-independent | Scheduled job + static hosting/CDN free tier | **~$0–5/mo** |
+| **1** | Adds live activity | + one small fixed-price VPS for the MQTT consumer | **~$5–10/mo** |
+| **2** | Adds coverage + history | + database and periodic compute | **~$10–25/mo** |
 
-Plus one-offs: domain (~$15/yr), Apple Developer ($99/yr) and Google Play ($25
-once) when the mobile app ships in Phase 4.
+Plus one-off: domain (~$15/yr).
+
+**On the app stores:** Apple Developer is $99/**year** and Google Play $25 once —
+but the real cost isn't the fee, it's that both platforms force periodic SDK and
+policy updates whether or not the app changed. For a free tool with a
+minimal-overhead mandate, that's the single largest recurring maintenance burden
+in the entire plan, and it's the one an AI agent can't handle for you (store
+credentials, signing keys, review responses). **Recommendation: treat the PWA as
+the shipping target and native apps as optional-if-ever.** An installable PWA with
+offline support and home-screen presence covers nearly all of the mobile use case
+now that prediction runs on-device — see the roadmap's revised Phase 4.
 
 Note the **sublinear scaling**: 100× the users is nowhere near 100× the cost,
 because everyone downloads byte-identical cached bundles. If client-side

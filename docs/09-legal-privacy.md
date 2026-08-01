@@ -9,22 +9,45 @@ and both are expensive to retrofit.
 
 ---
 
-## 1. License ⚠️
+## 1. License ✅ resolved
 
-**Recommendation: Apache-2.0 for the code**, with docs under CC BY 4.0.
+**MIT.** `LICENSE` is in the repo root; docs are covered by the same.
 
-- Permissive (keeps the door open for a hosted service or commercial tier later),
-  unlike AGPL which would complicate that.
-- Includes an explicit patent grant, which MIT lacks.
-- Familiar and uncontroversial in this community.
+Rationale, given the project is free, unpaid, and overhead-averse: MIT is the
+lowest-friction option in existence — no compliance surface, no copyleft
+obligations to reason about, maximum reuse, and the most familiar license in
+amateur radio software. Apache-2.0 was the alternative (it adds an explicit patent
+grant) but that protection is close to irrelevant here and costs a longer, more
+procedural file.
 
-If you'd rather guarantee the project stays free and community-owned, **AGPL-3.0**
-is the alternative — it prevents someone hosting a closed fork of our work, at
-the cost of foreclosing most commercial paths. Pick before the first outside
-contribution arrives; relicensing later requires every contributor's consent.
+Notes:
 
-**Blocking for launch, not for building** — I have not added a `LICENSE` file, as
-that's your decision to make.
+- **This does not foreclose making money.** MIT permits selling hosted service,
+  accepting donations/sponsorship, or dual-licensing later. As sole copyright
+  holder you retain every option.
+- **Trivially changeable right now**, while you're the only contributor — one
+  commit. That stops being true once outside contributions arrive, since
+  relicensing then needs every contributor's consent. If you want AGPL-3.0 (to
+  guarantee nobody ships a closed fork) or Apache-2.0, say so and it's a one-file
+  change.
+
+## 1a. Commercial intent ✅ resolved
+
+**Free tool, no charging, no revenue expected** — built primarily to be the tool
+the author wanted to have. This resolves the largest legal risk in the plan:
+
+- **GIRO's non-commercial terms are no longer a blocker.** This was the one ⚠️
+  that could have forced a data-source swap. Non-commercial use is squarely within
+  what GIRO, PSKReporter, and the rest are offered for.
+- **Attribution and courtesy notification are now the entire obligation** for
+  every source in the table below.
+- The Tier 0 architecture (`11-operating-constraints.md` §3a) means our actual
+  load on volunteer infrastructure is one fetch per 15 minutes — about as good a
+  citizen as it's possible to be.
+
+**If that ever changes** (paid tier, sponsorship that looks commercial, an
+employer adopting it), revisit this section *first* — specifically GIRO. The
+adapter isolation exists so that conversation stays cheap.
 
 ## 2. Upstream data terms audit
 
@@ -36,9 +59,9 @@ stays negligible.
 | Source | Terms | Commercial use | Action required |
 |---|---|---|---|
 | **NOAA SWPC / NCEI** | US Government work — public domain | ✅ Yes | None. Attribute as courtesy. |
-| **GIRO / DIDBase** | Free for research/non-commercial; **redistribution and commercial use need clarification** | ⚠️ Unclear | **Contact GIRO before any paid tier.** Our use is derived products (assimilated grids), not raw redistribution — usually more acceptable, but get it in writing. |
-| **KC2G grids** | Open-source project (WWROF-funded), community goodwill | ⚠️ Ask | **Email KC2G before Phase 1 launch.** Not built for third-party load. Phase 3 self-hosting removes the dependency. |
-| **PSKReporter** | Public MQTT broker, community norms | ⚠️ Ask if commercial | Respect rate limits, identify our client, attribute. Contact if we monetize. |
+| **GIRO / DIDBase** | Free for research/non-commercial | ✅ N/A — we're non-commercial | Attribute and cite. Revisit only if the project ever monetizes. |
+| **KC2G grids** | Open-source project (WWROF-funded), community goodwill | ✅ Non-commercial | **Still email KC2G before public launch** — courtesy, not licensing. His server isn't built for third-party load, and at Tier 0 we're one fetch per 15 min, which is an easy conversation to have. |
+| **PSKReporter** | Public MQTT broker, community norms | ✅ Non-commercial | Respect rate limits, identify our client, attribute. |
 | **wspr.live** | Free including commercial, with attribution + notification | ✅ Yes | Attribute; notify the operator. Keep queries bounded. |
 | **RBN** | Free feeds, attribution expected | ✅ Generally | Attribute. |
 | **ITURHFProp / voacapl / dvoacap-python** | Open source | ✅ Check each license | Verify exact license of the engine we pick; vendor the notice. |
