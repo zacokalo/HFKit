@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Phase 0 spike artifacts — reproducible, not source
+spike/**/out/cache/
+spike/**/toolchain/
+spike/**/emsdk/
+spike/**/build/
+*.wasm
+*.o
+*.a
+*.so
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
