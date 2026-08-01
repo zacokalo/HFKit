@@ -125,3 +125,41 @@ that adapter, not rewriting features.
   environment, and Fortran→WASM is a substantially harder path.
 - **Server-side ITURHFProp** — remains the fallback if a future platform can't
   run WASM, but there is now no reason to prefer it.
+
+---
+
+## Addendum (Phase 1): browser execution verified, and a build-flag correction
+
+Packaging the engine as `@hfkit/engine` surfaced that the Phase 0 artifact had
+been compiled with `-sENVIRONMENT=node`, making it **Node-only**. Phase 0 proved
+the engine *computes* correctly under WASM, but it had only ever been executed
+under Node — so the browser half of this ADR's premise was, strictly, untested.
+
+**Fixed and verified.** Rebuilt with `-sENVIRONMENT=node,web` (a one-flag change;
+the `.wasm` is byte-identical at 205,767 bytes, since the flag only affects the
+JS glue, which grew 62,017 → 62,603 bytes). Then confirmed end to end in headless
+Chromium:
+
+- Emscripten factory resolves and the module instantiates in-browser ✓
+- `FS` and `callMain` are available ✓
+- 11 MB of ITU data mounts into MEMFS in **399 ms** ✓
+- All 65 `@hfkit/engine` tests still pass against the rebuilt artifact, including
+  the golden test reproducing the Phase 0 reference output numerically ✓
+
+**Known integration detail:** `MODULARIZE=1` without `EXPORT_ES6` emits a
+CommonJS-style export, so the glue loads as a classic script (global `Module`)
+rather than a browser ESM `import`. Vite's CJS interop handles this, and
+`-sEXPORT_ES6=1` is available if a clean ESM path is preferred — a decision for
+the web-app phase, not a blocker.
+
+**Second upstream defect found** (documented in `packages/engine/README.md`):
+`Report.c` declares `static int Header = TRUE`, a process-lifetime C global, so
+only the *first* `callMain()` on a given WASM instance emits the report header.
+Reusing one instance across predictions — which we do, to avoid repaying the
+~20 ms data load — silently drops that section. The computed data was verified
+byte-identical between reused and fresh instances; only the text scaffold
+differs. The parser therefore falls back to a known-correct column layout rather
+than reinitialising per call or risking a misaligned parse.
+
+**Measured in the packaged wrapper:** 0.734 ms/prediction, ~9.6 ms cold init,
+~20 ms data load. No regression against Phase 0's 0.886 ms.
