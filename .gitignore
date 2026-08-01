@@ -32,3 +32,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Derived spike data — regenerable by the spike scripts, ~134k lines.
+# The analysed reports (sanity_report, benchmark_report, metrics_report)
+# and FINDINGS.md are kept; the bulk row-level dumps they summarise are not.
+spike/engine-compare/out/predictions/
+spike/wspr-backtest/out/dataset*.csv
