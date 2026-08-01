@@ -86,12 +86,15 @@ class WsprClient:
             print(f"[wspr_client]   query: {sql}")
 
         self._rate_limit()
-        data = urllib.parse.urlencode({"query": sql}).encode("utf-8")
+        # wspr.live's nginx front-end returns 403 on POST from this
+        # environment; GET with the query as a URL parameter (as documented
+        # in the task brief's curl example) is what works.
+        qs = urllib.parse.urlencode({"query": sql})
+        url = f"{WSPR_ENDPOINT}?{qs}"
         req = urllib.request.Request(
-            WSPR_ENDPOINT,
-            data=data,
+            url,
             headers={"User-Agent": USER_AGENT},
-            method="POST",
+            method="GET",
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
