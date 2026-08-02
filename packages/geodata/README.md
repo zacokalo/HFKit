@@ -37,7 +37,7 @@ Both are derived from public datasets and are regenerated, not hand-edited:
   condition, so it must appear on the Data Sources page alongside NOAA, KC2G and
   wspr.live (`docs/09-legal-privacy.md` §2).
 
-## `data/coverage-sample.json`
+## `data/coverage-sample.json` *(no longer shipped)*
 
 Precomputed reach grids for `apps/web/reach.html`: 3 transmitter sites ×
 1,620 grid points (6°) × 4 hours × **all nine bands**, plus path MUF per cell.
@@ -48,11 +48,17 @@ range* — the lowest and highest band that meets the requirement, which is the
 practical form of LUF and MUF — cannot be recovered from a single best-band
 figure.
 
-**Measured cost, which is why these are precomputed:** ~155 ms per grid point
-for four hours across nine bands, so a full 5° global grid is **~6 minutes per
-site**. Far too slow for a browser tab, and the evidence behind
-`docs/03-architecture.md` precomputing coverage server-side while point-to-point
-runs on-device.
+**Superseded.** `apps/web/reach.html` now computes its own grid on-device across
+a worker pool, so `build.mjs` no longer publishes this file and no page reads it.
+It is kept in the repo as a fixture.
+
+The cost figure that originally justified precomputing — ~155 ms per grid point
+for four hours across nine bands — was measured single-threaded through the
+Python port. The WebAssembly engine across four workers measures ~50 ms per point
+of wall time, which is what makes a 12° grid (~21 s) tolerable in a tab. That
+does **not** overturn `docs/03-architecture.md`: a 6° grid is still ~81 s, which
+is why detail is a user choice, coarse passes render first, and results are
+cached.
 
 ## `data/gazetteer-compact.json`
 

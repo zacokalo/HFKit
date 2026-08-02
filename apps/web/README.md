@@ -7,7 +7,7 @@ computes anything.
 |---|---|
 | `index.html` | Landing, with an honest note on what is real and what is not |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
-| `reach.html` | Reach map: precomputed coverage, day/night overlay, receivers with per-circuit MUF and usable band range. Pan and zoom. |
+| `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, receivers with per-circuit MUF and usable band range. Pan and zoom. |
 | `styleguide.html` | Every design token in all three themes |
 
 ## Build
@@ -81,7 +81,14 @@ fetches its data files.
 - The engine's **reliability** output is a defect (reads zero for every circuit,
   ignores required SNR — see `packages/engine/README.md`), so every page shows
   **SNR margin** instead. The A-score does not exist yet.
-- Reach maps are precomputed for three sample sites. Generating one for an
-  arbitrary QTH is on-device work: measured ~87 ms per grid point, so ~21 s for a
-  12° grid across four workers. See the roadmap.
+- Reach maps are computed on-device, so they cost real time: measured ~87 ms per
+  grid point in one worker and a 1.74x speedup across four, giving ~5 s at 24°,
+  ~21 s at 12° and ~81 s at 6° for a four-hour span. A 24-hour span is roughly
+  six times that. The page estimates before you start and refines the estimate
+  from live throughput.
+- A coarse pass paints each sample across the whole 24° or 12° block it stands
+  for, so an early frame is a sketch, not a per-point prediction.
+- Grids are cached in IndexedDB (12 most recent) and the last session in
+  localStorage, so a return visit redraws instantly. Nothing is recomputed on
+  load without an explicit Generate.
 - Receiver positions on the reach map snap to the nearest 6° cell (~330 km).

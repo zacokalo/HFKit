@@ -66,9 +66,9 @@
       </a>
       <a class="card" href="./reach.html">
         <b>Reach map</b>
-        <span>Where a station can be heard, with day/night overlay. Add receivers to draw
-          circuits and read each one's usable band range.</span>
-        <em>precomputed &middot; pan &amp; zoom</em>
+        <span>Where any station can be heard, with a day/night overlay. Computes across
+          worker threads and fills the map in as it goes &mdash; coarse first, then sharper.</span>
+        <em>live engine &middot; pan &amp; zoom</em>
       </a>
       <a class="card" href="./styleguide.html">
         <b>Style guide</b>
@@ -89,9 +89,13 @@
       displays it. What you see is <b>SNR margin</b>, which is verified responsive.</div>
     <div>The <b>A-score</b> described in the design docs does not exist yet. It is meant to be
       a calibrated probability, and calibrating it depends on resolving that defect first.</div>
-    <div>Reach maps are precomputed for three sample sites at 100 W into isotropic
+    <div>Reach maps are computed for whatever transmitter you pick, at 100 W into isotropic
       antennas &mdash; deliberately pessimistic. The station control applies a real transmit
-      advantage on top.</div>
+      advantage on top. Coarse passes paint each sample across the block it stands for, so
+      an early frame is a sketch until the finer passes land.</div>
+    <div>Solar activity is a <b>fixed placeholder</b> (effective sunspot number 60) until the
+      space-weather pipeline is wired in. Predictions do not yet respond to today's
+      conditions.</div>
   </div>
 
   <div>

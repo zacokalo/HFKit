@@ -41,8 +41,11 @@ for (const f of ['iturhfprop.js', 'iturhfprop.wasm']) {
 await cp(path.join(repo, 'packages/engine/dist'), path.join(vendor, 'engine'), { recursive: true });
 await cp(path.join(repo, 'packages/theme/styleguide.html'), path.join(here, 'styleguide.html'));
 
-// --- geodata (coastline, gazetteer, precomputed reach grids) ---
-for (const f of ['coastline.geojson', 'gazetteer-compact.json', 'coverage-sample.json']) {
+// --- geodata (coastline, gazetteer) ---
+// coverage-sample.json is deliberately NOT shipped: the reach map computes its
+// own grid on-device now, so publishing an 838 KB precomputed one would cost
+// every visitor bandwidth for data the page never reads.
+for (const f of ['coastline.geojson', 'gazetteer-compact.json']) {
   const src = path.join(repo, 'packages/geodata/data', f);
   if (existsSync(src)) await cp(src, path.join(geoOut, f));
 }

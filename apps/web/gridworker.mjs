@@ -11,8 +11,14 @@ async function boot(dataUrl) {
   // In a worker there is no currentScript, and the glue is eval'd besides, so
   // it would look beside the worker rather than in vendor/. locateFile pins it.
   const raw = self.Module;
-  setModuleFactory((opts = {}) =>
-    raw({ ...opts, locateFile: (f) => new URL('./vendor/' + f, self.location.href).href }));
+  setModuleFactory((opts = {}) => raw({
+    ...opts,
+    locateFile: (f) => new URL('./vendor/' + f, self.location.href).href,
+    // ITURHFProp is a CLI program and narrates every run on stdout. One grid is
+    // over a thousand of those runs, and console I/O is not free, so stdout is
+    // dropped here. stderr is left alone: a real failure must still be visible.
+    print: () => {},
+  }));
   engine = await HFEngine.create({ dataProvider: new BrowserDataProvider(dataUrl) });
 }
 
@@ -22,6 +28,7 @@ self.onmessage = async (e) => {
   if (m.cmd === 'grid') {
     const { tx, points, freqs, hours, month, year, ssn, powerW, reqSnr } = m;
     const out = [];
+    let engineInfo = null;
     for (const [lat, lon] of points) {
       try {
         const r = await engine.predict({
@@ -30,6 +37,9 @@ self.onmessage = async (e) => {
           transmitPowerWatts: powerW, requiredSnrDb: reqSnr, requiredSnrBandwidthHz: 3000,
           manMadeNoise: 'residential', modulation: 'analog', solarDriver: { ssn },
         });
+        // Reported once so the page can name the engine version it actually ran
+        // rather than restating a version string from memory.
+        if (!engineInfo && r.engine) engineInfo = r.engine;
         const per = hours.map((h) => {
           let muf = null; const marg = [];
           for (const f of freqs) {
@@ -42,8 +52,7 @@ self.onmessage = async (e) => {
         });
         out.push([lat, lon, per]);
       } catch { /* skip unpredictable cells */ }
-      if (out.length % 20 === 0) self.postMessage({ progress: out.length });
     }
-    self.postMessage({ ok: true, cells: out });
+    self.postMessage({ ok: true, cells: out, engine: engineInfo });
   }
 };
