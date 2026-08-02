@@ -758,6 +758,15 @@ input[type=range]{accent-color:var(--hf-accent-interactive);width:190px}
 .mapwrap{position:relative;border:1px solid var(--hf-border-subtle);border-radius:var(--hf-radius-md);
   overflow:hidden;background:var(--hf-surface-sunken)}
 canvas{display:block;width:100%;height:auto}
+.zoomctl{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:4px}
+.zoomctl button{background:var(--hf-surface-overlay);color:var(--hf-text-primary);
+  border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);
+  font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-sm);
+  padding:4px 9px;cursor:pointer;line-height:1.1}
+.zoomctl button:hover{border-color:var(--hf-border-strong)}
+.zoomctl button:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
+canvas{touch-action:none;cursor:grab}
+canvas.dragging{cursor:grabbing}
 .readout{position:absolute;left:10px;bottom:10px;background:var(--hf-surface-overlay);
   border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);padding:6px 10px;
   font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);white-space:pre;
@@ -828,6 +837,11 @@ code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
   </div>
 
   <div class="mapwrap">
+    <div class="zoomctl">
+      <button id="zin"  aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">&minus;</button>
+      <button id="zrst" aria-label="Reset view">reset</button>
+    </div>
     <canvas id="cv" width="1440" height="648"></canvas>
     <div class="readout" id="ro">Hover the map</div>
   </div>
@@ -871,6 +885,26 @@ const cv=$('cv'), ctx=cv.getContext('2d');
 const W=cv.width, H=cv.height, LAT=COV.lat, LON=COV.lon, NB=COV.bands.length;
 const REQ=COV.requiredSnrDb;
 let receivers=[];
+// View transform. World coordinates are the unzoomed equirectangular canvas;
+// panX/panY are the world point at the top-left of the viewport.
+let zoom=1, panX=0, panY=0;
+const MINZ=1, MAXZ=12;
+const toWorld=(sx,sy)=>[sx/zoom+panX, sy/zoom+panY];
+function clampView(){
+  zoom=Math.max(MINZ,Math.min(MAXZ,zoom));
+  // vertical stays inside the map; horizontal wraps, so only normalise it
+  const visH=H/zoom;
+  panY=Math.max(0,Math.min(H-visH,panY));
+  const world=W;
+  panX=((panX%world)+world)%world;
+}
+function zoomAt(sx,sy,factor){
+  const [wx,wy]=toWorld(sx,sy);
+  zoom*=factor;
+  zoom=Math.max(MINZ,Math.min(MAXZ,zoom));
+  panX=wx-sx/zoom; panY=wy-sy/zoom;
+  clampView(); draw();
+}
 
 COV.sites.forEach((s,i)=>$('site').add(new Option(s.name,i)));
 $('eng').textContent=COV.engine;
@@ -980,6 +1014,7 @@ function draw(){
   const site=COV.sites[Number($('site').value)];
   const hi=Number($('hour').value), mode=$('mode').value, gainDb=Number($('station').value);
   $('hourval').textContent=String(COV.hours[hi]).padStart(2,'0')+'Z';
+  clampView();
 
   const gw=LON.length, gh=LAT.length;
   const off=document.createElement('canvas'); off.width=gw; off.height=gh;
@@ -999,52 +1034,67 @@ function draw(){
   }
   octx.putImageData(img,0,0);
 
+  ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle=cssv('--hf-surface-sunken'); ctx.fillRect(0,0,W,H);
-  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.drawImage(off,0,0,gw,gh,0,0,W,H);
 
-  if($('daylight').value==='1') drawDaylight(COV.hours[hi]);
-
-  ctx.strokeStyle=cssv('--hf-text-muted'); ctx.lineWidth=1; ctx.globalAlpha=.55; ctx.beginPath();
-  for(const f of COAST.features){
-    const g=f.geometry, lines=g.type==='LineString'?[g.coordinates]:g.coordinates;
-    for(const line of lines){ let started=false,prev=null;
-      for(const [lo,la] of line){ const x=px(lo),y=py(la);
-        if(prev!==null&&Math.abs(x-prev)>W*0.5) started=false;
-        if(!started){ctx.moveTo(x,y);started=true;} else ctx.lineTo(x,y); prev=x; } }
-  }
-  ctx.stroke(); ctx.globalAlpha=1;
-
-  ctx.strokeStyle=cssv('--hf-border-subtle'); ctx.globalAlpha=.5; ctx.beginPath();
-  for(let la=-60;la<=60;la+=30){ctx.moveTo(0,py(la));ctx.lineTo(W,py(la));}
-  for(let lo=-120;lo<=120;lo+=60){ctx.moveTo(px(lo),0);ctx.lineTo(px(lo),H);}
-  ctx.stroke(); ctx.globalAlpha=1;
-
-  // circuits to each receiver, coloured by how that circuit performs
+  // Longitude wraps, so the world is drawn three times side by side. Panning
+  // east past the antimeridian then continues seamlessly instead of hitting a
+  // wall -- which matters here, because a Pacific transmitter's most useful
+  // view straddles the date line.
   const tx={lat:site.lat,lon:site.lon};
-  for(const rx of receivers){
-    const c=circuitAt(site,hi,rx.lat,rx.lon,gainDb);
-    const tok=c?marginToken(c.bestMargin):'closed';
-    ctx.save();
-    ctx.strokeStyle=statusFill(tok); ctx.lineWidth=3; ctx.globalAlpha=.95;
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    for(const seg of greatCircle(tx,rx)){
-      ctx.beginPath();
-      seg.forEach(([lo,la],i)=> i?ctx.lineTo(px(lo),py(la)):ctx.moveTo(px(lo),py(la)));
-      ctx.stroke();
-    }
-    const rxx=px(rx.lon), rxy=py(rx.lat);
-    ctx.fillStyle=statusFill(tok); ctx.strokeStyle=cssv('--hf-text-primary'); ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(rxx,rxy,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  }
+  const lw=1/zoom;                                   // keep strokes ~1 CSS px
+  for(const dx of [-W,0,W]){
+    // skip copies entirely outside the viewport
+    const left=(dx-panX)*zoom, right=left+W*zoom;
+    if(right<0||left>W) continue;
+    ctx.setTransform(zoom,0,0,zoom,(dx-panX)*zoom,-panY*zoom);
 
-  const sx=px(site.lon), sy=py(site.lat);
-  ctx.strokeStyle=cssv('--hf-accent-interactive'); ctx.lineWidth=2.5;
-  ctx.beginPath(); ctx.arc(sx,sy,9,0,Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(sx-15,sy); ctx.lineTo(sx+15,sy);
-  ctx.moveTo(sx,sy-15); ctx.lineTo(sx,sy+15); ctx.stroke();
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    ctx.drawImage(off,0,0,gw,gh,0,0,W,H);
+
+    if($('daylight').value==='1') drawDaylight(COV.hours[hi]);
+
+    ctx.strokeStyle=cssv('--hf-text-muted'); ctx.lineWidth=lw; ctx.globalAlpha=.55; ctx.beginPath();
+    for(const f of COAST.features){
+      const g=f.geometry, lines=g.type==='LineString'?[g.coordinates]:g.coordinates;
+      for(const line of lines){ let started=false,prev=null;
+        for(const [lo,la] of line){ const x=px(lo),y=py(la);
+          if(prev!==null&&Math.abs(x-prev)>W*0.5) started=false;
+          if(!started){ctx.moveTo(x,y);started=true;} else ctx.lineTo(x,y); prev=x; } }
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    ctx.strokeStyle=cssv('--hf-border-subtle'); ctx.globalAlpha=.5;
+    ctx.lineWidth=lw; ctx.beginPath();
+    for(let la=-60;la<=60;la+=30){ctx.moveTo(0,py(la));ctx.lineTo(W,py(la));}
+    for(let lo=-120;lo<=120;lo+=60){ctx.moveTo(px(lo),0);ctx.lineTo(px(lo),H);}
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    for(const rx of receivers){
+      const c=circuitAt(site,hi,rx.lat,rx.lon,gainDb);
+      const tok=c?marginToken(c.bestMargin):'closed';
+      ctx.save();
+      ctx.strokeStyle=statusFill(tok); ctx.lineWidth=3/zoom; ctx.globalAlpha=.95;
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      for(const seg of greatCircle(tx,rx)){
+        ctx.beginPath();
+        seg.forEach(([lo,la],i)=> i?ctx.lineTo(px(lo),py(la)):ctx.moveTo(px(lo),py(la)));
+        ctx.stroke();
+      }
+      ctx.fillStyle=statusFill(tok); ctx.strokeStyle=cssv('--hf-text-primary');
+      ctx.lineWidth=1.5/zoom;
+      ctx.beginPath(); ctx.arc(px(rx.lon),py(rx.lat),6/zoom,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    const sx=px(site.lon), sy=py(site.lat), r=9/zoom, arm=15/zoom;
+    ctx.strokeStyle=cssv('--hf-accent-interactive'); ctx.lineWidth=2.5/zoom;
+    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx-arm,sy); ctx.lineTo(sx+arm,sy);
+    ctx.moveTo(sx,sy-arm); ctx.lineTo(sx,sy+arm); ctx.stroke();
+  }
+  ctx.setTransform(1,0,0,1,0,0);
 
   drawLegend(mode); renderTable();
   $('explain').textContent = mode==='margin'
@@ -1142,9 +1192,18 @@ $('rx').addEventListener('input',()=>{
 });
 $('rx').addEventListener('blur',()=>setTimeout(()=>$('sugg').hidden=true,180));
 
-cv.addEventListener('mousemove',(e)=>{
+function eventLonLat(e){
   const r=cv.getBoundingClientRect();
-  const lon=((e.clientX-r.left)/r.width)*360-180, lat=90-((e.clientY-r.top)/r.height)*180;
+  // CSS pixels -> canvas pixels -> world -> lon/lat
+  const cx=(e.clientX-r.left)*(W/r.width), cy=(e.clientY-r.top)*(H/r.height);
+  const [wx,wy]=toWorld(cx,cy);
+  let lon=(wx/W)*360-180; lon=((lon+180)%360+360)%360-180;
+  const lat=Math.max(-90,Math.min(90,90-(wy/H)*180));
+  return [lon,lat];
+}
+cv.addEventListener('mousemove',(e)=>{
+  if(dragging) return;
+  const [lon,lat]=eventLonLat(e);
   const site=COV.sites[Number($('site').value)], hi=Number($('hour').value);
   const c=circuitAt(site,hi,lat,lon,Number($('station').value));
   const pos=`${Math.abs(lat).toFixed(0)}\u00b0${lat<0?'S':'N'}  ${Math.abs(lon).toFixed(0)}\u00b0${lon<0?'W':'E'}`;
@@ -1154,6 +1213,49 @@ cv.addEventListener('mousemove',(e)=>{
       +(c.lowest>=0?`\nusable ${COV.bands[c.lowest]}\u2013${COV.bands[c.highest]}`:'\nnone usable');
 });
 cv.addEventListener('mouseleave',()=>$('ro').textContent='Hover the map');
+
+// --- pan, zoom, touch ---
+let dragging=false, lastX=0, lastY=0, pinchDist=null;
+cv.addEventListener('pointerdown',(e)=>{
+  dragging=true; lastX=e.clientX; lastY=e.clientY;
+  cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove',(e)=>{
+  if(!dragging) return;
+  const r=cv.getBoundingClientRect();
+  panX-=(e.clientX-lastX)*(W/r.width)/zoom;
+  panY-=(e.clientY-lastY)*(H/r.height)/zoom;
+  lastX=e.clientX; lastY=e.clientY;
+  draw();
+});
+for(const ev of ['pointerup','pointercancel','pointerleave'])
+  cv.addEventListener(ev,(e)=>{ dragging=false; cv.classList.remove('dragging'); });
+cv.addEventListener('wheel',(e)=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  zoomAt((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height),
+         e.deltaY<0?1.15:1/1.15);
+},{passive:false});
+cv.addEventListener('dblclick',(e)=>{
+  const r=cv.getBoundingClientRect();
+  zoomAt((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height),1.8);
+});
+cv.addEventListener('touchmove',(e)=>{
+  if(e.touches.length!==2) return;
+  e.preventDefault();
+  const [a,b]=e.touches;
+  const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+  if(pinchDist!==null){
+    const r=cv.getBoundingClientRect();
+    zoomAt(((a.clientX+b.clientX)/2-r.left)*(W/r.width),
+           ((a.clientY+b.clientY)/2-r.top)*(H/r.height), d/pinchDist);
+  }
+  pinchDist=d;
+},{passive:false});
+cv.addEventListener('touchend',()=>{ pinchDist=null; });
+$('zin').onclick =()=>zoomAt(W/2,H/2,1.6);
+$('zout').onclick=()=>zoomAt(W/2,H/2,1/1.6);
+$('zrst').onclick=()=>{ zoom=1; panX=0; panY=0; draw(); };
 
 for(const id of ['site','mode','hour','station','daylight']) $(id).addEventListener('input',draw);
 $('theme').addEventListener('change',(e)=>{$('app').setAttribute('data-app-theme',e.target.value);draw();});
@@ -1166,5 +1268,10 @@ for(const [n,cc,la,lo] of [['Dededo Village','GU',13.518,144.839],
                            ['Manila','PH',14.604,120.982],
                            ['Honolulu','US',21.307,-157.858]])
   receivers.push({name:n,cc,lat:la,lon:lo});
+// open zoomed on the transmitter's region rather than the whole globe
+(function(){
+  const s=COV.sites[Number($('site').value)];
+  zoom=2.2; panX=px(s.lon)-(W/zoom)/2; panY=py(s.lat)-(H/zoom)/2;
+})();
 draw();
 </script>
