@@ -1,0 +1,29 @@
+{
+  // Space weather mothership. Refreshes hourly into KV; serves from KV.
+  //
+  // Setup, once:
+  //   npx wrangler kv namespace create SPACEWX
+  //   -> paste the returned id into kv_namespaces[0].id below
+  //   npx wrangler deploy
+  //
+  // Hourly was chosen from measured data, not habit: the effective sunspot
+  // number moved 22 points across one real day, so daily is too coarse to feed
+  // the map — but 15-minute polling would only buy flare latency, which nothing
+  // here uses yet. See docs/adr/0003-space-weather-delivery.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hfkit-spacewx",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-01-01",
+  "observability": { "enabled": true },
+
+  "triggers": {
+    "crons": ["7 * * * *"]
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "SPACEWX",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ]
+}

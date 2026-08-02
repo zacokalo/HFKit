@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HFKit — on-device propagation demo</title>
+<meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
 <style>
   /* Every value below is a semantic token. No hardcoded colours (docs/06). */
@@ -78,6 +79,17 @@
 <script type="module">
 import { HFEngine, BrowserDataProvider, setModuleFactory, greatCircleDistanceKm }
   from './vendor/engine/browser.js';
+import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
+
+// Solar activity from the mothership, with the same fallback chain as the reach
+// map. Loaded before the engine is ready, so no prediction can beat it.
+let spaceWx = null;
+let SSN = FALLBACK_SSN;
+const spaceWxReady = loadSpaceWeather().then((sw) => {
+  spaceWx = sw;
+  SSN = sw.ssn;
+  log(describeSource(sw));
+});
 
 const SITES = {
   'Boston, MA':  { latitude:  42.36, longitude:  -71.06 },
@@ -173,6 +185,7 @@ let engine;
     setModuleFactory(window.Module);
     const t0 = performance.now();
     engine = await HFEngine.create({ dataProvider: new BrowserDataProvider('./data/itu') });
+    await spaceWxReady;
     log(`engine instantiated in ${Math.round(performance.now() - t0)} ms`);
     log('ready — first prediction also fetches ~11 MB of ITU data for the month');
     $('go').disabled = false;
@@ -196,7 +209,7 @@ $('go').addEventListener('click', async () => {
       requiredSnrBandwidthHz: 3000,
       manMadeNoise: 'residential',
       modulation: 'analog',
-      solarDriver: { ssn: 60 },        // Phase 1 will feed KC2G effective SSN here
+      solarDriver: { ssn: SSN },       // KC2G effective SSN, or a stated placeholder
       label: { pathName: `${fromName} - ${toName}` },
     });
     const ms = performance.now() - t0;

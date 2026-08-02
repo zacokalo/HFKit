@@ -50,6 +50,27 @@ for (const f of ['coastline.geojson', 'gazetteer-compact.json']) {
   if (existsSync(src)) await cp(src, path.join(geoOut, f));
 }
 
+// --- space weather snapshot ---
+// A static fallback for when the Worker is unreachable, over quota, or broken.
+// Built from the same code the Worker runs, so it cannot drift from the thing
+// it stands in for. A failure here must NOT fail the build: shipping a site
+// with a stale-but-labelled snapshot beats shipping nothing, and the client
+// degrades again to a stated default if the file is absent entirely.
+try {
+  const { buildBundle } = await import('@hfkit/spacewx');
+  const bundle = await buildBundle();
+  bundle.refreshedBy = 'build-snapshot';
+  await writeFile(path.join(here, 'data/space-weather.json'), JSON.stringify(bundle));
+  const bad = Object.entries(bundle.sources).filter(([, v]) => !v.ok);
+  console.log(bad.length
+    ? `space weather snapshot written, ${bad.length} source(s) unavailable: `
+      + bad.map(([k, v]) => `${k} (${v.error})`).join(', ')
+    : `space weather snapshot written: SSN ${bundle.solar?.ssn}, Kp ${bundle.geomag?.kp}`);
+} catch (e) {
+  console.warn(`space weather snapshot skipped: ${e.message}`);
+  console.warn('the site will fall back to a stated placeholder until the Worker is reachable');
+}
+
 // --- ITU data ---
 async function fetchTo(name, dest) {
   const url = `${ITU_RAW}/${encodeURIComponent(name)}`;
