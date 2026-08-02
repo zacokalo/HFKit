@@ -33,15 +33,37 @@ scheduled job + static hosting, no always-on server, no database**
 - [ ] **Dashboard screen:** per-band health scores (model + ionosphere + disturbance components; no live-spot component yet), 24h forecast sparklines, indices with plain-English tooltips.
 - [ ] **Path planner screen:** two pins on a map, gray line + great circle, hour × frequency reliability matrix, "best frequencies right now / best window today."
 - [x] **Geolocation sets the transmitter.** Browser geolocation fills in the user's QTH, with Maidenhead shown and a graceful path when permission is denied. The position never leaves the device — prediction is on-device, so there is no request to send it in.
-- [ ] **Reach map from the user's own QTH.** The published reach maps are precomputed per site; an arbitrary QTH needs a grid computed on-device. **Measured in-browser: 82 ms per grid point** (4 hours × 9 bands), so:
+- [ ] **Reach map from the user's own QTH — generate on-device, with a resolution control.**
+  The daily job precomputes only a small **fixed** set of sample sites, which keeps
+  server cost O(1). Precomputing per-user QTHs server-side would reintroduce exactly
+  the per-user compute ADR-0001 removed, so an arbitrary QTH is computed **on the
+  user's device** and cached locally (IndexedDB) so a repeat visit is instant.
 
-  | Grid | Single thread | 4 web workers |
-  |---|---|---|
-  | 6° (1,620 pts) | 133 s | ~39 s |
-  | **10° (612 pts)** | 50 s | **~15 s** |
-  | 15° (288 pts) | 24 s | ~7 s |
+  Measured in-browser, Chromium on 4 logical cores: **87 ms per grid point** in one
+  worker, and a **1.74× speedup across 4 workers** — *not* the 3.4× first
+  extrapolated from a Node benchmark. Corrected figures:
 
-  Viable at 10° with a worker pool and progressive rendering (draw cells as they land), roughly 15 s on desktop and likely 2–3× that on a phone. Point-to-point circuits stay instant at ~1.5 ms each, so the receiver table works from any location immediately — it is only the area grid that needs this treatment.
+  | Grid | Points | 1 worker | 4 workers |
+  |---|---|---|---|
+  | 24° coarse | 105 | 9 s | **5 s** |
+  | 12° medium | 420 | 37 s | **21 s** |
+  | 10° | 576 | 50 s | 29 s |
+  | 6° full | 1,620 | 141 s | **81 s** |
+
+  **Design: progressive, nested resolutions.** 24° / 12° / 6° nest exactly, so each
+  pass refines the previous one instead of recomputing it. A first map appears in
+  ~5 s, sharpens at ~21 s, and 6° remains an explicit "high detail" opt-in because
+  81 s is too long to spend by default. Point-to-point circuits stay instant
+  (~1.5 ms), so the receiver table needs none of this.
+
+  Open risks before building:
+  - **Worker memory is unmeasured.** `performance.memory` reports only the main
+    thread, so the ~11 MB ITU data copy *per worker* plus each WASM instance was not
+    captured. Four workers could plausibly cost 50 MB+, which matters on a phone.
+    Measure before choosing a default pool size; consider sharing one worker on mobile.
+  - Parallel efficiency was only 44% on 4 cores. Worth checking whether the ceiling
+    is memory bandwidth from the per-worker data copies, since that would also cap
+    any larger pool.
 - [ ] Responsive + PWA installable from day one.
 - [ ] Deploy publicly (soft launch), attribution page.
 - **Exit criteria:** a stranger can answer "is 40 m any good to Europe from my QTH tonight?" in under 30 seconds on their phone.
