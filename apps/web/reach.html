@@ -773,15 +773,23 @@ code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
 <div class="app" id="app" data-app-theme="auto">
   <header class="hd">
     <h1>Reach map</h1>
-    <p class="lede">Where a station can actually be heard. Every point on Earth coloured by
-      the best HF band from the selected site at the selected hour.</p>
+    <p class="lede">Where a station can actually be heard. Every point on Earth coloured by how
+      well the selected site reaches it &mdash; scrub the hour and watch the footprint swing
+      with the sun.</p>
     <p class="note">Real ITU-R P.533 predictions on a 6&deg; grid &mdash; 1,620 points per site,
-      each evaluated across nine bands. 100&nbsp;W, isotropic antennas, August, SSN&nbsp;60,
-      24&nbsp;dB required SNR. Hover or tap the map to inspect a point.</p>
+      each evaluated across nine bands. August, SSN&nbsp;60, 24&nbsp;dB required SNR in
+      3&nbsp;kHz. The station setting shifts the whole field by that setup's transmit
+      advantage. Hover or tap the map to inspect a point.</p>
   </header>
 
   <div class="ctl">
     <div class="f"><label for="site">Transmitting from</label><select id="site"></select></div>
+    <div class="f"><label for="station">Station</label><select id="station">
+      <option value="0">100 W, isotropic (as computed)</option>
+      <option value="2">100 W + dipole</option>
+      <option value="12" selected>1 kW + dipole</option>
+      <option value="18">1 kW + 3-element beam</option>
+    </select></div>
     <div class="f"><label for="mode">Colour by</label><select id="mode">
       <option value="margin">Signal margin</option>
       <option value="band">Best band</option>
@@ -807,9 +815,15 @@ code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
 
   <footer>
     <div id="explain"></div>
-    <div>Isotropic antennas make this pessimistic; a real antenna adds gain at both ends and
-      widens every contour. The <em>shape</em> &mdash; where the skip zone falls, how far each
-      band reaches &mdash; is what to read.</div>
+    <div><strong>About the station setting:</strong> the grid was computed at 100&nbsp;W into
+      isotropic antennas. Transmit power and transmit antenna gain add directly to the
+      signal while the noise at the far end is unchanged, so they shift SNR by a flat
+      number of dB and can be applied exactly &mdash; 100&nbsp;W to 1&nbsp;kW is
+      +10&nbsp;dB, a dipole about +2&nbsp;dB, a 3-element beam about +8&nbsp;dB.</div>
+    <div><em>Receive</em> antenna gain is deliberately not included. At HF the receiver is
+      limited by external noise &mdash; atmospheric, man-made and galactic &mdash; not by
+      its own front end, so a bigger receive antenna lifts the signal and the noise
+      together and largely cancels out of SNR. Counting it would flatter the map.</div>
     <div>Engine <code id="eng"></code>. Coastlines: Natural Earth (public domain).</div>
   </footer>
 </div>
@@ -849,8 +863,11 @@ function alphaFor(m, flat){
   if(m<=-50) return 0;
   return Math.round(235*Math.pow((m+50)/30, 1.3));
 }
+// Green = the circuit meets its requirement. The previous scheme reserved green
+// for +10 dB or better, which no cell in the dataset ever reached (max +8 dB),
+// so a quarter of the legend was dead and 82% of the map fell in one bin.
 function marginToken(m){ if(m===null) return 'closed';
-  if(m>=10) return 'good'; if(m>=0) return 'fair'; if(m>=-15) return 'poor'; return 'closed'; }
+  if(m>=0) return 'good'; if(m>=-10) return 'fair'; if(m>=-25) return 'poor'; return 'closed'; }
 
 function draw(){
   const site=COV.sites[Number($('site').value)];
@@ -862,10 +879,12 @@ function draw(){
   const off=document.createElement('canvas'); off.width=gw; off.height=gh;
   const octx=off.getContext('2d'); const img=octx.createImageData(gw,gh);
   const bandG=site.band[hi], margG=site.margin[hi], mufG=site.muf[hi];
+  const gainDb=Number($('station').value);
 
   for(let r=0;r<gh;r++) for(let c=0;c<gw;c++){
     const o=((gh-1-r)*gw+c)*4;   // lat ascending in data, y descending on screen
-    const b=bandG[r][c], m=margG[r][c], mf=mufG[r][c];
+    const b=bandG[r][c], m0=margG[r][c], mf=mufG[r][c];
+    const m = m0===null ? null : m0+gainDb;
     let rgb=null, a=0;
     if(mode==='band'){
       // Colour = which band is best. Opacity = how usable it actually is, so a
@@ -920,8 +939,8 @@ function draw(){
 function drawLegend(mode){
   const lg=$('lg'); lg.replaceChildren();
   if(mode==='margin'){
-    for(const [k,t] of [['good','+10 dB or better'],['fair','meets requirement'],
-                        ['poor','up to 15 dB short'],['closed','well short / no path']]){
+    for(const [k,t] of [['good','meets the requirement'],['fair','within 10 dB'],
+                        ['poor','10–25 dB short'],['closed','well short / no path']]){
       const c=document.createElement('span'); c.className='chip';
       const s=document.createElement('span'); s.className='sw'; s.style.background=statusFill(k);
       c.append(s,document.createTextNode(t)); lg.append(c); }
@@ -948,7 +967,9 @@ cv.addEventListener('mousemove',(e)=>{
   const ri=Math.round((lat-LAT[0])/6), ci=Math.round((lon-LON[0])/6);
   const site=COV.sites[Number($('site').value)], hi=Number($('hour').value);
   if(ri<0||ri>=LAT.length||ci<0||ci>=LON.length){ $('ro').textContent='Hover the map'; return; }
-  const b=site.band[hi][ri][ci], m=site.margin[hi][ri][ci], mf=site.muf[hi][ri][ci];
+  const gainDb=Number($('station').value);
+  const b=site.band[hi][ri][ci], m0=site.margin[hi][ri][ci], mf=site.muf[hi][ri][ci];
+  const m = m0===null ? null : m0+gainDb;
   $('ro').textContent =
     `${Math.abs(LAT[ri])}\u00b0${LAT[ri]<0?'S':'N'}  ${Math.abs(LON[ci])}\u00b0${LON[ci]<0?'W':'E'}\n`
     + (b===null||m===null ? 'no path predicted'
@@ -957,7 +978,7 @@ cv.addEventListener('mousemove',(e)=>{
 });
 cv.addEventListener('mouseleave',()=>{ $('ro').textContent='Hover the map'; });
 
-for(const id of ['site','mode','hour']) $(id).addEventListener('input',draw);
+for(const id of ['site','mode','hour','station']) $(id).addEventListener('input',draw);
 $('theme').addEventListener('change',(e)=>{ $('app').setAttribute('data-app-theme',e.target.value); draw(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 $('ro').style.whiteSpace='pre';
