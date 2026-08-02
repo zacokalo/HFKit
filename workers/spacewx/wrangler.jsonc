@@ -23,7 +23,8 @@
   "kv_namespaces": [
     {
       "binding": "SPACEWX",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+      // Not a secret — an identifier, useless without account credentials.
+      "id": "698d813511544ff3bc53dd603facc4ce"
     }
   ]
 }
