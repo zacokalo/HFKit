@@ -179,3 +179,85 @@ describe('buildBundle', () => {
       `expected ~60 s, got ${b.sources.essn.ageSeconds}`);
   });
 });
+
+// --- aurora ---------------------------------------------------------------
+
+import { AURORA_FLOOR, AURORA_MIN_ABS_LAT, AURORA_STEP, parseAurora } from '../index.mjs';
+
+const auroraPayload = (coords, over = {}) => ({
+  'Observation Time': '2026-08-02T12:22:00Z',
+  'Forecast Time': '2026-08-02T13:37:00Z',
+  coordinates: coords,
+  ...over,
+});
+
+describe('parseAurora', () => {
+  test('downsamples by max, not by mean', () => {
+    // Four 1° cells inside one 2° cell. Averaging would report 13; the aurora
+    // that is actually there is 40, and that is the fact worth keeping.
+    const a = parseAurora(auroraPayload([
+      [10, 60, 40], [11, 60, 4], [10, 61, 5], [11, 61, 3],
+    ]));
+    assert.equal(a.cells.length, 3);
+    assert.equal(a.cells[2], 40);
+  });
+
+  test('drops the equatorial artifact', () => {
+    // OVATION really does publish non-zero cells at the equator — measured at
+    // 325 of them on one payload. There is no aurora there.
+    const a = parseAurora(auroraPayload([
+      [10, 0, 4], [10, -8, 3], [10, 70, 20],
+    ]));
+    const lats = [];
+    for (let i = 1; i < a.cells.length; i += 3) lats.push(a.cells[i]);
+    assert.deepEqual(lats, [70]);
+    assert.equal(a.droppedEquatorial, 2);
+  });
+
+  test('keeps an extreme low-latitude event', () => {
+    // 25° is the cut; a severe storm reaching 40° must survive it.
+    const a = parseAurora(auroraPayload([[10, 42, 30], [10, 70, 20]]));
+    const lats = [];
+    for (let i = 1; i < a.cells.length; i += 3) lats.push(a.cells[i]);
+    assert.ok(lats.includes(42), `expected 42° kept, got ${lats}`);
+  });
+
+  test('drops cells below the noise floor', () => {
+    const a = parseAurora(auroraPayload([[10, 70, 1], [12, 70, 9]]));
+    assert.equal(a.cells.length, 3);
+    assert.equal(a.cells[2], 9);
+  });
+
+  test('converts longitude from 0-359 to -180..180', () => {
+    const a = parseAurora(auroraPayload([[350, 70, 20]]));
+    assert.ok(a.cells[0] < 0, `expected a western longitude, got ${a.cells[0]}`);
+    assert.ok(a.cells[0] >= -180);
+  });
+
+  test('reports the peak, for scaling a quiet night visibly', () => {
+    assert.equal(parseAurora(auroraPayload([[10, 70, 8], [12, 70, 3]])).max, 8);
+  });
+
+  test('rejects an all-zero grid rather than drawing nothing silently', () => {
+    assert.throws(() => parseAurora(auroraPayload([[10, 70, 0], [12, 70, 0]])), /every cell is zero/);
+  });
+
+  test('rejects an impossible probability', () => {
+    assert.throws(() => parseAurora(auroraPayload([[10, 70, 400]])), /out of range/);
+  });
+
+  test('rejects a payload with no forecast time', () => {
+    assert.throws(() => parseAurora({ coordinates: [[10, 70, 20]] }), /Forecast Time/);
+  });
+
+  test('rejects an empty grid', () => {
+    assert.throws(() => parseAurora(auroraPayload([])), /non-empty/);
+  });
+
+  test('exposes the constants it filtered by, so the page can say so', () => {
+    const a = parseAurora(auroraPayload([[10, 70, 20]]));
+    assert.equal(a.step, AURORA_STEP);
+    assert.equal(a.floor, AURORA_FLOOR);
+    assert.ok(AURORA_MIN_ABS_LAT > 0 && AURORA_MIN_ABS_LAT < 40);
+  });
+});

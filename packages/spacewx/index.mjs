@@ -318,3 +318,105 @@ export async function buildBundle({ fetchImpl = fetch, now = () => new Date() } 
 
   return bundle;
 }
+
+// --- aurora ---------------------------------------------------------------
+// Kept out of the main bundle and fetched separately, because it is an order of
+// magnitude larger than everything else combined and only wanted when someone
+// switches the overlay on.
+
+export const AURORA_SOURCE = {
+  url: 'https://services.swpc.noaa.gov/json/ovation_aurora_latest.json',
+  licence: 'US Government work — public domain',
+  // OVATION publishes roughly every 20 minutes and forecasts ~30 minutes ahead.
+  staleAfterSeconds: 3 * 3600,
+};
+
+/** Degrees per output cell. Finer than the reach map's own 6° propagation grid,
+ *  so the overlay never implies more precision than the data beneath it. */
+export const AURORA_STEP = 2;
+
+/** Below this the model is reporting noise, and drawing it would put a haze
+ *  over half the planet that means nothing. */
+export const AURORA_FLOOR = 2;
+
+/**
+ * Aurora is confined to the auroral ovals. OVATION's published grid is not:
+ * measured on one real payload it carried 325 non-zero cells between 0° and
+ * 10°N (peaking at 4%) and 635 between 0° and 10°S, which drew a bright band
+ * straight across the equator on the map. There is no aurora at the equator;
+ * that is an artifact of the model output, and rendering it would discredit the
+ * overlay wherever it *is* right.
+ *
+ * 25° is deliberately generous — well below the ~40° that even a severe storm
+ * reaches — so a genuine extreme event is never clipped.
+ */
+export const AURORA_MIN_ABS_LAT = 25;
+
+/**
+ * Downsample OVATION's 1° global grid.
+ *
+ * 65,160 points and ~726 KB as published; ~4,200 cells and ~40 KB after this,
+ * because two thirds of the grid is zero and the rest is confined to high
+ * latitudes. Cells are **max**-pooled rather than averaged: an aurora present
+ * in part of a cell is the fact worth keeping, and averaging would dilute a
+ * sharp oval into a smear.
+ */
+export function parseAurora(payload) {
+  const coords = payload?.coordinates;
+  if (!Array.isArray(coords) || coords.length === 0) {
+    throw new Error('aurora: expected a non-empty "coordinates" array');
+  }
+  const obs = payload['Observation Time'];
+  const fc = payload['Forecast Time'];
+  if (typeof fc !== 'string') throw new Error('aurora: no "Forecast Time"');
+
+  const pooled = new Map();
+  let maxSeen = 0;
+  for (const row of coords) {
+    if (!Array.isArray(row) || row.length < 3) continue;
+    const [lon, lat, p] = row;
+    if (!Number.isFinite(p) || p <= 0) continue;
+    if (p > 100) throw new Error(`aurora: probability ${p} is out of range`);
+    maxSeen = Math.max(maxSeen, p);
+    // OVATION publishes longitude 0–359; the map works in -180..180.
+    const lo = Math.floor((((lon + 180) % 360) + 360) % 360 / AURORA_STEP) * AURORA_STEP;
+    const la = Math.floor(lat / AURORA_STEP) * AURORA_STEP;
+    const key = `${la}:${lo}`;
+    const prev = pooled.get(key);
+    if (prev === undefined || p > prev) pooled.set(key, p);
+  }
+  if (maxSeen === 0) throw new Error('aurora: every cell is zero, which is not plausible');
+
+  // Flat triples rather than objects: a third of the bytes for the same data.
+  const cells = [];
+  let dropped = 0;
+  for (const [key, p] of pooled) {
+    if (p < AURORA_FLOOR) continue;
+    const [la, lo] = key.split(':').map(Number);
+    if (Math.abs(la) < AURORA_MIN_ABS_LAT) { dropped++; continue; }
+    cells.push(lo - 180, la, Math.round(p));
+  }
+
+  return {
+    schema: SCHEMA_VERSION,
+    step: AURORA_STEP,
+    floor: AURORA_FLOOR,
+    observedAt: typeof obs === 'string' ? new Date(obs).toISOString() : null,
+    forecastFor: new Date(fc).toISOString(),
+    max: Math.round(maxSeen),
+    // Reported rather than hidden: if this ever grows large the upstream has
+    // changed and someone should look.
+    droppedEquatorial: dropped,
+    // [lonWest, latSouth, probability] repeating; lon/lat are the cell's corner.
+    cells,
+  };
+}
+
+/** Fetch and downsample the aurora grid. Throws; the caller decides what a
+ *  failure means, because a missing overlay is not a missing prediction. */
+export async function buildAurora({ fetchImpl = fetch, now = () => new Date() } = {}) {
+  const payload = await getJson(fetchImpl, AURORA_SOURCE.url);
+  const a = parseAurora(payload);
+  a.generatedAt = now().toISOString();
+  return a;
+}

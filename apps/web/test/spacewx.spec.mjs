@@ -2,7 +2,7 @@
 // does not. The fallback chain is the whole point of this feature's design, so
 // each tier is exercised rather than assumed.
 
-import { reporter, watchErrors, dismissHint } from './harness.mjs';
+import { reporter, watchErrors, dismissHint, sample, coverage } from './harness.mjs';
 
 export default async function run(browser, origin) {
   const t = reporter('space weather');
@@ -144,6 +144,86 @@ export default async function run(browser, origin) {
     t.check(keys.some((k) => k.includes(`|s${ssn}|`)),
       'the grid was computed at the live SSN, not the placeholder',
       `${keys[0]} vs s${ssn}`);
+    await ctx.close();
+  }
+
+  // --- the aurora overlay ---
+  // Off by default and lazily loaded: 40 KB nobody asked for is 40 KB wasted.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { globalThis.__HFKIT_SPACEWX_URL__ = null; });
+    let auroraFetches = 0;
+    page.on('request', (r) => { if (r.url().includes('aurora.json')) auroraFetches++; });
+    await page.goto(`${origin}/reach.html`, { waitUntil: 'networkidle' });
+    await dismissHint(page);
+    await page.waitForTimeout(500);
+
+    t.check((await page.textContent('#auroraval')).trim() === 'off',
+      'aurora overlay starts off', await page.textContent('#auroraval'));
+    t.check(auroraFetches === 0, 'and its 40 KB is not fetched until asked for',
+      `${auroraFetches} request(s)`);
+
+    const before = await sample(page);
+    const setAurora = async (v) => {
+      await page.evaluate((val) => {
+        const e = document.getElementById('aurora');
+        e.value = val;
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+      }, v);
+    };
+    await setAurora('70');
+    await page.waitForFunction(
+      () => !document.getElementById('auroraval').textContent.includes('loading'),
+      null, { timeout: 30000 });
+    await page.waitForTimeout(600);
+
+    t.check(auroraFetches === 1, 'switching it on fetches it exactly once',
+      `${auroraFetches} request(s)`);
+    t.check((await page.textContent('#auroraval')).includes('70'),
+      'and the label reports the opacity', await page.textContent('#auroraval'));
+
+    const painted = coverage(await sample(page), before);
+    t.check(painted > 0.02, 'the overlay actually paints on the map',
+      `${(painted * 100).toFixed(1)}% of sampled pixels changed`);
+    t.check((await page.textContent('#lg')).includes('aurora'),
+      'and explains itself in the legend', await page.textContent('#lg'));
+
+    // The artifact check, against the live grid rather than a fixture: OVATION
+    // publishes non-zero cells at the equator, and there is no aurora there.
+    //
+    // Tested as a *difference* rather than by colour. An absolute "is anything
+    // yellow here" test flagged 26 pixels of the terminator, which is drawn in
+    // --hf-status-fair-fill and passes any plausible aurora colour filter.
+    // Diffing overlay-on against overlay-off isolates what the overlay drew.
+    const tropicalBand = () => page.evaluate(() => {
+      const c = document.getElementById('cv');
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const y0 = Math.round(c.height * 0.39), y1 = Math.round(c.height * 0.61);
+      const out = [];
+      for (let y = y0; y < y1; y += 2) {
+        for (let x = 0; x < c.width; x += 5) {
+          const i = (y * c.width + x) * 4;
+          out.push(d[i], d[i + 1], d[i + 2]);
+        }
+      }
+      return out;
+    });
+    const tropicsOn = await tropicalBand();
+    await setAurora('0');
+    await page.waitForTimeout(400);
+    const tropicsOff = await tropicalBand();
+    let changed = 0;
+    for (let i = 0; i < tropicsOn.length; i += 3) {
+      if (Math.abs(tropicsOn[i] - tropicsOff[i])
+        + Math.abs(tropicsOn[i + 1] - tropicsOff[i + 1])
+        + Math.abs(tropicsOn[i + 2] - tropicsOff[i + 2]) > 12) changed++;
+    }
+    t.check(changed === 0, 'the overlay draws nothing in the tropics',
+      `${changed} of ${tropicsOn.length / 3} sampled px changed`);
+
+    t.check(coverage(await sample(page), before) < 0.01, 'turning it off removes it');
+    t.check((await page.textContent('#auroraval')).trim() === 'off', 'and says off');
     await ctx.close();
   }
 
