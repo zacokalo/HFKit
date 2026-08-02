@@ -99,9 +99,12 @@
       source it used and how old it is, and falls back &mdash; to the snapshot published with
       the build, then to a clearly-labelled placeholder &mdash; rather than quietly reverting
       to a default sun.</div>
-    <div>What is still <b>not</b> modelled from live data: geomagnetic disturbance, flare
-      absorption, and observed spot activity. Kp and alerts are fetched and shown but do not
-      yet affect a prediction &mdash; that is what the A-score would add.</div>
+    <div>Only the <b>sunspot number</b> is live in the sense that matters &mdash; it is the one
+      input P.533 actually takes. Kp, solar flux and NOAA's alerts are fetched and delivered
+      to your browser, but nothing reads them yet: they are neither displayed nor applied to
+      a prediction. Making a geomagnetic storm change the map means a penalty layer on top of
+      the engine, scaled by geomagnetic latitude, which is the A-score's job and does not
+      exist. Treat every prediction here as assuming quiet geomagnetic conditions.</div>
   </div>
 
   <div>
