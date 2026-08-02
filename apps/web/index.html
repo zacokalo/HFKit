@@ -94,9 +94,14 @@
       figures are <b>peak</b> gain applied flat, so beams read optimistic on paths whose
       take-off angle they do not favour. Coarse passes paint each sample across the block it
       stands for, so an early frame is a sketch until the finer passes land.</div>
-    <div>Solar activity is a <b>fixed placeholder</b> (effective sunspot number 60) until the
-      space-weather pipeline is wired in. Predictions do not yet respond to today's
-      conditions.</div>
+    <div>Solar activity is <b>live</b>: effective sunspot number from KC2G, refreshed hourly
+      by our own service so your browser never contacts theirs. Every page states which
+      source it used and how old it is, and falls back &mdash; to the snapshot published with
+      the build, then to a clearly-labelled placeholder &mdash; rather than quietly reverting
+      to a default sun.</div>
+    <div>What is still <b>not</b> modelled from live data: geomagnetic disturbance, flare
+      absorption, and observed spot activity. Kp and alerts are fetched and shown but do not
+      yet affect a prediction &mdash; that is what the A-score would add.</div>
   </div>
 
   <div>
@@ -104,8 +109,9 @@
     <ul>
       <li><b>On-device compute</b> means our cost does not scale with users, so this can stay
         free without a funding story.</li>
-      <li><b>No server</b> in Phase 1 at all &mdash; a scheduled job publishes static files and
-        the browser does the rest.</li>
+      <li><b>Almost no server</b> &mdash; static files plus one small scheduled worker that
+        fetches space weather. It exists so that your browser never contacts NOAA or KC2G:
+        their load is a fixed 24 requests a day no matter how many people use this.</li>
       <li><b>Offline by construction</b>, which matters for the emergency and field work this
         is aimed at, where there is no signal.</li>
       <li><b>Nothing hides uncertainty</b>: data age, model limits, and known defects are

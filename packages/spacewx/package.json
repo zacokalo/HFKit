@@ -1,0 +1,19 @@
+{
+  "name": "@hfkit/spacewx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fetches, validates and assembles the space weather bundle. Shared by the Cloudflare Worker (hourly refresh) and the web build (static fallback).",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "main": "./index.mjs",
+  "scripts": {
+    "test": "node --test"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "workers/*"
+  ]
+}

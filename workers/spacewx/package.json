@@ -1,0 +1,12 @@
+{
+  "name": "@hfkit/spacewx-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker: refreshes the space weather bundle hourly into KV and serves it. The mothership — clients never contact upstream.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  }
+}

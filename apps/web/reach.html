@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HFKit — reach map</title>
 <meta name="description" content="Where an HF station can be heard. ITU-R P.533 computed in your browser, filling in as it goes.">
+<!-- Space weather mothership. Empty or absent = no live tier; the site then
+     uses the snapshot published with this build, labelled with its age. -->
+<meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
 <link rel="stylesheet" href="./lib/radio-loader.css">
 <style>
@@ -395,8 +398,10 @@ a{color:var(--hf-accent-interactive)}
       rather than a prediction for every point in it. Let the finer passes land before
       reading much into a boundary. Receiver figures always snap to the nearest 6&deg; cell
       (up to ~330&nbsp;km).</div>
-    <div>Engine <code id="eng">ITU-R P.533 (WebAssembly)</code>. Effective sunspot number is a
-      fixed placeholder of 60 until the space-weather feed lands.
+    <div id="swline"></div>
+    <div>Engine <code id="eng">ITU-R P.533 (WebAssembly)</code>.
+      Space weather: NOAA SWPC (public domain) and KC2G (attribution required), fetched by
+      our own service so your browser never contacts them.
       Coastlines: Natural Earth (public domain). Places: GeoNames (CC&nbsp;BY&nbsp;4.0).</div>
   </footer>
 </div>
@@ -406,6 +411,7 @@ import { GridPool, ReachField, gridAxes, plannedPointCount, BASE_STEP, LAT_MIN, 
   from './lib/gridpool.mjs';
 import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
   from './lib/gridcache.mjs';
+import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
 
 const $ = (i) => document.getElementById(i);
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -416,7 +422,11 @@ const FREQS = [3.5, 5.3, 7.1, 10.1, 14.1, 18.1, 21.1, 24.9, 28.3];
 const BANDS = ['80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m'];
 const NB = BANDS.length;
 const REQ = 24;            // dB of SNR in 3 kHz — the CW-ish threshold used throughout
-const SSN = 60;            // placeholder until the space-weather feed lands
+// Solar activity, from the mothership. Starts at the stated placeholder and is
+// replaced once the bundle lands; every grid key includes it, so a change
+// invalidates cached maps exactly as it should.
+let spaceWx = null;
+let SSN = FALLBACK_SSN;
 const POWER_W = 100;       // grid is computed bare; the station selector adds gain on top
 const { lat: GLAT, lon: GLON } = gridAxes(BASE_STEP);
 
@@ -1221,8 +1231,7 @@ function renderChart(per, target) {
     + `(${g >= 0 ? '+' : ''}${g.toFixed(1)} dB over the 100 W isotropic baseline; antenna `
     + 'gain is peak gain applied flat, so beams read optimistic). This is the exact path — '
     + 'unlike the map, which snaps to the nearest 6° cell — and covers all 24 hours '
-    + 'regardless of the map\'s time span. Effective sunspot number is a fixed placeholder '
-    + 'of 60.';
+    + `regardless of the map's time span. ${spaceWx ? describeSource(spaceWx) : ''}`;
 }
 
 $('chclose').onclick = () => $('chart').close();
@@ -1617,6 +1626,12 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
   ]);
   COAST = coast;
   PLACES = gaz.places;
+
+  // Before any prediction can be made, so a run never uses the placeholder when
+  // the real number was one fetch away.
+  spaceWx = await loadSpaceWeather();
+  SSN = spaceWx.ssn;
+  $('swline').textContent = describeSource(spaceWx);
 
   const s = loadSession();
   if (s) {

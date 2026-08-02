@@ -12,6 +12,7 @@ import reachSpec from './reach.spec.mjs';
 import popupSpec from './popup.spec.mjs';
 import chartSpec from './chart.spec.mjs';
 import stationSpec from './station.spec.mjs';
+import spacewxSpec from './spacewx.spec.mjs';
 
 // Fail loudly on an unbuilt site rather than reporting a wall of confusing
 // element-not-found errors.
@@ -19,6 +20,7 @@ for (const [rel, why] of [
   ['vendor/tokens.css', 'design tokens'],
   ['vendor/engine/browser.js', 'engine bundle'],
   ['data/geo/coastline.geojson', 'coastline'],
+  ['data/space-weather.json', 'space weather snapshot'],
   ['data/itu', 'ITU coefficient data'],
 ]) {
   if (!existsSync(path.join(SITE, rel))) {
@@ -58,7 +60,8 @@ const failed = [];
 
 for (const [name, spec] of [['reach map', reachSpec], ['map popups', popupSpec],
                             ['circuit chart', chartSpec],
-                            ['station controls', stationSpec]]) {
+                            ['station controls', stationSpec],
+                            ['space weather', spacewxSpec]]) {
   console.log(`\n${name}`);
   try {
     failed.push(...(await spec(browser, origin)));
