@@ -55,7 +55,8 @@
 </header>
 
 <div class="row">
-  <div><label for="from">From</label><select id="from"></select></div>
+  <div><label for="from">From (transmitter)</label><select id="from"></select></div>
+  <div><label for="myloc">&nbsp;</label><button id="myloc" type="button">Use my location</button></div>
   <div><label for="to">To</label><select id="to"></select></div>
   <div><label for="pwr">Power (W)</label><input id="pwr" type="number" value="100" min="1" max="10000" style="width:7rem"></div>
   <div><button id="go" disabled>Predict 24 h</button></div>
@@ -100,6 +101,51 @@ for (const name of Object.keys(SITES)) {
 }
 $('from').value = 'Boston, MA';
 $('to').value = 'London, UK';
+
+// --- "use my location" ---------------------------------------------------
+// Browser geolocation, used purely as a convenience for filling in the
+// transmitter. The position never leaves this device: prediction runs here in
+// WebAssembly (ADR-0001), so there is no request to send it in. That is the
+// privacy posture in docs/09 enforced structurally rather than promised.
+function maidenhead(lat, lon){
+  const A=(n)=>String.fromCharCode(65+n);
+  let x=lon+180, y=lat+90;
+  const f1=A(Math.floor(x/20)), f2=A(Math.floor(y/10));
+  x%=20; y%=10;
+  const s1=Math.floor(x/2), s2=Math.floor(y);
+  x=(x%2)*60; y=(y%1)*60;
+  const t1=String.fromCharCode(97+Math.floor(x/5)), t2=String.fromCharCode(97+Math.floor(y/2.5));
+  return `${f1}${f2}${s1}${s2}${t1}${t2}`;
+}
+$('myloc').addEventListener('click', () => {
+  if (!navigator.geolocation) { log('this browser has no geolocation'); return; }
+  $('myloc').disabled = true;
+  $('myloc').textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const grid = maidenhead(latitude, longitude);
+      const name = `My location (${grid})`;
+      SITES[name] = { latitude, longitude };
+      for (const sel of [$('from'), $('to')]) {
+        if (![...sel.options].some(o => o.value === name)) sel.add(new Option(name, name), 0);
+      }
+      $('from').value = name;
+      $('myloc').disabled = false;
+      $('myloc').textContent = 'Use my location';
+      log(`transmitter set to ${latitude.toFixed(3)}, ${longitude.toFixed(3)} (${grid})`);
+      log('stays on this device — nothing is sent anywhere');
+    },
+    (err) => {
+      $('myloc').disabled = false;
+      $('myloc').textContent = 'Use my location';
+      log(err.code === err.PERMISSION_DENIED
+        ? 'location permission denied — pick a site from the list, or enter coordinates'
+        : `could not get location: ${err.message}`);
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+  );
+});
 $('theme').addEventListener('change', (e) =>
   document.documentElement.setAttribute('data-theme', e.target.value));
 

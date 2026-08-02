@@ -32,6 +32,16 @@ scheduled job + static hosting, no always-on server, no database**
 - [ ] Ingestion live: SWPC indices + alerts, KC2G/ionosphere grids — behind per-source adapters with circuit breakers and staleness flags.
 - [ ] **Dashboard screen:** per-band health scores (model + ionosphere + disturbance components; no live-spot component yet), 24h forecast sparklines, indices with plain-English tooltips.
 - [ ] **Path planner screen:** two pins on a map, gray line + great circle, hour × frequency reliability matrix, "best frequencies right now / best window today."
+- [x] **Geolocation sets the transmitter.** Browser geolocation fills in the user's QTH, with Maidenhead shown and a graceful path when permission is denied. The position never leaves the device — prediction is on-device, so there is no request to send it in.
+- [ ] **Reach map from the user's own QTH.** The published reach maps are precomputed per site; an arbitrary QTH needs a grid computed on-device. **Measured in-browser: 82 ms per grid point** (4 hours × 9 bands), so:
+
+  | Grid | Single thread | 4 web workers |
+  |---|---|---|
+  | 6° (1,620 pts) | 133 s | ~39 s |
+  | **10° (612 pts)** | 50 s | **~15 s** |
+  | 15° (288 pts) | 24 s | ~7 s |
+
+  Viable at 10° with a worker pool and progressive rendering (draw cells as they land), roughly 15 s on desktop and likely 2–3× that on a phone. Point-to-point circuits stay instant at ~1.5 ms each, so the receiver table works from any location immediately — it is only the area grid that needs this treatment.
 - [ ] Responsive + PWA installable from day one.
 - [ ] Deploy publicly (soft launch), attribution page.
 - **Exit criteria:** a stranger can answer "is 40 m any good to Europe from my QTH tonight?" in under 30 seconds on their phone.
