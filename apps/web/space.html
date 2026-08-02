@@ -9,6 +9,7 @@
      uses the snapshot published with this build, labelled with its age. -->
 <meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/nav.css">
 <style>
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -107,11 +108,6 @@ footer strong{color:var(--hf-text-secondary)}
     <p class="lede">What the sun and the geomagnetic field are doing right now, and what
       that usually means for the bands. Fetched by our own service once an hour, so your
       browser never contacts NOAA or KC2G.</p>
-    <div class="nav">
-      <a href="./index.html">Home</a>
-      <a href="./reach.html">Reach map</a>
-      <a href="./planner.html">Path planner</a>
-    </div>
   </header>
 
   <div class="loading" id="loading">Loading space weather&hellip;</div>
@@ -181,6 +177,8 @@ footer strong{color:var(--hf-text-secondary)}
 import { loadSpaceWeather, describeAge } from './lib/spacewx.mjs';
 import { describeFlux, describeKp, kpToken, summarise, geomagneticScale }
   from './lib/spacewx-copy.mjs';
+import { mountNav } from './lib/nav.mjs';
+mountNav(document.querySelector('.wrap'), 'space.html');
 
 const $ = (i) => document.getElementById(i);
 const tok = (k) => getComputedStyle(document.documentElement)

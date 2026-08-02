@@ -9,6 +9,7 @@
      uses the snapshot published with this build, labelled with its age. -->
 <meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/nav.css">
 <link rel="stylesheet" href="./lib/radio-loader.css">
 <style>
 *,*::before,*::after{box-sizing:border-box}
@@ -198,7 +199,7 @@ a{color:var(--hf-accent-interactive)}
 </head>
 <body>
 
-<div class="app">
+<div class="app" id="app">
   <header class="hd">
     <h1>Reach map</h1>
     <p class="lede">Where your station can be heard, computed in this browser. Pick a
@@ -398,8 +399,7 @@ a{color:var(--hf-accent-interactive)}
       rather than a prediction for every point in it. Let the finer passes land before
       reading much into a boundary. Receiver figures always snap to the nearest 6&deg; cell
       (up to ~330&nbsp;km).</div>
-    <div><span id="swline"></span>
-      <a href="./space.html">Space weather &rarr;</a></div>
+    <div><span id="swline"></span> <a href="./space.html">Space weather &rarr;</a></div>
     <div>Engine <code id="eng">ITU-R P.533 (WebAssembly)</code>.
       Space weather: NOAA SWPC (public domain) and KC2G (attribution required), fetched by
       our own service so your browser never contacts them.
@@ -413,6 +413,8 @@ import { GridPool, ReachField, gridAxes, plannedPointCount, BASE_STEP, LAT_MIN, 
 import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
   from './lib/gridcache.mjs';
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
+import { mountNav } from './lib/nav.mjs';
+mountNav(document.querySelector('.app'), 'reach.html');
 
 const $ = (i) => document.getElementById(i);
 const cv = $('cv'), ctx = cv.getContext('2d');

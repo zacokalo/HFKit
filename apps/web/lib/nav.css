@@ -1,0 +1,81 @@
+/* Site navigation. Shared so the four pages cannot drift apart, and so adding a
+   fifth is one edit rather than four.
+
+   Tokens only. The current page is marked with aria-current="page" rather than a
+   class, because that is what a screen reader announces. */
+
+.sitenav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hf-spacing-1);
+  align-items: center;
+  margin-bottom: var(--hf-spacing-5);
+  padding-bottom: var(--hf-spacing-3);
+  border-bottom: 1px solid var(--hf-border-subtle);
+}
+
+.sitenav .brand {
+  font-family: var(--hf-font-family-mono);
+  font-weight: var(--hf-font-weight-semibold);
+  font-size: var(--hf-font-size-sm);
+  letter-spacing: .04em;
+  color: var(--hf-text-primary);
+  text-decoration: none;
+  margin-right: var(--hf-spacing-3);
+}
+
+.sitenav a:not(.brand) {
+  display: inline-block;
+  padding: var(--hf-spacing-1) var(--hf-spacing-3);
+  border-radius: var(--hf-radius-sm);
+  font-size: var(--hf-font-size-sm);
+  text-decoration: none;
+  color: var(--hf-text-secondary);
+  border: 1px solid transparent;
+}
+
+.sitenav a:not(.brand):hover {
+  color: var(--hf-text-primary);
+  background: var(--hf-surface-raised);
+}
+
+.sitenav a:focus-visible {
+  outline: 2px solid var(--hf-focus-ring);
+  outline-offset: 2px;
+}
+
+/* You are here. Marked with weight and a rule rather than colour alone, so it
+   still reads without colour vision. */
+.sitenav a[aria-current='page'] {
+  color: var(--hf-text-primary);
+  background: var(--hf-surface-raised);
+  border-color: var(--hf-border-default);
+  font-weight: var(--hf-font-weight-semibold);
+}
+
+.sitenav .spacer { flex: 1 }
+
+/* Live conditions, shown in the nav on every page so the state of the sun is
+   never more than a glance away. Absent until the bundle loads — never a
+   placeholder number that might be mistaken for a reading. */
+.sitenav a.wx {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hf-spacing-2);
+  font-family: var(--hf-font-family-mono);
+  font-size: var(--hf-font-size-xs);
+  color: var(--hf-text-muted);
+  text-decoration: none;
+  padding: var(--hf-spacing-1) var(--hf-spacing-2);
+  border-radius: var(--hf-radius-sm);
+}
+.sitenav a.wx:hover { background: var(--hf-surface-raised); color: var(--hf-text-primary) }
+.sitenav a.wx b { font-weight: var(--hf-font-weight-semibold); color: var(--hf-text-secondary) }
+.sitenav a.wx .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1px solid var(--hf-border-default);
+}
+
+@media (max-width: 560px) {
+  .sitenav .spacer { flex-basis: 100%; height: 0 }
+}
