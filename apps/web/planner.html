@@ -6,6 +6,7 @@
 <title>HFKit — on-device propagation demo</title>
 <meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/nav.css">
 <style>
   /* Every value below is a semantic token. No hardcoded colours (docs/06). */
   * { box-sizing: border-box; }
@@ -49,6 +50,7 @@
 </style>
 </head>
 <body>
+<div class="app">
 <header>
   <h1>HFKit — on-device propagation</h1>
   <p class="sub">ITU-R P.533 running in WebAssembly, in this browser. No server computes anything.</p>
@@ -80,6 +82,8 @@
 import { HFEngine, BrowserDataProvider, setModuleFactory, greatCircleDistanceKm }
   from './vendor/engine/browser.js';
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
+import { mountNav } from './lib/nav.mjs';
+mountNav(document.querySelector('.app'), 'planner.html');
 
 // Solar activity from the mothership, with the same fallback chain as the reach
 // map. Loaded before the engine is ready, so no prediction can beat it.
@@ -266,5 +270,6 @@ function render(res, ms) {
   $('resultCard').hidden = false;
 }
 </script>
+</div>
 </body>
 </html>

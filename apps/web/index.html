@@ -6,6 +6,7 @@
 <title>HFKit — HF propagation forecasting</title>
 <meta name="description" content="HF propagation forecasting and planning. ITU-R P.533 runs on your device; nothing is computed on a server.">
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/nav.css">
 <style>
   *,*::before,*::after{box-sizing:border-box}
   body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
@@ -135,5 +136,9 @@
     <div>Predictions are estimates, not guarantees. Always plan alternate frequencies.</div>
   </footer>
 </div>
+<script type="module">
+  import { mountNav } from './lib/nav.mjs';
+  mountNav(document.querySelector('.wrap'), 'index.html');
+</script>
 </body>
 </html>
