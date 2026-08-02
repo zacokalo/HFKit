@@ -63,13 +63,47 @@ export default async function run(browser, origin) {
   t.check(/Best window|No hour/.test(note), 'note calls out the best window', note.slice(0, 80));
   t.check((await page.textContent('#chlegend')).length > 0, 'chart carries its own legend');
 
-  // --- station gain re-renders the open chart ---
+  // --- power and antenna re-render the open chart, without recomputing ---
   const beforeCells = cells.join(',');
-  await page.selectOption('#station', '0');       // 100 W isotropic, 12 dB lower
+  await page.fill('#chpwr', '100');
   await page.waitForTimeout(500);
-  const after = await page.$$eval('#chgrid table tbody tr td:not(.h)',
+  const afterPwr = await page.$$eval('#chgrid table tbody tr td:not(.h)',
     (td) => td.map((x) => x.textContent.trim()));
-  t.check(after.join(',') !== beforeCells, 'station setting re-renders the open chart');
+  t.check(afterPwr.join(',') !== beforeCells, 'power re-renders the open chart');
+
+  await page.selectOption('#chant', '7');
+  await page.waitForTimeout(500);
+  const afterAnt = await page.$$eval('#chgrid table tbody tr td:not(.h)',
+    (td) => td.map((x) => x.textContent.trim()));
+  t.check(afterAnt.join(',') !== afterPwr.join(','), 'antenna re-renders the open chart');
+
+  // 100 W + 3-el Yagi is 0 + 7 dB; the reference in the note must agree.
+  const gainNote = await page.textContent('#chnote');
+  t.check(gainNote.includes('100 W') && gainNote.includes('3-element Yagi'),
+    'chart note names the station it was rendered at',
+    gainNote.slice(gainNote.indexOf('at '), gainNote.indexOf('at ') + 70));
+  t.check(gainNote.includes('peak gain applied flat'),
+    'chart note admits the antenna model is peak gain');
+  // The dialog's controls must drive the map's, not shadow them.
+  t.check((await page.inputValue('#ant')) === '7', 'chart station writes through to the map',
+    await page.inputValue('#ant'));
+
+  // A 10 dB power step must move every predicted cell by exactly 10 dB.
+  await page.selectOption('#ant', '0');
+  await page.fill('#chpwr', '100');
+  await page.waitForTimeout(400);
+  const at100 = await page.$$eval('#chgrid table tbody tr td:not(.h)',
+    (td) => td.map((x) => x.textContent.trim()));
+  await page.fill('#chpwr', '1000');
+  await page.waitForTimeout(400);
+  const at1000 = await page.$$eval('#chgrid table tbody tr td:not(.h)',
+    (td) => td.map((x) => x.textContent.trim()));
+  const steps = at100
+    .map((v, i) => (v === '—' || at1000[i] === '—' ? null : Number(at1000[i]) - Number(v)))
+    .filter((d) => d !== null);
+  t.check(steps.length > 0 && steps.every((d) => d === 10),
+    '10x power is exactly +10 dB on every cell',
+    `${steps.length} cells, steps ${[...new Set(steps)].join(',')}`);
 
   // --- reopening is instant, from cache ---
   await page.click('#chclose');

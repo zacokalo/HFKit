@@ -27,7 +27,7 @@ h2{margin:0 0 var(--hf-spacing-2);font-size:var(--hf-font-size-sm);text-transfor
 .f{display:flex;flex-direction:column;gap:4px;position:relative}
 label{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
   color:var(--hf-text-muted)}
-select,input[type=text]{background:var(--hf-surface-sunken);color:var(--hf-text-primary);
+select,input[type=text],input[type=number]{background:var(--hf-surface-sunken);color:var(--hf-text-primary);
   border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);
   padding:8px 10px;font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-sm)}
 select:focus-visible,input:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
@@ -110,6 +110,11 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .chead h3{margin:0;font-size:var(--hf-font-size-lg)}
 .csub{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);
   font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;margin-top:3px}
+.cstation{display:flex;align-items:center;gap:var(--hf-spacing-2);flex-wrap:wrap;
+  padding:var(--hf-spacing-3) var(--hf-spacing-4);
+  border-bottom:1px solid var(--hf-border-subtle);
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.cstation label{text-transform:none;letter-spacing:0}
 .cbody{padding:var(--hf-spacing-4);display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
 .cwait{display:flex;align-items:center;gap:var(--hf-spacing-4);
   color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
@@ -226,10 +231,30 @@ a{color:var(--hf-accent-interactive)}
       <option value="4" selected>4 snapshots (00/06/12/18Z)</option>
       <option value="24">all 24 hours</option>
     </select></div>
-    <div class="f"><label for="station">Station</label><select id="station">
-      <option value="0">100 W, isotropic</option><option value="2">100 W + dipole</option>
-      <option value="12" selected>1 kW + dipole</option><option value="18">1 kW + 3-el beam</option>
+    <div class="f"><label for="pwr">Power (W)</label>
+      <input id="pwr" type="number" min="1" max="10000" step="1" value="1000"
+        list="pwrlist" style="width:7.5rem">
+      <datalist id="pwrlist">
+        <option value="5"></option><option value="10"></option><option value="25"></option>
+        <option value="50"></option><option value="100"></option><option value="200"></option>
+        <option value="400"></option><option value="500"></option><option value="1000"></option>
+        <option value="1500"></option>
+      </datalist>
+    </div>
+    <div class="f"><label for="ant">Transmit antenna</label><select id="ant">
+      <option value="-6">Mobile whip (&minus;6 dBi)</option>
+      <option value="-3">Random wire / end-fed (&minus;3 dBi)</option>
+      <option value="0">Isotropic (0 dBi)</option>
+      <option value="0.5">Vertical, ground plane (+0.5 dBi)</option>
+      <option value="1.5">Inverted V (+1.5 dBi)</option>
+      <option value="2.1" selected>Dipole, half-wave (+2.1 dBi)</option>
+      <option value="4">Loop / hex beam (+4 dBi)</option>
+      <option value="5">2-element Yagi (+5 dBi)</option>
+      <option value="6">Log-periodic (+6 dBi)</option>
+      <option value="7">3-element Yagi (+7 dBi)</option>
+      <option value="8.5">4-element Yagi (+8.5 dBi)</option>
     </select></div>
+    <div class="f"><label>Station total</label><span class="mono" id="gainval">+12.1 dB</span></div>
     <button id="go" type="button" disabled>Generate</button>
     <button class="ghost" id="stop" type="button" hidden>Stop</button>
   </div>
@@ -305,6 +330,17 @@ a{color:var(--hf-accent-interactive)}
       <button class="popclose" id="chclose" type="button" aria-label="Close"
         style="position:static">&times;</button>
     </div>
+    <!-- The station belongs here as well as on the map: "what does this circuit
+         look like at 400 W instead of 100?" is the question this view exists to
+         answer, and a modal makes the controls behind it unreachable. -->
+    <div class="cstation">
+      <label for="chpwr">Power</label>
+      <input id="chpwr" type="number" min="1" max="10000" step="1" list="pwrlist"
+        style="width:6.5rem">
+      <span>W into</span>
+      <select id="chant"></select>
+      <span class="mono" id="chgain"></span>
+    </div>
     <div class="cbody">
       <div class="cwait" id="chwait">
         <div class="rl" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
@@ -333,10 +369,19 @@ a{color:var(--hf-accent-interactive)}
     <div><strong>The shaded half is night.</strong> The bright curve is the terminator, the
       &ldquo;grey line&rdquo; operators watch: the absorbing D layer decays quickly after
       sunset while the reflecting F layer lingers, so paths along it often run long.</div>
-    <div><strong>Station setting:</strong> the grid is computed at 100&nbsp;W into isotropic
-      antennas. Transmit power and transmit antenna gain add directly to the signal while
-      noise at the far end is unchanged, so they shift SNR by a flat number of dB and can be
-      applied exactly. <em>Receive</em> antenna gain is deliberately excluded &mdash; at HF the
+    <div><strong>Power and antenna:</strong> the grid is computed once at 100&nbsp;W into an
+      isotropic antenna, and your station is applied on top as a flat offset &mdash;
+      10&nbsp;log&#8321;&#8320;(W/100) for power plus the antenna's gain in dBi. Both scale the
+      signal while the noise at the far end is unchanged, so the shift is exact and changing
+      either <em>does not</em> require regenerating the map.</div>
+    <div><strong>The antenna figures are peak gain, applied flat.</strong> A real antenna's
+      gain depends on elevation angle, and a beam only reaches its rated figure over a narrow
+      range of angles. So a Yagi here is <em>optimistic</em> on paths that need a take-off
+      angle it does not favour &mdash; short paths wanting high angles, or very long ones
+      wanting very low. Treat the wire antennas as close to right and the beams as an upper
+      bound. Modelling this properly needs real antenna patterns fed to P.533, which is on
+      the roadmap.</div>
+    <div><strong>Receive</strong> antenna gain is deliberately excluded &mdash; at HF the
       receiver is limited by external noise, so a bigger receive antenna lifts signal and
       noise together and largely cancels out of SNR.</div>
     <div><strong>The 24-hour chart is the exact circuit.</strong> The map trades precision
@@ -446,7 +491,7 @@ function circuitAt(lat, lon, gainDb) {
   const [r, c] = cellIndex(lat, lon);
   const cell = field.at(r, c, hourIndex());
   if (!cell || !cell.margins) return null;
-  const m = cell.margins.map((v) => (v === null ? null : v + gainDb));
+  const m = cell.margins.map((v) => (v === null ? null : Math.round(v + gainDb)));
   let best = -1, bestMargin = null, lowest = -1, highest = -1;
   m.forEach((v, i) => {
     if (v === null) return;
@@ -561,7 +606,20 @@ function drawDaylight(h, opacity) {
 
 // --- frame scheduling ----------------------------------------------------
 const hourIndex = () => Math.max(0, Math.min(hours.length - 1, Number($('hour').value)));
-const gain = () => Number($('station').value);
+
+/** Decibels to add to the grid, which is computed at 100 W into an isotropic
+ *  antenna. Power and transmit antenna gain both scale the signal while the
+ *  noise at the far end is unchanged, so together they shift SNR by a flat
+ *  amount — no recompute needed when either changes. */
+function gain() {
+  const w = Number($('pwr').value);
+  const watts = Number.isFinite(w) && w > 0 ? w : POWER_W;
+  return 10 * Math.log10(watts / POWER_W) + Number($('ant').value);
+}
+function showGain() {
+  const g = gain();
+  $('gainval').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+}
 
 let pending = false, uiDirty = true;
 /** `ui` marks the legend/table/prose as stale too. Panning does not: rebuilding
@@ -1067,6 +1125,7 @@ async function showChart(target) {
   $('chgrid').replaceChildren();
   $('chlegend').replaceChildren();
   $('chnote').textContent = '';
+  syncStationIntoChart();
   $('chwait').hidden = chartCache.has(key);
   $('chwaittext').textContent = pool?.busy
     ? 'Waiting for the reach grid to finish…'
@@ -1121,7 +1180,7 @@ function renderChart(per, target) {
     hc.textContent = String(CHART_HOURS[h]).padStart(2, '0') + 'Z';
     for (let i = 0; i < BANDS.length; i++) {
       const raw = margins[i];
-      const m = raw === null || raw === undefined ? null : raw + gainDb;
+      const m = raw === null || raw === undefined ? null : Math.round(raw + gainDb);
       const td = tr.insertCell();
       const tok = marginToken(m);
       if (m !== null) {
@@ -1155,14 +1214,34 @@ function renderChart(per, target) {
     ? `Best window: ${BANDS[bestCell.i]} at ${String(bestCell.h).padStart(2, '0')}Z, `
       + `${bestCell.m > 0 ? '+' : ''}${bestCell.m} dB. `
     : 'No hour on any band is predicted to carry this circuit. ';
+  const g = gain();
   $('chnote').textContent = best
-    + `Cells are SNR margin in dB against the ${REQ} dB requirement in 3 kHz, at the `
-    + 'station setting chosen on the map. This is the exact path — unlike the map, which '
-    + 'snaps to the nearest 6° cell — and covers all 24 hours regardless of the map\'s '
-    + 'time span. Effective sunspot number is a fixed placeholder of 60.';
+    + `Cells are SNR margin in dB against the ${REQ} dB requirement in 3 kHz, at `
+    + `${$('pwr').value} W into ${$('ant').selectedOptions[0].textContent} `
+    + `(${g >= 0 ? '+' : ''}${g.toFixed(1)} dB over the 100 W isotropic baseline; antenna `
+    + 'gain is peak gain applied flat, so beams read optimistic). This is the exact path — '
+    + 'unlike the map, which snaps to the nearest 6° cell — and covers all 24 hours '
+    + 'regardless of the map\'s time span. Effective sunspot number is a fixed placeholder '
+    + 'of 60.';
 }
 
 $('chclose').onclick = () => $('chart').close();
+
+// The dialog's copies drive the real controls rather than holding their own
+// state, so there is still exactly one source of truth for the station.
+$('chant').replaceChildren(...[...$('ant').options].map((o) => new Option(o.textContent, o.value)));
+function syncStationIntoChart() {
+  $('chpwr').value = $('pwr').value;
+  $('chant').value = $('ant').value;
+  const g = gain();
+  $('chgain').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+}
+for (const [from, to] of [['chpwr', 'pwr'], ['chant', 'ant']])
+  $(from).addEventListener('input', () => {
+    $(to).value = $(from).value;
+    $(to).dispatchEvent(new Event('input', { bubbles: true }));
+    syncStationIntoChart();
+  });
 // Recompute the rendering (not the prediction) when the station selector moves,
 // so an open chart never disagrees with the map behind it.
 function refreshOpenChart() {
@@ -1369,7 +1448,8 @@ function persist(key = lastKey) {
   lastKey = key;
   saveSession({
     tx, receivers, key,
-    detail: $('detail').value, span: $('span').value, station: $('station').value,
+    detail: $('detail').value, span: $('span').value,
+    pwr: $('pwr').value, ant: $('ant').value,
     mode: $('mode').value, hour: $('hour').value, night: $('night').value,
     theme: $('theme').value, zoom, panX, panY,
   });
@@ -1520,8 +1600,11 @@ $('stop').onclick = () => {
   stopRun();
   showRun('Stopped', 'What was computed is still on the map.');
 };
-for (const id of ['mode', 'hour', 'night', 'station'])
-  $(id).addEventListener('input', () => { persist(); schedule(true); refreshOpenChart(); });
+for (const id of ['mode', 'hour', 'night', 'pwr', 'ant'])
+  $(id).addEventListener('input', () => {
+    showGain(); persist(); schedule(true); refreshOpenChart();
+    if ($('chart').open) $('chgain').textContent = $('gainval').textContent;
+  });
 for (const id of ['detail', 'span'])
   $(id).addEventListener('change', () => { persist(); updateGoLabel(); });
 $('theme').addEventListener('change', () => { applyTheme(); persist(); });
@@ -1537,7 +1620,12 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
 
   const s = loadSession();
   if (s) {
-    for (const [id, v] of [['detail', s.detail], ['span', s.span], ['station', s.station],
+    // Sessions saved before power and antenna were separate carry a single
+    // combined offset. Map it back rather than resetting someone's station.
+    const LEGACY = { 0: ['100', '0'], 2: ['100', '2.1'], 12: ['1000', '2.1'], 18: ['1000', '7'] };
+    const legacy = s.pwr == null && s.station != null ? LEGACY[Number(s.station)] : null;
+    for (const [id, v] of [['detail', s.detail], ['span', s.span],
+                           ['pwr', s.pwr ?? legacy?.[0]], ['ant', s.ant ?? legacy?.[1]],
                            ['mode', s.mode], ['hour', s.hour], ['night', s.night],
                            ['theme', s.theme]])
       if (v != null) $(id).value = v;
@@ -1568,6 +1656,7 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
       + 'Nothing is computed until you press Generate.');
   }
 
+  showGain();
   updateGoLabel();
   schedule(true);
 })();

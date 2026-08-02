@@ -7,7 +7,7 @@ computes anything.
 |---|---|
 | `index.html` | Landing, with an honest note on what is real and what is not |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
-| `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
+| `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, transmit power in watts and antenna gain as separate controls. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
 | `styleguide.html` | Every design token in all three themes |
 
 ## Build
@@ -95,6 +95,10 @@ fetches its data files.
   popup for a clicked point describes its cell, not the exact spot.
 - A pinned popup is a real element and swallows pointer events where it sits, so
   the map cannot be dragged through it. Close it or grab elsewhere.
+- Power and antenna are applied to the finished grid as a flat offset
+  (`10·log10(W/100) + dBi`), so changing either never recomputes anything. The
+  antenna figures are **peak** gain applied flat, which makes beams optimistic on
+  paths whose take-off angle they do not favour.
 - The 24-hour chart is one `predict` call on an already-booted worker, so it is
   sub-second — but it needs the engine up. The first one on a cold page pays the
   ~11 MB ITU download. It is disabled while a grid run holds the workers.

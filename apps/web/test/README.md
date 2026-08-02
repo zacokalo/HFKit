@@ -43,7 +43,8 @@ npm i -D playwright
 |---|---|
 | `reach.spec.mjs` | Blank first visit · geolocation · cost estimate · progressive fill · night-shading direction · receivers · session and grid restore · stale-grid invalidation |
 | `popup.spec.mjs` | Click popup before and after a run · per-band margin strip · add/remove receiver · set transmitter · hover popup is transient and button-free · popup tracks a pan |
-| `chart.spec.mjs` | 24-hour chart from a popup without any grid run · 24×9 grid shape · every cell a margin or an explicit dash · current hour marked · station gain re-renders · cache on reopen |
+| `chart.spec.mjs` | 24-hour chart from a popup without any grid run · 24×9 grid shape · every cell a margin or an explicit dash · current hour marked · station controls inside the modal write through · cache on reopen |
+| `station.spec.mjs` | Power/antenna arithmetic to 0.1 dB · non-preset wattages · bad input falls back · 10× power is exactly +10 dB · never triggers a recompute · restore on reload · pre-split sessions migrate |
 
 ## Three bugs these caught
 

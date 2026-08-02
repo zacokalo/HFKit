@@ -89,10 +89,11 @@
       displays it. What you see is <b>SNR margin</b>, which is verified responsive.</div>
     <div>The <b>A-score</b> described in the design docs does not exist yet. It is meant to be
       a calibrated probability, and calibrating it depends on resolving that defect first.</div>
-    <div>Reach maps are computed for whatever transmitter you pick, at 100 W into isotropic
-      antennas &mdash; deliberately pessimistic. The station control applies a real transmit
-      advantage on top. Coarse passes paint each sample across the block it stands for, so
-      an early frame is a sketch until the finer passes land.</div>
+    <div>Reach maps are computed for whatever transmitter you pick, at 100 W into an isotropic
+      antenna. Your own power and antenna are applied on top as an exact offset. Antenna
+      figures are <b>peak</b> gain applied flat, so beams read optimistic on paths whose
+      take-off angle they do not favour. Coarse passes paint each sample across the block it
+      stands for, so an early frame is a sketch until the finer passes land.</div>
     <div>Solar activity is a <b>fixed placeholder</b> (effective sunspot number 60) until the
       space-weather pipeline is wired in. Predictions do not yet respond to today's
       conditions.</div>

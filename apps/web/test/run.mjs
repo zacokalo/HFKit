@@ -11,6 +11,7 @@ import { serve, launch, SITE } from './harness.mjs';
 import reachSpec from './reach.spec.mjs';
 import popupSpec from './popup.spec.mjs';
 import chartSpec from './chart.spec.mjs';
+import stationSpec from './station.spec.mjs';
 
 // Fail loudly on an unbuilt site rather than reporting a wall of confusing
 // element-not-found errors.
@@ -56,7 +57,8 @@ const browser = await launch(chromium);
 const failed = [];
 
 for (const [name, spec] of [['reach map', reachSpec], ['map popups', popupSpec],
-                            ['circuit chart', chartSpec]]) {
+                            ['circuit chart', chartSpec],
+                            ['station controls', stationSpec]]) {
   console.log(`\n${name}`);
   try {
     failed.push(...(await spec(browser, origin)));
