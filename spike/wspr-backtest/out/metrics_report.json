@@ -1,0 +1,94 @@
+{
+  "label": "placeholder scorer (frequency + distance + daylight)",
+  "dataset_path": "/home/user/HFKit/spike/wspr-backtest/out/dataset_scored.csv",
+  "n_observations": 36000,
+  "n_worked": 12000,
+  "n_not_worked": 24000,
+  "class_balance_worked_pct": 33.33333333333333,
+  "brier_score": 0.21551929297739025,
+  "calibration_error": {
+    "ece_weighted": 0.12692821914374264,
+    "mean_abs_dev_unweighted": 0.12692821914374264,
+    "max_bin_abs_dev": 0.34510710682674606
+  },
+  "auc": 0.7116817361111111,
+  "false_confidence": {
+    "threshold": 85.0,
+    "n": 2669,
+    "observed_success_rate": 0.5473960284750843,
+    "low_sample_warning": false
+  },
+  "reliability_bins": [
+    {
+      "score_min": 0.0069574852177178,
+      "score_max": 1.4185529294091717,
+      "predicted_prob": 0.005662423405661089,
+      "observed_rate": 0.025555555555555557,
+      "n": 3600
+    },
+    {
+      "score_min": 1.4188626876553896,
+      "score_max": 16.764899635241502,
+      "predicted_prob": 0.07375577278501286,
+      "observed_rate": 0.08583333333333333,
+      "n": 3600
+    },
+    {
+      "score_min": 16.769730262388425,
+      "score_max": 30.26738752699533,
+      "predicted_prob": 0.2435789321520646,
+      "observed_rate": 0.3486111111111111,
+      "n": 3600
+    },
+    {
+      "score_min": 30.26751384937553,
+      "score_max": 38.858923668916304,
+      "predicted_prob": 0.34631868616353567,
+      "observed_rate": 0.32666666666666666,
+      "n": 3600
+    },
+    {
+      "score_min": 38.86053860766389,
+      "score_max": 46.98712256800569,
+      "predicted_prob": 0.429515602669872,
+      "observed_rate": 0.33361111111111114,
+      "n": 3600
+    },
+    {
+      "score_min": 46.98815392347876,
+      "score_max": 49.93225481638304,
+      "predicted_prob": 0.48956522223668253,
+      "observed_rate": 0.19111111111111112,
+      "n": 3600
+    },
+    {
+      "score_min": 49.932741194427685,
+      "score_max": 54.65424443626943,
+      "predicted_prob": 0.5155601787927006,
+      "observed_rate": 0.3005555555555556,
+      "n": 3600
+    },
+    {
+      "score_min": 54.65700491493768,
+      "score_max": 65.58369972662365,
+      "predicted_prob": 0.6007864700445182,
+      "observed_rate": 0.5188888888888888,
+      "n": 3600
+    },
+    {
+      "score_min": 65.59115231593894,
+      "score_max": 79.69040075608274,
+      "predicted_prob": 0.7207038308238878,
+      "observed_rate": 0.6444444444444445,
+      "n": 3600
+    },
+    {
+      "score_min": 79.70329070491356,
+      "score_max": 99.97718429161284,
+      "predicted_prob": 0.9031626623823016,
+      "observed_rate": 0.5580555555555555,
+      "n": 3600
+    }
+  ],
+  "reliability_diagram_png": "/home/user/HFKit/spike/wspr-backtest/out/reliability_diagram.png"
+}

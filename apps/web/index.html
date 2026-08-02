@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en" data-theme="field-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — HF propagation forecasting</title>
+<meta name="description" content="HF propagation forecasting and planning. ITU-R P.533 runs on your device; nothing is computed on a server.">
+<link rel="stylesheet" href="./vendor/tokens.css">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
+    font-family:var(--hf-font-family-sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:clamp(20px,5vw,56px);
+    display:flex;flex-direction:column;gap:var(--hf-spacing-6)}
+  header{display:flex;flex-direction:column;gap:var(--hf-spacing-2);
+    border-bottom:1px solid var(--hf-border-subtle);padding-bottom:var(--hf-spacing-5)}
+  h1{margin:0;font-size:clamp(26px,5vw,40px);letter-spacing:-.02em;text-wrap:balance}
+  .lede{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-lg);max-width:56ch}
+  .kicker{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+    text-transform:uppercase;letter-spacing:.1em;color:var(--hf-text-muted)}
+  h2{margin:0 0 var(--hf-spacing-3);font-size:var(--hf-font-size-sm);text-transform:uppercase;
+    letter-spacing:.06em;color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
+  .cards{display:grid;gap:var(--hf-spacing-4);
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+    background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+    border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4)}
+  a.card:hover{border-color:var(--hf-border-strong)}
+  a.card:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
+  a.card b{font-size:var(--hf-font-size-lg)}
+  a.card span{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+  a.card em{font-style:normal;font-family:var(--hf-font-family-mono);
+    font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+  ul{margin:0;padding-left:1.1em;color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+  li{margin-bottom:6px}
+  .flags{display:flex;flex-direction:column;gap:var(--hf-spacing-2);
+    background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+    border-left:3px solid var(--hf-status-fair-fill);
+    border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4);
+    font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+  .flags b{color:var(--hf-text-primary)}
+  footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-4);
+    color:var(--hf-text-muted);font-size:var(--hf-font-size-xs);
+    display:flex;flex-direction:column;gap:6px}
+  code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
+  a{color:var(--hf-accent-interactive)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Phase 1 preview</p>
+    <h1>HF propagation, computed on your device</h1>
+    <p class="lede">ITU-R P.533 compiled to WebAssembly. Nothing is computed on a server,
+      your location never leaves the browser, and once loaded it works offline.</p>
+  </header>
+
+  <div>
+    <h2>Tools</h2>
+    <div class="cards">
+      <a class="card" href="./planner.html">
+        <b>Path planner</b>
+        <span>Pick two points, get 24 hours × nine bands of SNR margin. Computes live in
+          this browser in about a third of a second.</span>
+        <em>live engine &middot; ~11 MB first load</em>
+      </a>
+      <a class="card" href="./reach.html">
+        <b>Reach map</b>
+        <span>Where any station can be heard, with a day/night overlay. Computes across
+          worker threads and fills the map in as it goes &mdash; coarse first, then sharper.</span>
+        <em>live engine &middot; pan &amp; zoom</em>
+      </a>
+      <a class="card" href="./styleguide.html">
+        <b>Style guide</b>
+        <span>Every design token in all three themes. The reskin test: one token file
+          drives the whole app.</span>
+        <em>design system</em>
+      </a>
+    </div>
+  </div>
+
+  <div class="flags">
+    <div><b>What is real here, and what is not.</b></div>
+    <div>Predictions come from the ITU's own reference implementation and are verified
+      numerically identical to a native build of it. Distances, bearings, MUF and the
+      diurnal behaviour all check out against reality.</div>
+    <div>The engine's <b>reliability</b> output is a known open defect &mdash; it reads zero
+      for every circuit tested and ignores the required-SNR input &mdash; so nothing here
+      displays it. What you see is <b>SNR margin</b>, which is verified responsive.</div>
+    <div>The <b>A-score</b> described in the design docs does not exist yet. It is meant to be
+      a calibrated probability, and calibrating it depends on resolving that defect first.</div>
+    <div>Reach maps are computed for whatever transmitter you pick, at 100 W into an isotropic
+      antenna. Your own power and antenna are applied on top as an exact offset. Antenna
+      figures are <b>peak</b> gain applied flat, so beams read optimistic on paths whose
+      take-off angle they do not favour. Coarse passes paint each sample across the block it
+      stands for, so an early frame is a sketch until the finer passes land.</div>
+    <div>Solar activity is a <b>fixed placeholder</b> (effective sunspot number 60) until the
+      space-weather pipeline is wired in. Predictions do not yet respond to today's
+      conditions.</div>
+  </div>
+
+  <div>
+    <h2>Why it is built this way</h2>
+    <ul>
+      <li><b>On-device compute</b> means our cost does not scale with users, so this can stay
+        free without a funding story.</li>
+      <li><b>No server</b> in Phase 1 at all &mdash; a scheduled job publishes static files and
+        the browser does the rest.</li>
+      <li><b>Offline by construction</b>, which matters for the emergency and field work this
+        is aimed at, where there is no signal.</li>
+      <li><b>Nothing hides uncertainty</b>: data age, model limits, and known defects are
+        shown rather than smoothed over.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <div>Engine: <code>ITU-R P.533-14.2 / P.372-14.3</code> (ITURHFProp, compiled to WebAssembly).</div>
+    <div>Space weather: NOAA SWPC (public domain). Effective sunspot number: KC2G.
+      Coastlines: Natural Earth (public domain). Places: GeoNames (CC BY 4.0).</div>
+    <div>Predictions are estimates, not guarantees. Always plan alternate frequencies.</div>
+  </footer>
+</div>
+</body>
+</html>

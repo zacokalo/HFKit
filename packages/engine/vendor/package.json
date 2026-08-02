@@ -1,0 +1,5 @@
+{
+  "type": "commonjs",
+  "private": true,
+  "comment": "This directory holds the Phase 0 spike's compiled Emscripten artifact (iturhfprop.js / iturhfprop.wasm), vendored unmodified from spike/engine-wasm/artifact/. It is CommonJS ('module.exports = Module'); this package.json's 'type': 'commonjs' overrides the parent package's 'type': 'module' for files under this directory only, which is what lets src/wasmModule.ts createRequire() it. Do not edit iturhfprop.js/.wasm here -- see spike/engine-wasm/build-wasm.sh to rebuild."
+}

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Phase 0 spike artifacts — reproducible, not source
+spike/**/out/cache/
+spike/**/toolchain/
+spike/**/emsdk/
+# Vendored upstream source trees + build dirs (re-created by the build scripts).
+# Broad glob: agents create build/, build-wasm/, build-native/, etc.
+spike/**/build*/
+*.wasm
+*.o
+*.a
+*.so
+# ...but the vendored engine artifact IS a shipped deliverable, not a build
+# output. It is 205 KB, and checking it in means `npm test` works without
+# installing the ~2 GB Emscripten toolchain — which matters for CI and for
+# agent-driven maintenance. Rebuild via spike/engine-wasm/build-wasm.sh.
+!packages/engine/vendor/*.wasm
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Derived spike data — regenerable by the spike scripts, ~134k lines.
+# The analysed reports (sanity_report, benchmark_report, metrics_report)
+# and FINDINGS.md are kept; the bulk row-level dumps they summarise are not.
+spike/engine-compare/out/predictions/
+spike/wspr-backtest/out/dataset*.csv
+
+# Node workspaces
+package-lock.json
+
+# ITU data files are fetched at build time, never committed (11 MB/month,
+# 128 MB for a full year). See apps/web/README.md.
+apps/web/data/itu/
+apps/web/vendor/
+# explorer.html is generated from packages/theme tokens + precomputed engine output

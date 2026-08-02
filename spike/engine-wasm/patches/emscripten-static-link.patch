@@ -1,0 +1,315 @@
+--- a/ITURHFProp/Src/ITURHFProp/ITURHFProp.h
++++ b/ITURHFProp/Src/ITURHFProp/ITURHFProp.h
+@@ -52,8 +52,8 @@
+ #elif __linux__ || __APPLE__
+ 	#include <dlfcn.h>
+ 	void * hLib;
+-	char * (*dllP533Version)();
+-	char * (*dllP533CompileTime)();
++	char * (*dllP533Version)(void);
++	char * (*dllP533CompileTime)(void);
+ 	int (*dllP533)(struct PathData *);
+ 	int (*dllAllocatePathMemory)(struct PathData *);
+ 	int (*dllFreePathMemory)(struct PathData *);
+@@ -66,6 +66,28 @@
+ 	int  (*dllReadIonParametersTxtFunc)(struct PathData *path, char DataFilePath[256], int silent);
+         int  (*dllReadIonParametersBinFunc)(int month, float ****foF2, float ****M3kF2, char DataFilePath[256], int silent);
+ 	int  (*dllReadP1239Func)(struct PathData *path, const char * DataFilePath);
++#elif __EMSCRIPTEN__
++	// HFKit WASM spike: P533/P372 are statically linked into the single wasm
++	// module (no dlopen/dlsym dynamic loading is used in the browser build),
++	// so these are plain function pointers assigned directly in ITURHFProp.c.
++	// The actual (non-extern) storage lives in ITURHFProp.c so each global is
++	// defined exactly once across the statically-linked build (wasm-ld has no
++	// support for C "common"/tentative-definition merging).
++	extern void * hLib;
++	extern char * (*dllP533Version)(void);
++	extern char * (*dllP533CompileTime)(void);
++	extern int (*dllP533)(struct PathData *);
++	extern int (*dllAllocatePathMemory)(struct PathData *);
++	extern int (*dllFreePathMemory)(struct PathData *);
++	extern int (*dllAllocateAntennaMemory)(struct Antenna *Ant, int freqn, int azin, int elen);
++	extern double (*dllBearing)(struct Location,struct Location,int direction);
++	extern int  (*dllReadType11Func)(struct Antenna *Ant, FILE *fp, int silent);
++	extern int  (*dllReadType13Func)(struct Antenna *Ant, FILE *fp, double bearing, int silent);
++	extern int  (*dllReadType14Func)(struct Antenna *Ant, FILE *fp, int silent);
++	extern void (*dllIsotropicPatternFunc)(struct Antenna *Ant, double G, int silent);
++	extern int  (*dllReadIonParametersTxtFunc)(struct PathData *path, char DataFilePath[256], int silent);
++        extern int  (*dllReadIonParametersBinFunc)(int month, float ****foF2, float ****M3kF2, char DataFilePath[256], int silent);
++	extern int  (*dllReadP1239Func)(struct PathData *path, const char * DataFilePath);
+ #endif
+ 
+ // End operating system preprocessor **************************************************************
+--- a/ITURHFProp/Src/ITURHFProp/ITURHFProp.c
++++ b/ITURHFProp/Src/ITURHFProp/ITURHFProp.c
+@@ -31,13 +31,33 @@
+ #elif __linux__ || __APPLE__
+ 	#include <dlfcn.h>
+ 	void * hLib;
+-	char * (*dllP533Version)();
+-	char * (*dllP533CompileTime)();
++	char * (*dllP533Version)(void);
++	char * (*dllP533CompileTime)(void);
+ 	int (*dllP533)(struct PathData *);
+ 	int (*dllAllocatePathMemory)(struct PathData *);
+ 	int (*dllFreePathMemory)(struct PathData *);
+ 	double (*dllBearing)(struct Location,struct Location,int direction);
+ 	int (*dllInputDump)(struct PathData *);
++#elif __EMSCRIPTEN__
++	// HFKit WASM spike: authoritative (non-extern) storage for the function
++	// pointer globals declared `extern` in ITURHFProp.h, plus dllInputDump
++	// which (as on Linux/macOS) is local to this translation unit.
++	void * hLib;
++	char * (*dllP533Version)(void);
++	char * (*dllP533CompileTime)(void);
++	int (*dllP533)(struct PathData *);
++	int (*dllAllocatePathMemory)(struct PathData *);
++	int (*dllFreePathMemory)(struct PathData *);
++	int (*dllAllocateAntennaMemory)(struct Antenna *Ant, int freqn, int azin, int elen);
++	double (*dllBearing)(struct Location,struct Location,int direction);
++	int  (*dllReadType11Func)(struct Antenna *Ant, FILE *fp, int silent);
++	int  (*dllReadType13Func)(struct Antenna *Ant, FILE *fp, double bearing, int silent);
++	int  (*dllReadType14Func)(struct Antenna *Ant, FILE *fp, int silent);
++	void (*dllIsotropicPatternFunc)(struct Antenna *Ant, double G, int silent);
++	int  (*dllReadIonParametersTxtFunc)(struct PathData *path, char DataFilePath[256], int silent);
++	int  (*dllReadIonParametersBinFunc)(int month, float ****foF2, float ****M3kF2, char DataFilePath[256], int silent);
++	int  (*dllReadP1239Func)(struct PathData *path, const char * DataFilePath);
++	int (*dllInputDump)(struct PathData *);
+ #endif
+ 
+ // End local globals
+@@ -64,7 +84,7 @@
+ 	  as in revisions of the specific original Recommendation and in other ITU Recommendations, free from
+ 	  any copyright assertions.
+ 	 
+-	  This software is provided “as is” WITH NO WARRANTIES, EXPRESS OR IMPLIED,
++	  This software is provided ï¿½as isï¿½ WITH NO WARRANTIES, EXPRESS OR IMPLIED,
+ 	  INCLUDING BUT NOT LIMITED TO, THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+ 	  AND NON-INFRINGEMENT OF INTELLECTUAL PROPERTY RIGHTS.
+ 	 
+@@ -154,6 +174,23 @@
+ 	dllReadIonParametersTxtFunc = dlsym(hLib,"ReadIonParametersTxt");
+ 	dllReadP1239Func = dlsym(hLib,"ReadP1239");
+ 	//printf("%s\n",dllP533Version());
++#elif __EMSCRIPTEN__
++	// HFKit WASM spike: P533 is statically linked into this wasm module, so
++	// assign the function pointers directly instead of dlopen()/dlsym().
++	dllP533Version = (char * (*)(void))P533Version;
++	dllP533CompileTime = (char * (*)(void))P533CompileTime;
++	dllP533 = P533;
++	dllAllocatePathMemory = AllocatePathMemory;
++	dllFreePathMemory = FreePathMemory;
++	dllInputDump = InputDump;
++	dllBearing = Bearing;
++	dllReadType11Func = ReadType11;
++	dllReadType13Func = ReadType13;
++	dllReadType14Func = ReadType14;
++	dllIsotropicPatternFunc = IsotropicPattern;
++	dllReadIonParametersBinFunc = ReadIonParametersBin;
++	dllReadIonParametersTxtFunc = ReadIonParametersTxt;
++	dllReadP1239Func = ReadP1239;
+ #endif
+ 
+ 	//********************************************************************************************
+@@ -417,6 +454,9 @@
+ 		exit(1);
+ 	}
+ 	dllReadFamDud = dlsym(hLib, "ReadFamDud");
++#elif __EMSCRIPTEN__
++	// HFKit WASM spike: P372 is statically linked into this wasm module.
++	dllReadFamDud = ReadFamDud;
+ #endif
+ 	// End P372.DLL Load ************************************************
+ 
+--- a/ITURHFProp/Src/ITURHFProp/Noise.h
++++ b/ITURHFProp/Src/ITURHFProp/Noise.h
+@@ -5,7 +5,7 @@
+ #ifdef _WIN32
+     #define DLLEXPORT __declspec(dllexport)
+ #endif
+-#ifdef __linux__
++#if defined(__linux__) || defined(__EMSCRIPTEN__)
+     #define DLLEXPORT
+ #endif
+ #ifdef __APPLE__
+@@ -288,13 +288,24 @@
+ #elif defined(__linux__) || defined(__APPLE__)
+     #include <dlfcn.h>
+     void *hLib;
+-    char *(*dllP372Version)();
+-    char *(*dllP372CompileTime)();
++    char *(*dllP372Version)(void);
++    char *(*dllP372CompileTime)(void);
+     int (*dllNoise)(struct NoiseParams *, int, double, double, double);
+     int (*dllAllocateNoiseMemory)(struct NoiseParams *);
+     int (*dllFreeNoiseMemory)(struct NoiseParams *);
+     int (*dllReadFamDud)(struct NoiseParams *, const char *, int);
+     void (*dllInitializeNoise)(struct NoiseParams *);
++#elif defined(__EMSCRIPTEN__)
++    /* HFKit WASM spike: statically linked; real storage lives in
++       ITURHFProp.c, defined exactly once. */
++    extern void *hLib;
++    extern char *(*dllP372Version)(void);
++    extern char *(*dllP372CompileTime)(void);
++    extern int (*dllNoise)(struct NoiseParams *, int, double, double, double);
++    extern int (*dllAllocateNoiseMemory)(struct NoiseParams *);
++    extern int (*dllFreeNoiseMemory)(struct NoiseParams *);
++    extern int (*dllReadFamDud)(struct NoiseParams *, const char *, int);
++    extern void (*dllInitializeNoise)(struct NoiseParams *);
+ #endif
+ /* End operating system preprocessor */
+ #endif // NOISE_H
+--- a/ITURHFProp/Src/ITURHFProp/P533.h
++++ b/ITURHFProp/Src/ITURHFProp/P533.h
+@@ -5,7 +5,7 @@
+ #ifdef _WIN32
+ 	#define DLLEXPORT __declspec(dllexport)
+ #endif
+-#ifdef __linux__
++#if defined(__linux__) || defined(__EMSCRIPTEN__)
+ 	#define DLLEXPORT
+ #endif
+ #ifdef __APPLE__
+@@ -490,6 +490,7 @@
+ // P533.c Prototype for the P533 propagation model engine
+ DLLEXPORT int P533(struct PathData *path);
+ DLLEXPORT char const * P533Version(void);
++DLLEXPORT char const * P533CompileTime(void);
+ 
+ // Geometry.c Prototypes
+ DLLEXPORT void GreatCirclePoint(struct Location here, struct Location there, struct ControlPt *midpnt, double distance, double fraction);
+--- a/P533/Src/P533/P533.h
++++ b/P533/Src/P533/P533.h
+@@ -5,7 +5,7 @@
+ #ifdef _WIN32
+ 	#define DLLEXPORT __declspec(dllexport)
+ #endif
+-#ifdef __linux__
++#if defined(__linux__) || defined(__EMSCRIPTEN__)
+ 	#define DLLEXPORT
+ #endif
+ #ifdef __APPLE__
+@@ -490,6 +490,7 @@
+ // P533.c Prototype for the P533 propagation model engine
+ DLLEXPORT int P533(struct PathData *path);
+ DLLEXPORT char const * P533Version(void);
++DLLEXPORT char const * P533CompileTime(void);
+ 
+ // Geometry.c Prototypes
+ DLLEXPORT void GreatCirclePoint(struct Location here, struct Location there, struct ControlPt *midpnt, double distance, double fraction);
+--- a/P533/Src/P533/P533.c
++++ b/P533/Src/P533/P533.c
+@@ -7,6 +7,20 @@
+ #include "P533.h"
+ // End Local Include **************************************************
+ 
++#ifdef __EMSCRIPTEN__
++// HFKit WASM spike: single authoritative definition of the P372 function
++// pointer globals declared `extern` in Noise.h for the Emscripten build
++// (P372 is statically linked in, not dlopen()'d).
++void *hLib;
++char *(*dllP372Version)(void);
++char *(*dllP372CompileTime)(void);
++int (*dllNoise)(struct NoiseParams *, int, double, double, double);
++int (*dllAllocateNoiseMemory)(struct NoiseParams *);
++int (*dllFreeNoiseMemory)(struct NoiseParams *);
++int (*dllReadFamDud)(struct NoiseParams *, const char *, int);
++void (*dllInitializeNoise)(struct NoiseParams *);
++#endif
++
+ 	int P533(struct PathData *path) {
+ 
+ 		/*
+@@ -191,7 +205,16 @@
+ 		dllAllocateNoiseMemory = dlsym(hLib, "AllocateNoiseMemory");
+ 		dllFreeNoiseMemory = dlsym(hLib, "FreeNoiseMemory");
+ 		dllInitializeNoise = dlsym(hLib, "InitializeNoise");
+-	#endif	
++	#elif __EMSCRIPTEN__
++		// HFKit WASM spike: P372 is statically linked into this wasm module,
++		// so assign the function pointers directly instead of dlopen()/dlsym().
++		dllP372Version = (char *(*)(void))P372Version;
++		dllP372CompileTime = (char *(*)(void))P372CompileTime;
++		dllNoise = Noise;
++		dllAllocateNoiseMemory = AllocateNoiseMemory;
++		dllFreeNoiseMemory = FreeNoiseMemory;
++		dllInitializeNoise = InitializeNoise;
++	#endif
+ 		
+ 	// End P372.DLL Load ************************************************
+ 	
+--- a/P533/Src/P533/Noise.h
++++ b/P533/Src/P533/Noise.h
+@@ -5,7 +5,7 @@
+ #ifdef _WIN32
+     #define DLLEXPORT __declspec(dllexport)
+ #endif
+-#ifdef __linux__
++#if defined(__linux__) || defined(__EMSCRIPTEN__)
+     #define DLLEXPORT
+ #endif
+ #ifdef __APPLE__
+@@ -288,13 +288,25 @@
+ #elif defined(__linux__) || defined(__APPLE__)
+     #include <dlfcn.h>
+     void *hLib;
+-    char *(*dllP372Version)();
+-    char *(*dllP372CompileTime)();
++    char *(*dllP372Version)(void);
++    char *(*dllP372CompileTime)(void);
+     int (*dllNoise)(struct NoiseParams *, int, double, double, double);
+     int (*dllAllocateNoiseMemory)(struct NoiseParams *);
+     int (*dllFreeNoiseMemory)(struct NoiseParams *);
+     int (*dllReadFamDud)(struct NoiseParams *, const char *, int);
+     void (*dllInitializeNoise)(struct NoiseParams *);
++#elif defined(__EMSCRIPTEN__)
++    /* HFKit WASM spike: P372 is statically linked into this wasm module. The
++       actual (non-extern) storage for these globals lives in P533.c so that
++       they are defined exactly once across the statically-linked build. */
++    extern void *hLib;
++    extern char *(*dllP372Version)(void);
++    extern char *(*dllP372CompileTime)(void);
++    extern int (*dllNoise)(struct NoiseParams *, int, double, double, double);
++    extern int (*dllAllocateNoiseMemory)(struct NoiseParams *);
++    extern int (*dllFreeNoiseMemory)(struct NoiseParams *);
++    extern int (*dllReadFamDud)(struct NoiseParams *, const char *, int);
++    extern void (*dllInitializeNoise)(struct NoiseParams *);
+ #endif
+ /* End operating system preprocessor */
+ #endif // NOISE_H
+--- a/P533/Src/P533/PathMemory.c
++++ b/P533/Src/P533/PathMemory.c
+@@ -187,7 +187,10 @@
+ 		exit(1);
+ 	};
+ 	dllAllocateNoiseMemory = dlsym(hLib, "AllocateNoiseMemory");
+-#endif	
++#elif __EMSCRIPTEN__
++	// HFKit WASM spike: P372 is statically linked into this wasm module.
++	dllAllocateNoiseMemory = AllocateNoiseMemory;
++#endif
+ 
+ 	// End P372.DLL Load ************************************************
+ 	
+--- a/P372/Src/P372/Noise.h
++++ b/P372/Src/P372/Noise.h
+@@ -5,7 +5,7 @@
+ #ifdef _WIN32
+     #define DLLEXPORT __declspec(dllexport)
+ #endif
+-#ifdef __linux__
++#if defined(__linux__) || defined(__EMSCRIPTEN__)
+     #define DLLEXPORT
+ #endif
+ #ifdef __APPLE__
+@@ -288,8 +288,8 @@
+ #elif defined(__linux__) || defined(__APPLE__)
+     #include <dlfcn.h>
+     void *hLib;
+-    char *(*dllP372Version)();
+-    char *(*dllP372CompileTime)();
++    char *(*dllP372Version)(void);
++    char *(*dllP372CompileTime)(void);
+     int (*dllNoise)(struct NoiseParams *, int, double, double, double);
+     int (*dllAllocateNoiseMemory)(struct NoiseParams *);
+     int (*dllFreeNoiseMemory)(struct NoiseParams *);

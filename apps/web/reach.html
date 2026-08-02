@@ -1,0 +1,1665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — reach map</title>
+<meta name="description" content="Where an HF station can be heard. ITU-R P.533 computed in your browser, filling in as it goes.">
+<link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/radio-loader.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+/* An author `display` beats the UA's [hidden] rule, and several blocks below set
+   display:flex. Without this the "pick a transmitter" overlay never goes away. */
+[hidden]{display:none!important}
+body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
+  font-family:var(--hf-font-family-sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+.app{max-width:1240px;margin:0 auto;padding:clamp(14px,3.5vw,36px);
+  display:flex;flex-direction:column;gap:var(--hf-spacing-5)}
+.hd{display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--hf-border-subtle);
+  padding-bottom:var(--hf-spacing-4)}
+h1{margin:0;font-size:clamp(20px,3vw,28px);letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0 0 var(--hf-spacing-2);font-size:var(--hf-font-size-sm);text-transform:uppercase;
+  letter-spacing:.06em;color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
+.lede{margin:0;color:var(--hf-text-secondary);max-width:68ch;font-size:var(--hf-font-size-sm)}
+.note{margin:0;color:var(--hf-text-muted);max-width:74ch;font-size:var(--hf-font-size-xs)}
+.ctl{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-4);align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px;position:relative}
+label{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--hf-text-muted)}
+select,input[type=text],input[type=number]{background:var(--hf-surface-sunken);color:var(--hf-text-primary);
+  border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);
+  padding:8px 10px;font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-sm)}
+select:focus-visible,input:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
+input[type=range]{accent-color:var(--hf-accent-interactive);width:170px}
+button{background:var(--hf-button-background);color:var(--hf-button-foreground);
+  border:1px solid var(--hf-button-border);border-radius:var(--hf-button-radius);
+  padding:var(--hf-button-padding-y) var(--hf-button-padding-x);cursor:pointer;
+  font-size:var(--hf-font-size-sm);font-weight:var(--hf-font-weight-semibold);line-height:1.25}
+button:hover:not(:disabled){background:var(--hf-button-background-hover)}
+button:disabled{background:var(--hf-surface-raised);border-color:var(--hf-border-subtle);
+  color:var(--hf-text-disabled);cursor:default}
+button:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
+button.ghost{background:none;color:var(--hf-text-secondary);border-color:var(--hf-border-default);
+  font-weight:var(--hf-font-weight-regular)}
+button.ghost:hover:not(:disabled){background:var(--hf-surface-raised);color:var(--hf-text-primary)}
+button.ghost[aria-pressed=true]{border-color:var(--hf-accent-interactive);
+  color:var(--hf-accent-interactive)}
+.mono{font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;
+  font-size:var(--hf-font-size-sm)}
+.sugg{position:absolute;top:100%;left:0;z-index:20;min-width:300px;max-height:250px;overflow-y:auto;
+  background:var(--hf-surface-overlay);border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-sm);margin-top:2px;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.sugg div{padding:6px 10px;font-size:var(--hf-font-size-sm);cursor:pointer}
+.sugg div:hover{background:var(--hf-surface-raised)}
+.sugg .cc{color:var(--hf-text-muted);font-family:var(--hf-font-family-mono);
+  font-size:var(--hf-font-size-xs)}
+
+/* --- run status --- */
+.run{display:flex;align-items:center;gap:var(--hf-spacing-4);flex-wrap:wrap;
+  background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3) var(--hf-spacing-4)}
+.run .rl{--rl-size:34px}
+.run .txt{display:flex;flex-direction:column;gap:2px;min-width:230px;flex:1}
+.run .line{font-size:var(--hf-font-size-sm);color:var(--hf-text-primary)}
+.run .sub{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;min-height:1.2em}
+.bar{height:4px;border-radius:var(--hf-radius-full);background:var(--hf-surface-sunken);
+  overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;width:0;background:var(--hf-accent-interactive);
+  transition:width var(--hf-duration-base) var(--hf-easing-standard)}
+
+.mapwrap{position:relative;border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);overflow:hidden;background:var(--hf-surface-sunken)}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+canvas.dragging{cursor:grabbing}
+canvas.overmarker{cursor:pointer}
+
+/* --- map popup --- */
+.pop{position:absolute;z-index:6;min-width:250px;max-width:320px;
+  background:var(--hf-surface-overlay);border:1px solid var(--hf-border-strong);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3);
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;gap:6px}
+.pop.transient{pointer-events:none}          /* hover preview must not eat clicks */
+.pop h3{margin:0;font-size:var(--hf-font-size-base);padding-right:18px;
+  font-weight:var(--hf-font-weight-semibold)}
+.pop .coords{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);font-variant-numeric:tabular-nums}
+.pop dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px var(--hf-spacing-3);
+  font-size:var(--hf-font-size-xs)}
+.pop dt{color:var(--hf-text-muted)}
+.pop dd{margin:0;text-align:right;font-family:var(--hf-font-family-mono);
+  font-variant-numeric:tabular-nums;color:var(--hf-text-primary)}
+.pop .bands{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;margin-top:2px}
+.pop .bands span{font-family:var(--hf-font-family-mono);font-size:9px;text-align:center;
+  padding:2px 0;border-radius:var(--hf-radius-sm);line-height:1.25}
+.pop .bands .lbl{color:var(--hf-text-muted);padding:0}
+.pop .none{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.pop .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.pop .btns button{padding:4px 9px;font-size:var(--hf-font-size-xs)}
+/* --- 24-hour circuit chart --- */
+dialog{border:1px solid var(--hf-border-strong);border-radius:var(--hf-radius-md);
+  background:var(--hf-surface-raised);color:var(--hf-text-primary);padding:0;
+  max-width:min(96vw,860px);max-height:90vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.chead{position:sticky;top:0;z-index:1;display:flex;gap:var(--hf-spacing-4);
+  align-items:flex-start;justify-content:space-between;
+  background:var(--hf-surface-raised);border-bottom:1px solid var(--hf-border-subtle);
+  padding:var(--hf-spacing-4)}
+.chead h3{margin:0;font-size:var(--hf-font-size-lg)}
+.csub{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;margin-top:3px}
+.cstation{display:flex;align-items:center;gap:var(--hf-spacing-2);flex-wrap:wrap;
+  padding:var(--hf-spacing-3) var(--hf-spacing-4);
+  border-bottom:1px solid var(--hf-border-subtle);
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.cstation label{text-transform:none;letter-spacing:0}
+.cbody{padding:var(--hf-spacing-4);display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+.cwait{display:flex;align-items:center;gap:var(--hf-spacing-4);
+  color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+.cwait .rl{--rl-size:34px}
+table.chart{border-collapse:collapse;font-size:var(--hf-font-size-xs);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;width:100%}
+table.chart th,table.chart td{padding:3px 6px;text-align:right;
+  border:1px solid var(--hf-border-subtle);white-space:nowrap}
+table.chart th{color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold);
+  background:var(--hf-surface-raised);position:sticky;top:0}
+table.chart td.h,table.chart th.h{text-align:left;color:var(--hf-text-muted);
+  background:var(--hf-surface-raised)}
+table.chart tr.now td{outline:2px solid var(--hf-accent-interactive);outline-offset:-2px}
+.cnote{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);max-width:78ch}
+.popclose{position:absolute;top:4px;right:4px;background:none;border:none;
+  color:var(--hf-text-muted);font-size:var(--hf-font-size-md);line-height:1;
+  padding:2px 6px;cursor:pointer}
+.popclose:hover:not(:disabled){background:none;color:var(--hf-text-primary)}
+.zoomctl{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:4px}
+.zoomctl button{background:var(--hf-surface-overlay);color:var(--hf-text-primary);
+  border:1px solid var(--hf-border-default);font-family:var(--hf-font-family-mono);
+  font-weight:var(--hf-font-weight-regular);padding:4px 9px;line-height:1.1}
+.zoomctl button:hover:not(:disabled){background:var(--hf-surface-overlay);
+  border-color:var(--hf-border-strong)}
+.readout{position:absolute;left:10px;bottom:10px;background:var(--hf-surface-overlay);
+  border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);padding:6px 10px;
+  font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);white-space:pre;
+  font-variant-numeric:tabular-nums;pointer-events:none;opacity:.95}
+.hint{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;
+  padding:var(--hf-spacing-5);
+  background:color-mix(in srgb,var(--hf-surface-default) 66%,transparent)}
+.hint .card{background:var(--hf-surface-overlay);border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-5);max-width:46ch;
+  display:flex;flex-direction:column;gap:var(--hf-spacing-3);text-align:center;align-items:center}
+.hint b{font-size:var(--hf-font-size-lg)}
+.hint p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+.hint .btns{display:flex;gap:var(--hf-spacing-2);flex-wrap:wrap;justify-content:center}
+/* Non-blocking variant. Once the user has a transmitter they are looking at the
+   map, and covering it to say "press Generate" takes the map away to state
+   something the button already says. */
+.hint.soft{background:none;align-items:flex-start;justify-content:center;
+  padding:var(--hf-spacing-3);pointer-events:none}
+.hint.soft .card{padding:var(--hf-spacing-2) var(--hf-spacing-4);gap:2px;
+  flex-direction:row;align-items:baseline;max-width:none}
+.hint.soft b{font-size:var(--hf-font-size-sm)}
+.hint.soft p{font-size:var(--hf-font-size-xs)}
+.hint.soft .btns{display:none}
+
+.legend{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-4);align-items:center;
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);min-height:14px}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.sw{width:13px;height:13px;border-radius:3px;border:1px solid var(--hf-border-default)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:var(--hf-font-size-xs);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--hf-border-subtle);
+  white-space:nowrap}
+th{color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold);
+  border-bottom:1px solid var(--hf-border-default)}
+th:first-child,td:first-child{text-align:left}
+td.name{font-family:var(--hf-font-family-sans);color:var(--hf-text-primary)}
+.pill{display:inline-block;padding:1px 7px;border-radius:var(--hf-radius-full);
+  font-weight:var(--hf-font-weight-semibold);font-size:var(--hf-font-size-xs)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;
+  border:1px solid var(--hf-border-default);vertical-align:middle}
+.rm{background:none;border:1px solid var(--hf-border-default);color:var(--hf-text-muted);
+  padding:1px 8px;font-size:var(--hf-font-size-xs);font-weight:var(--hf-font-weight-regular)}
+.rm:hover:not(:disabled){background:none;color:var(--hf-text-primary);
+  border-color:var(--hf-border-strong)}
+.empty{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm);padding:var(--hf-spacing-3) 0}
+footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-4);
+  color:var(--hf-text-muted);font-size:var(--hf-font-size-xs);
+  display:flex;flex-direction:column;gap:6px}
+code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
+a{color:var(--hf-accent-interactive)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="hd">
+    <h1>Reach map</h1>
+    <p class="lede">Where your station can be heard, computed in this browser. Pick a
+      transmitter and the map fills in as the maths completes &mdash; coarse first, then
+      sharper. Add receivers to draw the paths and read each one&rsquo;s usable band range.</p>
+    <p class="note">Click anywhere on the map for the detail there &mdash; per-band margins,
+      path MUF, and buttons to make that point a receiver or the transmitter, or to open a
+      full 24-hour chart for that one circuit. Hover a receiver to read its circuit without
+      clicking.</p>
+    <p class="note">Real ITU-R P.533 predictions across nine bands. Nothing is computed on a
+      server and your position never leaves this device.</p>
+  </header>
+
+  <!-- transmitter -->
+  <div class="ctl">
+    <div class="f" style="flex:1;min-width:250px">
+      <label for="tx">Transmitting from</label>
+      <input id="tx" type="text" autocomplete="off" placeholder="Search a place&hellip;">
+      <div class="sugg" id="txsugg" hidden></div>
+    </div>
+    <button class="ghost" id="myloc" type="button">Use my location</button>
+    <div class="f"><label>Current</label><span class="mono" id="txnow">not set</span></div>
+  </div>
+
+  <!-- run settings -->
+  <div class="ctl">
+    <div class="f"><label for="detail">Detail</label><select id="detail">
+      <option value="24">coarse &middot; 24&deg;</option>
+      <option value="24,12" selected>standard &middot; 12&deg;</option>
+      <option value="24,12,6">full &middot; 6&deg;</option>
+    </select></div>
+    <div class="f"><label for="span">Time span</label><select id="span">
+      <option value="4" selected>4 snapshots (00/06/12/18Z)</option>
+      <option value="24">all 24 hours</option>
+    </select></div>
+    <div class="f"><label for="pwr">Power (W)</label>
+      <input id="pwr" type="number" min="1" max="10000" step="1" value="1000"
+        list="pwrlist" style="width:7.5rem">
+      <datalist id="pwrlist">
+        <option value="5"></option><option value="10"></option><option value="25"></option>
+        <option value="50"></option><option value="100"></option><option value="200"></option>
+        <option value="400"></option><option value="500"></option><option value="1000"></option>
+        <option value="1500"></option>
+      </datalist>
+    </div>
+    <div class="f"><label for="ant">Transmit antenna</label><select id="ant">
+      <option value="-6">Mobile whip (&minus;6 dBi)</option>
+      <option value="-3">Random wire / end-fed (&minus;3 dBi)</option>
+      <option value="0">Isotropic (0 dBi)</option>
+      <option value="0.5">Vertical, ground plane (+0.5 dBi)</option>
+      <option value="1.5">Inverted V (+1.5 dBi)</option>
+      <option value="2.1" selected>Dipole, half-wave (+2.1 dBi)</option>
+      <option value="4">Loop / hex beam (+4 dBi)</option>
+      <option value="5">2-element Yagi (+5 dBi)</option>
+      <option value="6">Log-periodic (+6 dBi)</option>
+      <option value="7">3-element Yagi (+7 dBi)</option>
+      <option value="8.5">4-element Yagi (+8.5 dBi)</option>
+    </select></div>
+    <div class="f"><label>Station total</label><span class="mono" id="gainval">+12.1 dB</span></div>
+    <button id="go" type="button" disabled>Generate</button>
+    <button class="ghost" id="stop" type="button" hidden>Stop</button>
+  </div>
+
+  <div class="run" id="run" hidden>
+    <div class="rl" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+    <div class="txt">
+      <div class="line" id="runline" aria-live="polite">Starting the engine&hellip;</div>
+      <div class="sub" id="runsub"></div>
+      <div class="bar"><i id="runbar"></i></div>
+    </div>
+  </div>
+
+  <!-- view settings -->
+  <div class="ctl">
+    <div class="f"><label for="mode">Colour by</label><select id="mode">
+      <option value="margin">Signal margin</option><option value="band">Best band</option>
+      <option value="muf">Path MUF</option></select></div>
+    <div class="f"><label for="hour">Hour (UTC)</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="hour" type="range" min="0" max="3" step="1" value="2">
+        <span class="mono" id="hourval">12Z</span></div></div>
+    <div class="f"><label for="night">Night shading</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="night" type="range" min="0" max="100" step="5" value="70">
+        <span class="mono" id="nightval">70%</span></div></div>
+    <div class="f"><label for="theme">Theme</label><select id="theme">
+      <option value="auto">match system</option><option value="field-dark">field-dark</option>
+      <option value="field-light">field-light</option><option value="night-ops">night-ops</option>
+    </select></div>
+    <div class="f" style="flex:1;min-width:220px">
+      <label for="rx">Add a receiver</label>
+      <input id="rx" type="text" autocomplete="off" placeholder="Guam, Manila, Honolulu&hellip;">
+      <div class="sugg" id="rxsugg" hidden></div>
+    </div>
+  </div>
+
+  <div class="mapwrap">
+    <div class="zoomctl">
+      <button id="zin"  aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">&minus;</button>
+      <button id="zrst" aria-label="Reset view">reset</button>
+    </div>
+    <canvas id="cv" width="1440" height="648"></canvas>
+    <div class="readout" id="ro">Click anywhere for detail</div>
+    <div class="pop" id="pop" hidden>
+      <button class="popclose" id="popclose" type="button" aria-label="Close">&times;</button>
+      <h3 id="poptitle"></h3>
+      <div class="coords" id="popcoords"></div>
+      <dl id="popfacts"></dl>
+      <div id="popbands"></div>
+      <div class="btns" id="popbtns"></div>
+    </div>
+    <div class="hint" id="hint" hidden>
+      <div class="card">
+        <b id="hinttitle">Pick a transmitter to begin</b>
+        <p id="hinttext">Search for a place, use your location, or click the map. Nothing is
+          computed until you press Generate.</p>
+        <div class="btns">
+          <button id="hintloc" type="button">Use my location</button>
+          <button class="ghost" id="hintpick" type="button">Browse the map</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="chart">
+    <div class="chead">
+      <div>
+        <h3 id="chtitle"></h3>
+        <div class="csub" id="chsub"></div>
+      </div>
+      <button class="popclose" id="chclose" type="button" aria-label="Close"
+        style="position:static">&times;</button>
+    </div>
+    <!-- The station belongs here as well as on the map: "what does this circuit
+         look like at 400 W instead of 100?" is the question this view exists to
+         answer, and a modal makes the controls behind it unreachable. -->
+    <div class="cstation">
+      <label for="chpwr">Power</label>
+      <input id="chpwr" type="number" min="1" max="10000" step="1" list="pwrlist"
+        style="width:6.5rem">
+      <span>W into</span>
+      <select id="chant"></select>
+      <span class="mono" id="chgain"></span>
+    </div>
+    <div class="cbody">
+      <div class="cwait" id="chwait">
+        <div class="rl" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+        <span id="chwaittext">Computing the full circuit&hellip;</span>
+      </div>
+      <div class="scroll" id="chgrid"></div>
+      <div class="legend" id="chlegend"></div>
+      <div class="cnote" id="chnote"></div>
+    </div>
+  </dialog>
+
+  <div class="legend" id="lg"></div>
+
+  <div>
+    <h2>Circuits</h2>
+    <div class="scroll"><table id="tbl"></table></div>
+    <div class="empty" id="empty">No receivers yet &mdash; search above to add one.</div>
+  </div>
+
+  <footer>
+    <div id="explain"></div>
+    <div><strong>Usable range</strong> is the lowest and highest band that meets the
+      requirement on that circuit &mdash; the practical version of LUF and MUF. It is
+      narrower than the raw MUF, because a frequency can be below the MUF and still be
+      too weak to work.</div>
+    <div><strong>The shaded half is night.</strong> The bright curve is the terminator, the
+      &ldquo;grey line&rdquo; operators watch: the absorbing D layer decays quickly after
+      sunset while the reflecting F layer lingers, so paths along it often run long.</div>
+    <div><strong>Power and antenna:</strong> the grid is computed once at 100&nbsp;W into an
+      isotropic antenna, and your station is applied on top as a flat offset &mdash;
+      10&nbsp;log&#8321;&#8320;(W/100) for power plus the antenna's gain in dBi. Both scale the
+      signal while the noise at the far end is unchanged, so the shift is exact and changing
+      either <em>does not</em> require regenerating the map.</div>
+    <div><strong>The antenna figures are peak gain, applied flat.</strong> A real antenna's
+      gain depends on elevation angle, and a beam only reaches its rated figure over a narrow
+      range of angles. So a Yagi here is <em>optimistic</em> on paths that need a take-off
+      angle it does not favour &mdash; short paths wanting high angles, or very long ones
+      wanting very low. Treat the wire antennas as close to right and the beams as an upper
+      bound. Modelling this properly needs real antenna patterns fed to P.533, which is on
+      the roadmap.</div>
+    <div><strong>Receive</strong> antenna gain is deliberately excluded &mdash; at HF the
+      receiver is limited by external noise, so a bigger receive antenna lifts signal and
+      noise together and largely cancels out of SNR.</div>
+    <div><strong>The 24-hour chart is the exact circuit.</strong> The map trades precision
+      for breadth: a 6&deg; cell, and by default four snapshots of the day. The chart is the
+      other side of that trade &mdash; one path, computed at its real coordinates, every hour
+      and every band. It is a single prediction, so it takes a fraction of a second once the
+      engine is running, which is why it is on demand rather than precomputed for every
+      receiver.</div>
+    <div><strong>Coarse passes are coarse.</strong> A 24&deg; sample is painted across the
+      whole block it stands for, so the early picture is a sketch of its own neighbourhood
+      rather than a prediction for every point in it. Let the finer passes land before
+      reading much into a boundary. Receiver figures always snap to the nearest 6&deg; cell
+      (up to ~330&nbsp;km).</div>
+    <div>Engine <code id="eng">ITU-R P.533 (WebAssembly)</code>. Effective sunspot number is a
+      fixed placeholder of 60 until the space-weather feed lands.
+      Coastlines: Natural Earth (public domain). Places: GeoNames (CC&nbsp;BY&nbsp;4.0).</div>
+  </footer>
+</div>
+
+<script type="module">
+import { GridPool, ReachField, gridAxes, plannedPointCount, BASE_STEP, LAT_MIN, LAT_MAX }
+  from './lib/gridpool.mjs';
+import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
+  from './lib/gridcache.mjs';
+
+const $ = (i) => document.getElementById(i);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const DEG = Math.PI / 180;
+
+const FREQS = [3.5, 5.3, 7.1, 10.1, 14.1, 18.1, 21.1, 24.9, 28.3];
+const BANDS = ['80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m'];
+const NB = BANDS.length;
+const REQ = 24;            // dB of SNR in 3 kHz — the CW-ish threshold used throughout
+const SSN = 60;            // placeholder until the space-weather feed lands
+const POWER_W = 100;       // grid is computed bare; the station selector adds gain on top
+const { lat: GLAT, lon: GLON } = gridAxes(BASE_STEP);
+
+// --- state ---------------------------------------------------------------
+let tx = null;              // {name, cc, lat, lon}
+let field = null;           // ReachField, or null for "nothing computed yet"
+let hours = [0, 6, 12, 18];
+let receivers = [];
+let COAST = null, PLACES = [];
+let pool = null, abort = null, running = false;
+let lastKey = null;
+
+// View transform. World coordinates are the unzoomed equirectangular canvas;
+// panX/panY are the world point at the top-left of the viewport.
+let zoom = 1, panX = 0, panY = 0;
+const MINZ = 1, MAXZ = 12;
+
+// --- theme ---------------------------------------------------------------
+const systemLight = matchMedia('(prefers-color-scheme: light)');
+function applyTheme() {
+  const t = $('theme').value;
+  document.documentElement.setAttribute(
+    'data-theme', t === 'auto' ? (systemLight.matches ? 'field-light' : 'field-dark') : t);
+  gridVersion++;            // the grid image is painted in theme colours
+  schedule(true);
+}
+systemLight.addEventListener('change', applyTheme);
+
+const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const ramp = () => Array.from({ length: 8 }, (_, i) => cssv('--hf-sequential-' + i));
+const statusFill = (k) => cssv('--hf-status-' + k + '-fill');
+const statusOn = (k) => cssv('--hf-status-' + k + '-on');
+function hex2rgb(h) {
+  h = h.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+function rampColor(t) {
+  const r = ramp().map(hex2rgb);
+  const x = Math.max(0, Math.min(1, t)) * (r.length - 1);
+  const i = Math.floor(x);
+  return lerp(r[i], r[Math.min(i + 1, r.length - 1)], x - i);
+}
+
+const px = (lon) => (lon + 180) / 360 * W, py = (lat) => (90 - lat) / 180 * H;
+
+function marginToken(m) {
+  if (m === null) return 'closed';
+  if (m >= 0) return 'good';
+  if (m >= -10) return 'fair';
+  if (m >= -25) return 'poor';
+  return 'closed';
+}
+// Absence of a path is drawn as absence, not as a colour: fading out beats a
+// solid block that reads as data.
+function alphaFor(m) {
+  if (m === null) return 0;
+  if (m >= -20) return 235;
+  if (m <= -50) return 0;
+  return Math.round(235 * Math.pow((m + 50) / 30, 1.3));
+}
+
+// --- geometry ------------------------------------------------------------
+function cellIndex(lat, lon) {
+  const r = Math.max(0, Math.min(GLAT.length - 1, Math.round((lat - LAT_MIN) / BASE_STEP)));
+  const c = Math.round((((lon + 180) % 360 + 360) % 360) / BASE_STEP) % GLON.length;
+  return [r, c];
+}
+function circuitAt(lat, lon, gainDb) {
+  if (!field) return null;
+  const [r, c] = cellIndex(lat, lon);
+  const cell = field.at(r, c, hourIndex());
+  if (!cell || !cell.margins) return null;
+  const m = cell.margins.map((v) => (v === null ? null : Math.round(v + gainDb)));
+  let best = -1, bestMargin = null, lowest = -1, highest = -1;
+  m.forEach((v, i) => {
+    if (v === null) return;
+    if (bestMargin === null || v > bestMargin) { bestMargin = v; best = i; }
+    if (v >= 0) { if (lowest < 0) lowest = i; highest = i; }
+  });
+  return { margins: m, best, bestMargin, lowest, highest, muf: cell.muf };
+}
+
+// great circle, interpolated along the geodesic and split at the antimeridian
+function greatCircle(a, b, n = 180) {
+  const p1 = [a.lat * DEG, a.lon * DEG], p2 = [b.lat * DEG, b.lon * DEG];
+  const d = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin((p1[0] - p2[0]) / 2), 2)
+    + Math.cos(p1[0]) * Math.cos(p2[0]) * Math.pow(Math.sin((p1[1] - p2[1]) / 2), 2)));
+  const segs = []; let cur = [], prevLon = null;
+  for (let i = 0; i <= n; i++) {
+    const f = i / n;
+    let lat, lon;
+    if (d === 0) { lat = a.lat; lon = a.lon; }
+    else {
+      const A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+      const x = A * Math.cos(p1[0]) * Math.cos(p1[1]) + B * Math.cos(p2[0]) * Math.cos(p2[1]);
+      const y = A * Math.cos(p1[0]) * Math.sin(p1[1]) + B * Math.cos(p2[0]) * Math.sin(p2[1]);
+      const z = A * Math.sin(p1[0]) + B * Math.sin(p2[0]);
+      lat = Math.atan2(z, Math.sqrt(x * x + y * y)) / DEG; lon = Math.atan2(y, x) / DEG;
+    }
+    if (prevLon !== null && Math.abs(lon - prevLon) > 180) { segs.push(cur); cur = []; }
+    cur.push([lon, lat]); prevLon = lon;
+  }
+  if (cur.length) segs.push(cur);
+  return segs;
+}
+function distanceKm(a, b) {
+  const p1 = a.lat * DEG, p2 = b.lat * DEG, dl = (b.lon - a.lon) * DEG;
+  return 6371 * 2 * Math.asin(Math.sqrt(Math.pow(Math.sin((p2 - p1) / 2), 2)
+    + Math.cos(p1) * Math.cos(p2) * Math.pow(Math.sin(dl / 2), 2)));
+}
+function bearingDeg(a, b) {
+  const p1 = a.lat * DEG, p2 = b.lat * DEG, dl = (b.lon - a.lon) * DEG;
+  const y = Math.sin(dl) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return (Math.atan2(y, x) / DEG + 360) % 360;
+}
+function maidenhead(lat, lon) {
+  const A = (n) => String.fromCharCode(65 + n);
+  let x = lon + 180, y = lat + 90;
+  const f1 = A(Math.floor(x / 20)), f2 = A(Math.floor(y / 10));
+  x %= 20; y %= 10;
+  const s1 = Math.floor(x / 2), s2 = Math.floor(y);
+  x = (x % 2) * 60; y = (y % 1) * 60;
+  return `${f1}${f2}${s1}${s2}${String.fromCharCode(97 + Math.floor(x / 5))}`
+    + `${String.fromCharCode(97 + Math.floor(y / 2.5))}`;
+}
+
+// --- solar geometry ------------------------------------------------------
+function dayOfYear() {
+  const n = new Date();
+  return Math.floor((Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())
+    - Date.UTC(n.getUTCFullYear(), 0, 0)) / 86400000);
+}
+const solarDec = () => 23.44 * Math.sin(DEG * (360 / 365.24) * (dayOfYear() - 81));
+function subsolarLon(h) {
+  let l = 180 - 15 * h;
+  while (l > 180) l -= 360;
+  while (l < -180) l += 360;
+  return l;
+}
+function termLat(lon, dec, sub) {
+  const Hh = (lon - sub) * DEG, t = Math.tan(dec * DEG);
+  if (Math.abs(t) < 1e-6) return 0;
+  return Math.atan(-Math.cos(Hh) / t) / DEG;
+}
+function drawDaylight(h, opacity) {
+  if (opacity <= 0) return;
+  const dec = solarDec(), sub = subsolarLon(h), nightSouth = dec > 0, pts = [];
+  for (let x = 0; x <= W; x += 3) pts.push([x, py(termLat((x / W) * 360 - 180, dec, sub))]);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts) ctx.lineTo(x, y);
+  ctx.lineTo(W, nightSouth ? H : 0); ctx.lineTo(0, nightSouth ? H : 0);
+  ctx.closePath();
+  // Multiply against a neutral cool grey: night must darken in *every* theme, and
+  // a surface token would be near-white in the light theme and brighten it.
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = 'rgb(122,128,146)';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = cssv('--hf-status-fair-fill');
+  ctx.globalAlpha = Math.min(1, 0.35 + opacity * 0.65);
+  ctx.lineWidth = 2 / zoom;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts) ctx.lineTo(x, y);
+  ctx.stroke();
+  const sx = px(sub), sy = py(dec);
+  ctx.lineWidth = 1.5 / zoom;
+  ctx.beginPath(); ctx.arc(sx, sy, 6 / zoom, 0, Math.PI * 2); ctx.stroke();
+  for (let a = 0; a < 8; a++) {
+    const th = a * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(sx + Math.cos(th) * 9 / zoom, sy + Math.sin(th) * 9 / zoom);
+    ctx.lineTo(sx + Math.cos(th) * 13 / zoom, sy + Math.sin(th) * 13 / zoom);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// --- frame scheduling ----------------------------------------------------
+const hourIndex = () => Math.max(0, Math.min(hours.length - 1, Number($('hour').value)));
+
+/** Decibels to add to the grid, which is computed at 100 W into an isotropic
+ *  antenna. Power and transmit antenna gain both scale the signal while the
+ *  noise at the far end is unchanged, so together they shift SNR by a flat
+ *  amount — no recompute needed when either changes. */
+function gain() {
+  const w = Number($('pwr').value);
+  const watts = Number.isFinite(w) && w > 0 ? w : POWER_W;
+  return 10 * Math.log10(watts / POWER_W) + Number($('ant').value);
+}
+function showGain() {
+  const g = gain();
+  $('gainval').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+}
+
+let pending = false, uiDirty = true;
+/** `ui` marks the legend/table/prose as stale too. Panning does not: rebuilding
+ *  the circuits table on every drag frame is pure layout thrash. */
+function schedule(ui = false) {
+  uiDirty = uiDirty || ui;
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => { pending = false; draw(); });
+}
+
+/** Screen-space x offsets of the world copies that intersect the viewport. Shared
+ *  by drawing and hit-testing so a marker is clickable exactly where it is drawn. */
+function visibleCopies() {
+  return [-W, 0, W]
+    .map((dx) => (dx - panX) * zoom)
+    .filter((left) => left + W * zoom >= 0 && left <= W);
+}
+
+/** Canvas-pixel position of a lon/lat in whichever visible copy puts it closest
+ *  to the middle of the viewport. */
+function toCanvas(lon, lat) {
+  const y = py(lat) * zoom - panY * zoom;
+  let best = null;
+  for (const left of visibleCopies()) {
+    const x = px(lon) * zoom + left;
+    if (!best || Math.abs(x - W / 2) < Math.abs(best[0] - W / 2)) best = [x, y];
+  }
+  return best ?? [px(lon) * zoom - panX * zoom, y];
+}
+
+function clampView() {
+  zoom = Math.max(MINZ, Math.min(MAXZ, zoom));
+  panY = Math.max(0, Math.min(H - H / zoom, panY));   // vertical stays inside the map
+  panX = ((panX % W) + W) % W;                        // horizontal wraps
+}
+function zoomAt(sx, sy, factor) {
+  const wx = sx / zoom + panX, wy = sy / zoom + panY;
+  zoom = Math.max(MINZ, Math.min(MAXZ, zoom * factor));
+  panX = wx - sx / zoom; panY = wy - sy / zoom;
+  clampView();
+  schedule();
+}
+
+// --- static geometry, built once -----------------------------------------
+let coastPath = null;
+function buildCoastPath() {
+  const coast = new Path2D();
+  for (const f of COAST.features) {
+    const g = f.geometry, lines = g.type === 'LineString' ? [g.coordinates] : g.coordinates;
+    for (const line of lines) {
+      let started = false, prev = null;
+      for (const [lo, la] of line) {
+        const x = px(lo), y = py(la);
+        if (prev !== null && Math.abs(x - prev) > W * 0.5) started = false;   // antimeridian
+        if (!started) { coast.moveTo(x, y); started = true; } else coast.lineTo(x, y);
+        prev = x;
+      }
+    }
+  }
+  const grat = new Path2D();
+  for (let la = -60; la <= 60; la += 30) { grat.moveTo(0, py(la)); grat.lineTo(W, py(la)); }
+  for (let lo = -120; lo <= 120; lo += 60) { grat.moveTo(px(lo), 0); grat.lineTo(px(lo), H); }
+  return { coast, grat };
+}
+
+// --- grid image ----------------------------------------------------------
+// One pixel per 6° cell, rebuilt only when the data, hour, station or colour mode
+// changes — not on every pan frame.
+let gridImg = null, gridImgKey = '', gridVersion = 0;
+function gridImage(mode, gainDb) {
+  const hi = hourIndex();
+  const key = `${mode}|${gainDb}|${hi}|${gridVersion}`;
+  if (gridImg && gridImgKey === key) return gridImg;
+  const gw = GLON.length, gh = GLAT.length;
+  const off = document.createElement('canvas');
+  off.width = gw; off.height = gh;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(gw, gh);
+  for (let r = 0; r < gh; r++) for (let c = 0; c < gw; c++) {
+    const cell = field.at(r, c, hi);
+    if (!cell || !cell.margins) continue;
+    let bi = -1, bm = null;
+    cell.margins.forEach((v, i) => {
+      if (v === null) return;
+      const x = v + gainDb;
+      if (bm === null || x > bm) { bm = x; bi = i; }
+    });
+    let rgb = null, a = 0;
+    if (mode === 'band') { if (bi >= 0) { rgb = rampColor(bi / (NB - 1)); a = alphaFor(bm); } }
+    else if (mode === 'margin') {
+      if (bm !== null) { rgb = hex2rgb(statusFill(marginToken(bm))); a = 225; }
+    } else if (cell.muf != null) { rgb = rampColor((cell.muf - 3) / 27); a = 225; }
+    if (!rgb) continue;
+    const o = ((gh - 1 - r) * gw + c) * 4;             // row 0 is the southernmost latitude
+    img.data[o] = rgb[0]; img.data[o + 1] = rgb[1]; img.data[o + 2] = rgb[2]; img.data[o + 3] = a;
+  }
+  octx.putImageData(img, 0, 0);
+  gridImg = off; gridImgKey = key;
+  return off;
+}
+
+// --- drawing -------------------------------------------------------------
+function draw() {
+  if (!COAST) return;
+  const mode = $('mode').value, gainDb = gain();
+  const h = hours[hourIndex()];
+  $('hourval').textContent = String(h).padStart(2, '0') + 'Z';
+  const night = Number($('night').value) / 100;
+  $('nightval').textContent = Math.round(night * 100) + '%';
+  clampView();
+
+  coastPath ??= buildCoastPath();
+  const off = field ? gridImage(mode, gainDb) : null;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = cssv('--hf-surface-sunken');
+  ctx.fillRect(0, 0, W, H);
+
+  // Cells are centred on their sample point, so the image spans half a cell
+  // beyond the grid's outermost latitude and longitude.
+  const half = BASE_STEP / 2;
+  const ix = -W / (2 * GLON.length);
+  const iy0 = py(LAT_MAX + half), iy1 = py(LAT_MIN - half);
+  const lw = 1 / zoom;                                 // keep strokes ~1 CSS px
+
+  // Longitude wraps, so the world is drawn several times side by side: panning
+  // east past the antimeridian continues seamlessly instead of hitting a wall,
+  // which matters because a Pacific station's most useful view straddles the
+  // date line.
+  //
+  // Layers are drawn across ALL copies before moving to the next layer, not
+  // copy-by-copy. The grid image overhangs half a cell past its copy's edge, so
+  // copy-at-a-time would let one copy's image land on top of the previous copy's
+  // night shading and leave an unshaded stripe at the seam.
+  const layer = (fn) => {
+    for (const left of visibleCopies()) {
+      ctx.setTransform(zoom, 0, 0, zoom, left, -panY * zoom);
+      fn();
+    }
+  };
+
+  if (off) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    layer(() => ctx.drawImage(off, ix, iy0, W, iy1 - iy0));
+  }
+
+  layer(() => drawDaylight(h, night));
+
+  layer(() => {
+    ctx.strokeStyle = cssv('--hf-text-muted');
+    ctx.lineWidth = lw; ctx.globalAlpha = 0.55;
+    ctx.stroke(coastPath.coast);
+    ctx.strokeStyle = cssv('--hf-border-subtle'); ctx.globalAlpha = 0.5;
+    ctx.stroke(coastPath.grat);
+    ctx.globalAlpha = 1;
+  });
+
+  if (tx) layer(() => {
+    for (const rx of receivers) {
+      const c = circuitAt(rx.lat, rx.lon, gainDb);
+      const tok = c ? marginToken(c.bestMargin) : 'stale';
+      ctx.save();
+      ctx.strokeStyle = statusFill(tok); ctx.lineWidth = 3 / zoom; ctx.globalAlpha = 0.95;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (const seg of greatCircle(tx, rx)) {
+        ctx.beginPath();
+        seg.forEach(([lo, la], i) =>
+          (i ? ctx.lineTo(px(lo), py(la)) : ctx.moveTo(px(lo), py(la))));
+        ctx.stroke();
+      }
+      ctx.fillStyle = statusFill(tok); ctx.strokeStyle = cssv('--hf-text-primary');
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.beginPath(); ctx.arc(px(rx.lon), py(rx.lat), 6 / zoom, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      // Halo on whichever receiver the popup is about, so the panel and the map
+      // are visibly talking about the same station.
+      if (rx === popup()?.rx) {
+        ctx.strokeStyle = cssv('--hf-accent-interactive');
+        ctx.lineWidth = 2 / zoom; ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(px(rx.lon), py(rx.lat), 11 / zoom, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    const sx = px(tx.lon), sy = py(tx.lat), r = 9 / zoom, arm = 15 / zoom;
+    ctx.strokeStyle = cssv('--hf-accent-interactive'); ctx.lineWidth = 2.5 / zoom;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx - arm, sy); ctx.lineTo(sx + arm, sy);
+    ctx.moveTo(sx, sy - arm); ctx.lineTo(sx, sy + arm);
+    ctx.stroke();
+  });
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  // Cheap on every frame so the panel tracks a pan; a full rebuild only when the
+  // numbers behind it could have changed.
+  const pop = popup();
+  if (pop) positionPopup(pop.lat, pop.lon);
+
+  if (!uiDirty) return;
+  uiDirty = false;
+  if (pop) renderPopup();
+  drawLegend(mode);
+  renderTable();
+  $('explain').textContent = !field ? 'Nothing computed yet.'
+    : mode === 'margin'
+      ? `Map colour is how much SNR the best band has to spare against the ${REQ} dB requirement.`
+      : mode === 'band' ? 'Map colour is the best band; opacity carries how much margin it has.'
+      : 'Map colour is the maximum usable frequency over the path to that point.';
+}
+
+function drawLegend(mode) {
+  const lg = $('lg');
+  lg.replaceChildren();
+  if (!field) return;
+  if (mode === 'margin') {
+    for (const [k, t] of [['good', 'meets the requirement'], ['fair', 'within 10 dB'],
+                          ['poor', '10–25 dB short'], ['closed', 'well short / no path']]) {
+      const c = document.createElement('span'); c.className = 'chip';
+      const s = document.createElement('span'); s.className = 'sw';
+      s.style.background = statusFill(k);
+      c.append(s, document.createTextNode(t));
+      lg.append(c);
+    }
+    return;
+  }
+  const wrap = document.createElement('span'); wrap.style.display = 'flex';
+  const n = mode === 'band' ? NB : 8;
+  for (let i = 0; i < n; i++) {
+    const [r, g, b] = rampColor(i / (n - 1));
+    const e = document.createElement('span');
+    e.style.cssText = `width:26px;height:13px;background:rgb(${r},${g},${b});`
+      + 'border:1px solid var(--hf-border-subtle)';
+    wrap.append(e);
+  }
+  const a = document.createElement('span'), z = document.createElement('span');
+  a.textContent = mode === 'band' ? BANDS[0] : '3 MHz';
+  z.textContent = mode === 'band' ? BANDS[NB - 1] : '30 MHz';
+  lg.append(a, wrap, z);
+}
+
+function renderTable() {
+  const t = $('tbl');
+  t.replaceChildren();
+  $('empty').hidden = receivers.length > 0;
+  $('empty').textContent = tx
+    ? 'No receivers yet — search above to add one.'
+    : 'Set a transmitter first, then add receivers to see each circuit.';
+  if (!receivers.length || !tx) return;
+  const gainDb = gain();
+  const head = t.createTHead().insertRow();
+  for (const h of ['Receiver', 'Distance', 'Bearing', 'Path MUF', 'Usable range', 'Best band',
+                   'Margin', ''])
+    head.insertCell().outerHTML = `<th scope="col">${h}</th>`;
+  const tb = t.createTBody();
+  for (const rx of receivers) {
+    const c = circuitAt(rx.lat, rx.lon, gainDb);
+    const tok = c ? marginToken(c.bestMargin) : 'stale';
+    const tr = tb.insertRow();
+    const nm = tr.insertCell(); nm.className = 'name';
+    nm.innerHTML = `<span class="dot" style="background:${statusFill(tok)}"></span>`
+      + `${rx.name} <span style="color:var(--hf-text-muted)">${rx.cc}</span>`;
+    tr.insertCell().textContent = Math.round(distanceKm(tx, rx)).toLocaleString() + ' km';
+    tr.insertCell().textContent =
+      Math.round(bearingDeg(tx, rx)).toString().padStart(3, '0') + '°';
+    tr.insertCell().textContent = c && c.muf != null ? c.muf.toFixed(1) + ' MHz' : '—';
+    const ur = tr.insertCell();
+    ur.textContent = !c ? 'not computed yet'
+      : c.lowest >= 0 ? `${BANDS[c.lowest]}–${BANDS[c.highest]}` : 'none usable';
+    if (!c || c.lowest < 0) ur.style.color = 'var(--hf-text-muted)';
+    tr.insertCell().textContent = c && c.best >= 0 ? BANDS[c.best] : '—';
+    const mg = tr.insertCell();
+    if (c && c.bestMargin !== null) {
+      const s = document.createElement('span'); s.className = 'pill';
+      s.style.background = statusFill(tok); s.style.color = statusOn(tok);
+      s.textContent = (c.bestMargin > 0 ? '+' : '') + c.bestMargin + ' dB';
+      mg.append(s);
+    } else mg.textContent = '—';
+    const b = document.createElement('button');
+    b.className = 'rm'; b.textContent = 'remove';
+    b.setAttribute('aria-label', 'Remove ' + rx.name);
+    b.onclick = () => {
+      receivers = receivers.filter((x) => x !== rx);
+      persist();
+      schedule(true);
+    };
+    tr.insertCell().append(b);
+  }
+}
+
+// --- map popup ------------------------------------------------------------
+// Two states, deliberately different: hovering a receiver shows a *transient*
+// panel with no controls, and clicking *pins* one that has buttons. A hover
+// panel carrying buttons is a trap — it vanishes the moment you reach for them.
+
+let pinned = null;      // {lat, lon, rx?}  — survives until dismissed
+let hovered = null;     // {lat, lon, rx}   — receiver under the cursor
+const popup = () => pinned ?? hovered;
+
+const HIT_PX = 13;      // canvas px; the marker is drawn at radius 6
+
+function receiverAt(cx, cy) {
+  let best = null, bd = HIT_PX;
+  for (const rx of receivers) {
+    const [x, y] = toCanvas(rx.lon, rx.lat);
+    const d = Math.hypot(x - cx, y - cy);
+    if (d <= bd) { bd = d; best = rx; }
+  }
+  return best;
+}
+
+/** Nearest gazetteer entry, so a clicked point gets a human name rather than
+ *  only a grid square. 400 km keeps "near Perth" from meaning open ocean. */
+function nearestPlace(lat, lon) {
+  let best = null, bd = 400;
+  for (const p of PLACES) {
+    const d = distanceKm({ lat, lon }, { lat: p[3], lon: p[4] });
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best && { name: best[0], cc: best[1], km: bd };
+}
+
+function fmtLatLon(lat, lon) {
+  return `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'}  `
+    + `${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'W' : 'E'}`;
+}
+
+function renderPopup() {
+  const s = popup();
+  const el = $('pop');
+  if (!s) { el.hidden = true; return; }
+  const transient = !pinned;
+  el.hidden = false;
+  el.classList.toggle('transient', transient);
+  $('popclose').hidden = transient;
+
+  const { lat, lon, rx } = s;
+  const atTx = !rx && tx && Math.abs(lat - tx.lat) < 0.5 && Math.abs(lon - tx.lon) < 0.5;
+  const near = rx ? null : nearestPlace(lat, lon);
+  $('poptitle').textContent = rx ? `${rx.name}${rx.cc ? ' · ' + rx.cc : ''}`
+    : atTx ? `Transmitter · ${tx.name}`
+    : near ? `Near ${near.name} · ${near.cc}`
+    : maidenhead(lat, lon);
+  $('popcoords').textContent = `${fmtLatLon(lat, lon)} · ${maidenhead(lat, lon)}`;
+
+  const c = circuitAt(lat, lon, gain());
+  const facts = $('popfacts');
+  facts.replaceChildren();
+  const row = (k, v) => {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    facts.append(dt, dd);
+  };
+  if (tx && !atTx) {
+    row('Distance', Math.round(distanceKm(tx, { lat, lon })).toLocaleString() + ' km');
+    row('Bearing', Math.round(bearingDeg(tx, { lat, lon })).toString().padStart(3, '0') + '°');
+  }
+  if (c) {
+    row('Path MUF', c.muf != null ? c.muf.toFixed(1) + ' MHz' : '—');
+    row('Best band', c.best >= 0
+      ? `${BANDS[c.best]}  ${c.bestMargin > 0 ? '+' : ''}${c.bestMargin} dB`
+      : '—');
+    row('Usable range', c.lowest >= 0 ? `${BANDS[c.lowest]}–${BANDS[c.highest]}` : 'none usable');
+    row('At', String(hours[hourIndex()]).padStart(2, '0') + 'Z');
+  }
+
+  // Per-band margins: the detail the summary rows flatten away.
+  const bands = $('popbands');
+  bands.replaceChildren();
+  if (c) {
+    const grid = document.createElement('div'); grid.className = 'bands';
+    const vals = document.createElement('div'); vals.className = 'bands';
+    for (let i = 0; i < NB; i++) {
+      const l = document.createElement('span'); l.className = 'lbl'; l.textContent = BANDS[i];
+      grid.append(l);
+      const m = c.margins[i];
+      const v = document.createElement('span');
+      const tok = marginToken(m);
+      v.style.background = statusFill(tok);
+      v.style.color = statusOn(tok);
+      v.textContent = m === null ? '—' : (m > 0 ? '+' : '') + m;
+      v.title = `${BANDS[i]} (${FREQS[i]} MHz): `
+        + (m === null ? 'no prediction' : `${m} dB against the ${REQ} dB requirement`);
+      vals.append(v);
+    }
+    bands.append(grid, vals);
+  } else {
+    const n = document.createElement('div'); n.className = 'none';
+    n.textContent = !tx ? 'Set a transmitter, then press Generate.'
+      : !field ? 'No prediction here yet — press Generate.'
+      : 'No path predicted to this point.';
+    bands.append(n);
+  }
+
+  const btns = $('popbtns');
+  btns.replaceChildren();
+  if (!transient) {
+    const add = (label, ghost, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (ghost) b.className = 'ghost';
+      b.textContent = label;
+      b.onclick = fn;
+      btns.append(b);
+    };
+    if (rx) {
+      add('Remove receiver', true, () => {
+        receivers = receivers.filter((x) => x !== rx);
+        closePopup();
+        persist();
+        schedule(true);
+      });
+    } else {
+      add('Add as receiver', true, () => {
+        receivers.push({ name: near ? near.name : maidenhead(lat, lon),
+                         cc: near ? near.cc : 'map',
+                         lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 });
+        pinned = { lat, lon, rx: receivers[receivers.length - 1] };
+        persist();
+        schedule(true);
+      });
+    }
+    if (tx && !atTx) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ghost';
+      b.textContent = '24-hour chart';
+      if (pool?.busy) {
+        b.disabled = true;
+        b.title = 'Available once the reach grid finishes — the workers are busy.';
+      } else {
+        b.onclick = () => {
+          chartTarget = rx ?? { name: near ? near.name : maidenhead(lat, lon), lat, lon };
+          showChart(chartTarget);
+        };
+      }
+      btns.append(b);
+    }
+    if (!atTx) add('Set as transmitter', false, () => {
+      const p = rx ?? { name: near ? near.name : maidenhead(lat, lon),
+                        cc: near ? near.cc : 'map', lat, lon };
+      closePopup();
+      setTx({ name: p.name, cc: p.cc, lat: p.lat, lon: p.lon }, { recentre: false });
+    });
+  }
+
+  positionPopup(lat, lon);
+}
+
+function positionPopup(lat, lon) {
+  const el = $('pop');
+  const r = cv.getBoundingClientRect();
+  const [cx, cy] = toCanvas(lon, lat);
+  const x = cx * (r.width / W), y = cy * (r.height / H);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  // Prefer above-right of the point; flip and clamp so it never leaves the map.
+  let left = x + 14, top = y - h - 12;
+  if (left + w > r.width - 6) left = x - w - 14;
+  if (top < 6) top = y + 14;
+  el.style.left = Math.max(6, Math.min(r.width - w - 6, left)) + 'px';
+  el.style.top = Math.max(6, Math.min(r.height - h - 6, top)) + 'px';
+}
+
+function closePopup() {
+  pinned = null;
+  hovered = null;
+  renderPopup();
+  schedule();
+}
+$('popclose').onclick = closePopup;
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) closePopup(); });
+
+// --- 24-hour circuit chart ------------------------------------------------
+// The map is a compromise by construction: a 6° cell and, by default, four
+// snapshots of the day. This is the other half of that trade -- one exact
+// circuit, every hour, every band. It is a single predict call, so it costs a
+// fraction of a second once the engine is up, which is why it is on demand
+// rather than something the map tries to precompute for every receiver.
+
+const CHART_HOURS = Array.from({ length: 24 }, (_, i) => i);
+const chartCache = new Map();
+let chartTarget = null;
+
+const chartKey = (a, b, month) =>
+  `${a.lat.toFixed(2)},${a.lon.toFixed(2)}>${b.lat.toFixed(2)},${b.lon.toFixed(2)}|m${month}|s${SSN}`;
+
+async function showChart(target) {
+  if (!tx) return;
+  const dlg = $('chart');
+  const now = new Date();
+  const month = now.getUTCMonth() + 1, year = now.getUTCFullYear();
+  const key = chartKey(tx, target, month);
+
+  $('chtitle').textContent = `${tx.name} → ${target.name}`;
+  $('chsub').textContent =
+    `${Math.round(distanceKm(tx, target)).toLocaleString()} km · `
+    + `${Math.round(bearingDeg(tx, target)).toString().padStart(3, '0')}° · `
+    + `${maidenhead(tx.lat, tx.lon)} → ${maidenhead(target.lat, target.lon)}`;
+  $('chgrid').replaceChildren();
+  $('chlegend').replaceChildren();
+  $('chnote').textContent = '';
+  syncStationIntoChart();
+  $('chwait').hidden = chartCache.has(key);
+  $('chwaittext').textContent = pool?.busy
+    ? 'Waiting for the reach grid to finish…'
+    : 'Computing the full circuit…';
+  if (!dlg.open) dlg.showModal();
+
+  let per = chartCache.get(key);
+  if (!per) {
+    try {
+      pool ??= new GridPool({ size: POOL_SIZE });
+      const cell = await pool.point({
+        tx: { latitude: tx.lat, longitude: tx.lon },
+        lat: target.lat, lon: target.lon,
+        freqs: FREQS, hours: CHART_HOURS, month, year, ssn: SSN,
+        powerW: POWER_W, reqSnr: REQ,
+      });
+      per = cell?.[2];
+      if (per) chartCache.set(key, per);
+    } catch (e) {
+      $('chwait').hidden = true;
+      $('chnote').textContent = 'Could not compute this circuit: ' + (e?.message ?? e);
+      return;
+    }
+  }
+  $('chwait').hidden = true;
+  if (!per) {
+    $('chnote').textContent = 'The engine returned no prediction for this circuit.';
+    return;
+  }
+  renderChart(per, target);
+}
+
+function renderChart(per, target) {
+  const gainDb = gain();
+  const nowHour = new Date().getUTCHours();
+  const t = document.createElement('table');
+  t.className = 'chart';
+
+  const head = t.createTHead().insertRow();
+  head.insertCell().outerHTML = '<th class="h" scope="col">UTC</th>';
+  for (const bnd of BANDS) head.insertCell().outerHTML = `<th scope="col">${bnd}</th>`;
+  head.insertCell().outerHTML = '<th scope="col">MUF</th>';
+
+  const body = t.createTBody();
+  let bestCell = null;
+  for (let h = 0; h < CHART_HOURS.length; h++) {
+    const [margins, muf] = per[h] ?? [[], null];
+    const tr = body.insertRow();
+    if (h === nowHour) tr.className = 'now';
+    const hc = tr.insertCell();
+    hc.className = 'h';
+    hc.textContent = String(CHART_HOURS[h]).padStart(2, '0') + 'Z';
+    for (let i = 0; i < BANDS.length; i++) {
+      const raw = margins[i];
+      const m = raw === null || raw === undefined ? null : Math.round(raw + gainDb);
+      const td = tr.insertCell();
+      const tok = marginToken(m);
+      if (m !== null) {
+        td.style.background = statusFill(tok);
+        td.style.color = statusOn(tok);
+      }
+      td.textContent = m === null ? '—' : (m > 0 ? '+' : '') + m;
+      td.title = `${BANDS[i]} (${FREQS[i]} MHz) at ${String(CHART_HOURS[h]).padStart(2, '0')}Z — `
+        + (m === null ? 'no prediction'
+          : `${m} dB against the ${REQ} dB requirement`);
+      if (m !== null && (!bestCell || m > bestCell.m)) bestCell = { m, h: CHART_HOURS[h], i };
+    }
+    const mc = tr.insertCell();
+    mc.className = 'h';
+    mc.textContent = muf == null ? '—' : muf.toFixed(1);
+  }
+  $('chgrid').replaceChildren(t);
+
+  const lg = $('chlegend');
+  lg.replaceChildren();
+  for (const [k, label] of [['good', 'meets the requirement'], ['fair', 'within 10 dB'],
+                            ['poor', '10–25 dB short'], ['closed', 'well short / no path']]) {
+    const c = document.createElement('span'); c.className = 'chip';
+    const s = document.createElement('span'); s.className = 'sw';
+    s.style.background = statusFill(k);
+    c.append(s, document.createTextNode(label));
+    lg.append(c);
+  }
+
+  const best = bestCell
+    ? `Best window: ${BANDS[bestCell.i]} at ${String(bestCell.h).padStart(2, '0')}Z, `
+      + `${bestCell.m > 0 ? '+' : ''}${bestCell.m} dB. `
+    : 'No hour on any band is predicted to carry this circuit. ';
+  const g = gain();
+  $('chnote').textContent = best
+    + `Cells are SNR margin in dB against the ${REQ} dB requirement in 3 kHz, at `
+    + `${$('pwr').value} W into ${$('ant').selectedOptions[0].textContent} `
+    + `(${g >= 0 ? '+' : ''}${g.toFixed(1)} dB over the 100 W isotropic baseline; antenna `
+    + 'gain is peak gain applied flat, so beams read optimistic). This is the exact path — '
+    + 'unlike the map, which snaps to the nearest 6° cell — and covers all 24 hours '
+    + 'regardless of the map\'s time span. Effective sunspot number is a fixed placeholder '
+    + 'of 60.';
+}
+
+$('chclose').onclick = () => $('chart').close();
+
+// The dialog's copies drive the real controls rather than holding their own
+// state, so there is still exactly one source of truth for the station.
+$('chant').replaceChildren(...[...$('ant').options].map((o) => new Option(o.textContent, o.value)));
+function syncStationIntoChart() {
+  $('chpwr').value = $('pwr').value;
+  $('chant').value = $('ant').value;
+  const g = gain();
+  $('chgain').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+}
+for (const [from, to] of [['chpwr', 'pwr'], ['chant', 'ant']])
+  $(from).addEventListener('input', () => {
+    $(to).value = $(from).value;
+    $(to).dispatchEvent(new Event('input', { bubbles: true }));
+    syncStationIntoChart();
+  });
+// Recompute the rendering (not the prediction) when the station selector moves,
+// so an open chart never disagrees with the map behind it.
+function refreshOpenChart() {
+  const dlg = $('chart');
+  if (dlg.open && chartTarget) {
+    const per = chartCache.get(chartKey(tx, chartTarget, new Date().getUTCMonth() + 1));
+    if (per) renderChart(per, chartTarget);
+  }
+}
+
+// --- place search over the bundled gazetteer ------------------------------
+function wireSearch(inputId, suggId, onPick) {
+  const inp = $(inputId), sug = $(suggId);
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim().toLowerCase();
+    if (q.length < 2) { sug.hidden = true; return; }
+    const starts = [], contains = [];
+    for (const p of PLACES) {
+      const n = p[0].toLowerCase();
+      if (n.startsWith(q)) starts.push(p);
+      else if (n.includes(q)) contains.push(p);
+      if (starts.length >= 12) break;
+    }
+    const hits = [...starts, ...contains].slice(0, 12);
+    sug.replaceChildren();
+    if (!hits.length) { sug.hidden = true; return; }
+    for (const p of hits) {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'option');
+      d.innerHTML = `${p[0]} <span class="cc">${p[1]} &middot; `
+        + `${p[3].toFixed(1)}, ${p[4].toFixed(1)}</span>`;
+      d.onclick = () => {
+        sug.hidden = true;
+        onPick({ name: p[0], cc: p[1], lat: p[3], lon: p[4] });
+      };
+      sug.append(d);
+    }
+    sug.hidden = false;
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; }, 180));
+}
+
+function setTx(t, { recentre = true } = {}) {
+  tx = t;
+  $('tx').value = '';
+  $('txnow').textContent = `${t.name} · ${maidenhead(t.lat, t.lon)}`;
+  // A new transmitter invalidates every computed cell. Leaving the old grid under
+  // the new marker would be a straightforwardly false picture, so it goes.
+  stopRun();
+  field = null; gridVersion++;
+  $('run').hidden = true;
+  if (recentre) {
+    zoom = 2.2;
+    panX = px(t.lon) - (W / zoom) / 2;
+    panY = py(t.lat) - (H / zoom) / 2;
+  }
+  showHint('Ready to compute',
+    `press Generate to map where ${t.name} can be heard`, { soft: true });
+  persist();
+  updateGoLabel();
+  schedule(true);
+}
+
+// --- run estimate --------------------------------------------------------
+// From the Phase 0 spike: ~87 ms per point in one worker over four hours, and a
+// measured 1.74x speedup across four workers. Everything below derives from those
+// two numbers, and the displayed figure is replaced by live throughput as soon as
+// the first batch lands.
+const POOL_SIZE = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 2));
+const MS_PER_POINT_HOUR = 87 / 4;
+const SPEEDUP = Math.max(1, 0.435 * POOL_SIZE);
+const steps = () => $('detail').value.split(',').map(Number);
+const estimateSec = () =>
+  plannedPointCount(steps()) * MS_PER_POINT_HOUR * Number($('span').value) / SPEEDUP / 1000;
+const fmtDur = (s) => (s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`);
+
+function updateGoLabel() {
+  $('go').textContent = tx ? `Generate · ≈${fmtDur(estimateSec())}` : 'Generate';
+  $('go').disabled = !tx || running || !COAST;
+}
+
+// --- compute -------------------------------------------------------------
+function showRun(line, sub = '', frac = null) {
+  $('run').hidden = false;
+  $('runline').textContent = line;
+  $('runsub').textContent = sub;
+  if (frac !== null) $('runbar').style.width = Math.round(frac * 100) + '%';
+}
+/** `soft` shows a small non-blocking banner instead of an overlay over the map.
+ *  Reserve the blocking form for when there is genuinely nothing to look at. */
+function showHint(title, text, { soft = false } = {}) {
+  $('hint').hidden = false;
+  $('hint').classList.toggle('soft', soft);
+  $('hinttitle').textContent = title;
+  $('hinttext').textContent = text;
+}
+function stopRun() {
+  abort?.abort();
+  abort = null;
+  running = false;
+  $('stop').hidden = true;
+  updateGoLabel();
+}
+
+function applySpan() {
+  hours = Number($('span').value) === 24
+    ? Array.from({ length: 24 }, (_, i) => i)
+    : [0, 6, 12, 18];
+  $('hour').max = String(hours.length - 1);
+  if (Number($('hour').value) > hours.length - 1) $('hour').value = String(hours.length - 1);
+}
+
+async function generate() {
+  if (!tx || running) return;
+  applySpan();
+
+  const plan = steps();
+  const now = new Date();
+  const month = now.getUTCMonth() + 1, year = now.getUTCFullYear();
+  const key = gridKey({ lat: tx.lat, lon: tx.lon, month, ssn: SSN, hours,
+                        stepDeg: plan[plan.length - 1] });
+
+  running = true;
+  $('hint').hidden = true;
+  updateGoLabel();
+
+  const cached = await getGrid(key);
+  if (cached) {
+    field = hydrate(cached);
+    running = false;
+    $('run').hidden = true;
+    persist(key);
+    updateGoLabel();
+    schedule(true);
+    return;
+  }
+
+  abort = new AbortController();
+  $('stop').hidden = false;
+  showRun('Starting the engine…',
+    `${POOL_SIZE} worker${POOL_SIZE > 1 ? 's' : ''} · first run also fetches `
+    + '~11 MB of ITU data', 0);
+
+  field = new ReachField(hours.length, FREQS.length);
+  gridVersion++;
+  schedule(true);
+
+  pool ??= new GridPool({ size: POOL_SIZE });
+  try {
+    await pool.run({
+      tx: { latitude: tx.lat, longitude: tx.lon },
+      freqs: FREQS, hours, month, year, ssn: SSN,
+      powerW: POWER_W, reqSnr: REQ, steps: plan,
+      signal: abort.signal,
+      onEngine: (e) => {
+        const v = e?.p533Version ?? e?.version;
+        if (v) $('eng').textContent = `${v} (WebAssembly)`;
+      },
+      onCells: (cells, step) => {
+        field.add(cells, step);
+        gridVersion++;
+        schedule(true);
+      },
+      onProgress: ({ done, total, elapsedMs }) => {
+        const left = done ? (elapsedMs / done) * (total - done) / 1000 : 0;
+        showRun(`Computing · ${Math.round(done / total * 100)}%`,
+          `${done} of ${total} points`
+            + (left > 1 ? ` · about ${fmtDur(left)} left` : ''),
+          done / total);
+      },
+      onPass: (step) => {
+        const last = step === plan[plan.length - 1];
+        showRun(`${step}° pass complete`, last ? 'saving…' : 'refining…');
+      },
+    });
+    if (!abort.signal.aborted) {
+      await putGrid(key, { hours, steps: plan, txName: tx.name,
+                           marg: field.marg, muf: field.muf, resolution: field.resolution });
+      pruneGrids();
+      $('run').hidden = true;
+      persist(key);
+    }
+  } catch (e) {
+    showRun('Computation failed', String(e?.message ?? e));
+  }
+  stopRun();
+  schedule(true);
+}
+
+function hydrate(rec) {
+  const f = new ReachField(rec.hours.length, FREQS.length);
+  f.marg = rec.marg; f.muf = rec.muf; f.resolution = rec.resolution;
+  hours = rec.hours;
+  $('span').value = hours.length === 24 ? '24' : '4';
+  $('hour').max = String(hours.length - 1);
+  if (Number($('hour').value) > hours.length - 1) $('hour').value = String(hours.length - 1);
+  if (Array.isArray(rec.steps)) $('detail').value = rec.steps.join(',');
+  gridVersion++;
+  return f;
+}
+
+// --- session persistence -------------------------------------------------
+function persist(key = lastKey) {
+  lastKey = key;
+  saveSession({
+    tx, receivers, key,
+    detail: $('detail').value, span: $('span').value,
+    pwr: $('pwr').value, ant: $('ant').value,
+    mode: $('mode').value, hour: $('hour').value, night: $('night').value,
+    theme: $('theme').value, zoom, panX, panY,
+  });
+}
+
+// --- interaction ---------------------------------------------------------
+function eventLonLat(e) {
+  const r = cv.getBoundingClientRect();
+  // CSS pixels -> canvas pixels -> world -> lon/lat
+  const cx = (e.clientX - r.left) * (W / r.width), cy = (e.clientY - r.top) * (H / r.height);
+  const wx = cx / zoom + panX, wy = cy / zoom + panY;
+  let lon = (wx / W) * 360 - 180;
+  lon = ((lon + 180) % 360 + 360) % 360 - 180;
+  return [lon, Math.max(-90, Math.min(90, 90 - (wy / H) * 180))];
+}
+
+function canvasXY(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)];
+}
+
+cv.addEventListener('mousemove', (e) => {
+  if (dragging) return;
+  const [lon, lat] = eventLonLat(e);
+  const [cx, cy] = canvasXY(e);
+
+  const over = receiverAt(cx, cy);
+  cv.classList.toggle('overmarker', !!over);
+  const wasHovered = hovered?.rx;
+  hovered = over ? { lat: over.lat, lon: over.lon, rx: over } : null;
+  if (!pinned && wasHovered !== over) { renderPopup(); schedule(); }
+
+  const pos = `${Math.abs(lat).toFixed(0)}°${lat < 0 ? 'S' : 'N'}  `
+    + `${Math.abs(lon).toFixed(0)}°${lon < 0 ? 'W' : 'E'}`;
+  const c = circuitAt(lat, lon, gain());
+  $('ro').textContent = !c
+    ? pos + (field ? '\nno path predicted' : '\nnothing computed yet')
+    : pos + `\nbest ${BANDS[c.best]}  ${c.bestMargin > 0 ? '+' : ''}${c.bestMargin} dB`
+      + (c.muf != null ? `\nMUF ${c.muf.toFixed(1)} MHz` : '')
+      + (c.lowest >= 0 ? `\nusable ${BANDS[c.lowest]}–${BANDS[c.highest]}`
+                       : '\nnone usable');
+});
+cv.addEventListener('mouseleave', () => {
+  $('ro').textContent = 'Click anywhere for detail';
+  cv.classList.remove('overmarker');
+  if (hovered) { hovered = null; if (!pinned) { renderPopup(); schedule(); } }
+});
+
+let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, pinchDist = null;
+cv.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  lastX = downX = e.clientX; lastY = downY = e.clientY;
+  cv.classList.add('dragging');
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  const r = cv.getBoundingClientRect();
+  panX -= (e.clientX - lastX) * (W / r.width) / zoom;
+  panY -= (e.clientY - lastY) * (H / r.height) / zoom;
+  lastX = e.clientX; lastY = e.clientY;
+  schedule();
+});
+cv.addEventListener('pointerup', (e) => {
+  if (!dragging) return;
+  dragging = false;
+  cv.classList.remove('dragging');
+  // A click is a pointerup that barely moved. Anything further was a pan, and must
+  // not open a panel the user was only trying to drag past.
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
+    const [lon, lat] = eventLonLat(e);
+    const rx = receiverAt(...canvasXY(e));
+    pinned = rx ? { lat: rx.lat, lon: rx.lon, rx } : { lat, lon };
+    hovered = null;
+    renderPopup();
+    schedule();
+  } else persist();
+});
+for (const ev of ['pointercancel', 'pointerleave'])
+  cv.addEventListener(ev, () => { dragging = false; cv.classList.remove('dragging'); });
+cv.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  zoomAt((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height),
+         e.deltaY < 0 ? 1.15 : 1 / 1.15);
+}, { passive: false });
+cv.addEventListener('dblclick', (e) => {
+  const r = cv.getBoundingClientRect();
+  zoomAt((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height), 1.8);
+});
+cv.addEventListener('touchmove', (e) => {
+  if (e.touches.length !== 2) return;
+  e.preventDefault();
+  const [a, b] = e.touches;
+  const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  if (pinchDist !== null) {
+    const r = cv.getBoundingClientRect();
+    zoomAt(((a.clientX + b.clientX) / 2 - r.left) * (W / r.width),
+           ((a.clientY + b.clientY) / 2 - r.top) * (H / r.height), d / pinchDist);
+  }
+  pinchDist = d;
+}, { passive: false });
+cv.addEventListener('touchend', () => { pinchDist = null; });
+
+$('zin').onclick = () => zoomAt(W / 2, H / 2, 1.6);
+$('zout').onclick = () => zoomAt(W / 2, H / 2, 1 / 1.6);
+$('zrst').onclick = () => { zoom = 1; panX = 0; panY = 0; persist(); schedule(); };
+
+$('hintpick').onclick = () => { $('hint').hidden = true; };
+
+function useMyLocation(btn) {
+  if (!navigator.geolocation) {
+    showHint('No geolocation here',
+      'This browser cannot report a position — search for a place, or click the map.');
+    return;
+  }
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      btn.disabled = false; btn.textContent = label;
+      setTx({ name: `My location (${maidenhead(coords.latitude, coords.longitude)})`, cc: '',
+              lat: coords.latitude, lon: coords.longitude });
+    },
+    (err) => {
+      btn.disabled = false; btn.textContent = label;
+      showHint('Could not get your location',
+        err.code === err.PERMISSION_DENIED
+          ? 'Permission was denied. Search for a place, or click the map instead.'
+          : err.message);
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+}
+$('myloc').onclick = () => useMyLocation($('myloc'));
+$('hintloc').onclick = () => useMyLocation($('hintloc'));
+
+wireSearch('tx', 'txsugg', (p) => setTx(p));
+wireSearch('rx', 'rxsugg', (p) => {
+  if (!receivers.some((r) => r.name === p.name && r.cc === p.cc)) receivers.push(p);
+  $('rx').value = '';
+  persist();
+  schedule(true);
+});
+
+$('go').onclick = generate;
+$('stop').onclick = () => {
+  stopRun();
+  showRun('Stopped', 'What was computed is still on the map.');
+};
+for (const id of ['mode', 'hour', 'night', 'pwr', 'ant'])
+  $(id).addEventListener('input', () => {
+    showGain(); persist(); schedule(true); refreshOpenChart();
+    if ($('chart').open) $('chgain').textContent = $('gainval').textContent;
+  });
+for (const id of ['detail', 'span'])
+  $(id).addEventListener('change', () => { persist(); updateGoLabel(); });
+$('theme').addEventListener('change', () => { applyTheme(); persist(); });
+
+// --- boot ----------------------------------------------------------------
+(async () => {
+  const [coast, gaz] = await Promise.all([
+    fetch('./data/geo/coastline.geojson').then((r) => r.json()),
+    fetch('./data/geo/gazetteer-compact.json').then((r) => r.json()),
+  ]);
+  COAST = coast;
+  PLACES = gaz.places;
+
+  const s = loadSession();
+  if (s) {
+    // Sessions saved before power and antenna were separate carry a single
+    // combined offset. Map it back rather than resetting someone's station.
+    const LEGACY = { 0: ['100', '0'], 2: ['100', '2.1'], 12: ['1000', '2.1'], 18: ['1000', '7'] };
+    const legacy = s.pwr == null && s.station != null ? LEGACY[Number(s.station)] : null;
+    for (const [id, v] of [['detail', s.detail], ['span', s.span],
+                           ['pwr', s.pwr ?? legacy?.[0]], ['ant', s.ant ?? legacy?.[1]],
+                           ['mode', s.mode], ['hour', s.hour], ['night', s.night],
+                           ['theme', s.theme]])
+      if (v != null) $(id).value = v;
+    if (typeof s.zoom === 'number') { zoom = s.zoom; panX = s.panX; panY = s.panY; }
+    receivers = Array.isArray(s.receivers) ? s.receivers : [];
+    applySpan();
+  }
+  applyTheme();
+
+  if (s?.tx) {
+    tx = s.tx;
+    lastKey = s.key ?? null;
+    $('txnow').textContent = `${tx.name} · ${maidenhead(tx.lat, tx.lon)}`;
+    // Restore the last computed grid if it is still cached. Deliberately do NOT
+    // recompute on load: a returning visitor gets their map back instantly, or an
+    // explicit button — never a minute of silent CPU they did not ask for.
+    const rec = s.key ? await getGrid(s.key) : null;
+    if (rec) {
+      field = hydrate(rec);
+      $('hint').hidden = true;
+    } else {
+      showHint('Welcome back',
+        `The map for ${tx.name} is no longer cached. Press Generate to recompute it.`);
+    }
+  } else {
+    showHint('Pick a transmitter to begin',
+      'Search for a place, use your location, or click the map. '
+      + 'Nothing is computed until you press Generate.');
+  }
+
+  showGain();
+  updateGoLabel();
+  schedule(true);
+})();
+</script>
+</body>
+</html>

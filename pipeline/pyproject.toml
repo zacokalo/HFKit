@@ -1,0 +1,19 @@
+[project]
+name = "hfkit-pipeline"
+version = "0.1.0"
+description = "HFKit Tier 0 pipeline: fetch upstream data, gate it, publish static bundles"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

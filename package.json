@@ -1,0 +1,20 @@
+{
+  "name": "hfkit",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "build:web": "npm run build --workspace @hfkit/theme && npm run build --workspace @hfkit/engine && node apps/web/build.mjs",
+    "test:web": "node apps/web/test/run.mjs"
+  }
+}

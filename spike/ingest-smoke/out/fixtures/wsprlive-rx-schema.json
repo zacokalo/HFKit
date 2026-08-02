@@ -1,0 +1,66 @@
+{
+	"meta":
+	[
+		{
+			"name": "name",
+			"type": "String"
+		},
+		{
+			"name": "type",
+			"type": "String"
+		},
+		{
+			"name": "default_type",
+			"type": "String"
+		},
+		{
+			"name": "default_expression",
+			"type": "String"
+		},
+		{
+			"name": "comment",
+			"type": "String"
+		},
+		{
+			"name": "codec_expression",
+			"type": "String"
+		},
+		{
+			"name": "ttl_expression",
+			"type": "String"
+		}
+	],
+
+	"data":
+	[
+		["id", "UInt64", "", "", "", "", ""],
+		["time", "DateTime", "", "", "", "", ""],
+		["band", "Int16", "", "", "", "", ""],
+		["rx_sign", "LowCardinality(String)", "", "", "", "", ""],
+		["rx_lat", "Float32", "", "", "", "", ""],
+		["rx_lon", "Float32", "", "", "", "", ""],
+		["rx_loc", "LowCardinality(String)", "", "", "", "", ""],
+		["tx_sign", "LowCardinality(String)", "", "", "", "", ""],
+		["tx_lat", "Float32", "", "", "", "", ""],
+		["tx_lon", "Float32", "", "", "", "", ""],
+		["tx_loc", "LowCardinality(String)", "", "", "", "", ""],
+		["distance", "UInt16", "", "", "", "", ""],
+		["azimuth", "UInt16", "", "", "", "", ""],
+		["rx_azimuth", "UInt16", "", "", "", "", ""],
+		["frequency", "UInt64", "", "", "", "", ""],
+		["power", "Int8", "", "", "", "", ""],
+		["snr", "Int8", "", "", "", "", ""],
+		["drift", "Int8", "", "", "", "", ""],
+		["version", "LowCardinality(String)", "", "", "", "", ""],
+		["code", "Int8", "", "", "", "", ""]
+	],
+
+	"rows": 20,
+
+	"statistics":
+	{
+		"elapsed": 0.001031992,
+		"rows_read": 20,
+		"bytes_read": 1435
+	}
+}

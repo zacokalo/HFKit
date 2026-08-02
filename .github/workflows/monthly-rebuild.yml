@@ -1,0 +1,62 @@
+name: monthly-rebuild
+
+# The site publishes only the month it was built in, and both pages ask for the
+# month it currently *is*. So a deploy made in August stops working on 1
+# September. This nudges the host to rebuild on the 1st.
+#
+# It pushes an empty commit rather than calling a deploy API: that works with
+# whatever git-connected build the host has, needs no API tokens, and leaves the
+# reason in the history. If you later deploy with wrangler from CI instead,
+# replace the push step with the deploy and keep everything else.
+#
+# 02:00 UTC, not 00:00 — being an hour or two late on the 1st is harmless, and
+# GitHub's scheduler is busiest on the hour.
+
+on:
+  schedule:
+    - cron: '0 2 1 * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why this run was triggered by hand'
+        required: false
+        default: 'manual rebuild'
+
+# A scheduled workflow runs on the default branch, but the deployed branch may
+# not be it. DEPLOY_BRANCH (a repository variable) says which branch the host
+# builds from.
+env:
+  DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH || github.ref_name }}
+
+permissions:
+  contents: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_BRANCH }}
+          fetch-depth: 1
+
+      - name: Confirm the rebuild is actually needed
+        id: check
+        run: |
+          MONTH=$(date -u +%m)
+          echo "month=$MONTH" >> "$GITHUB_OUTPUT"
+          echo "Current UTC month is $MONTH; the deploy must serve ionos$MONTH.bin."
+
+      - name: Push an empty commit to trigger the host's build
+        run: |
+          MONTH="${{ steps.check.outputs.month }}"
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "chore: rebuild for month $MONTH ITU data
+
+          The published ITU coefficient set covers only the month the build ran
+          in, so the site must be rebuilt at each month boundary or predictions
+          request a file that was never deployed.
+
+          Triggered by .github/workflows/monthly-rebuild.yml."
+          git push origin "HEAD:${{ env.DEPLOY_BRANCH }}"

@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HFKit &middot; Style Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/*
+ * GENERATED FILE -- do not edit by hand.
+ * Source: packages/theme/tokens.json
+ * Regenerate: npm run generate (inside packages/theme)
+ */
+
+:root {
+  /* -- primitive scale (spacing, radius, type, motion) -- same in every theme */
+  --hf-spacing-0: 0px;
+  --hf-spacing-1: 4px;
+  --hf-spacing-2: 8px;
+  --hf-spacing-3: 12px;
+  --hf-spacing-4: 16px;
+  --hf-spacing-5: 20px;
+  --hf-spacing-6: 24px;
+  --hf-spacing-8: 32px;
+  --hf-spacing-10: 40px;
+  --hf-spacing-12: 48px;
+  --hf-spacing-16: 64px;
+  --hf-spacing-20: 80px;
+  --hf-spacing-24: 96px;
+  --hf-radius-none: 0px;
+  --hf-radius-sm: 2px;
+  --hf-radius-md: 4px;
+  --hf-radius-lg: 8px;
+  --hf-radius-full: 9999px;
+  --hf-border-width-1: 1px;
+  --hf-border-width-2: 2px;
+  --hf-font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --hf-font-family-mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+  --hf-font-size-xs: 11px;
+  --hf-font-size-sm: 12px;
+  --hf-font-size-base: 14px;
+  --hf-font-size-md: 16px;
+  --hf-font-size-lg: 18px;
+  --hf-font-size-xl: 22px;
+  --hf-font-size-2xl: 28px;
+  --hf-font-size-3xl: 36px;
+  --hf-font-weight-regular: 400;
+  --hf-font-weight-medium: 500;
+  --hf-font-weight-semibold: 600;
+  --hf-font-weight-bold: 700;
+  --hf-line-height-tight: 1.15;
+  --hf-line-height-normal: 1.4;
+  --hf-line-height-relaxed: 1.6;
+  --hf-duration-fast: 100ms;
+  --hf-duration-base: 150ms;
+  --hf-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* -- default theme: field-dark -- overridden by [data-theme] below */
+  --hf-surface-default: #111213;
+  --hf-surface-raised: #222326;
+  --hf-surface-sunken: #0a0a0b;
+  --hf-surface-overlay: #2b2d31;
+  --hf-text-primary: #f4f5f5;
+  --hf-text-secondary: #b9bcc1;
+  --hf-text-muted: #9ba0a6;
+  --hf-text-inverse: #0a0a0b;
+  --hf-text-disabled: #565b61;
+  --hf-border-subtle: #2b2d31;
+  --hf-border-default: #46494e;
+  --hf-border-strong: #696f77;
+  --hf-accent-interactive: #4991d4;
+  --hf-accent-interactive-hover: #6aa5dc;
+  --hf-accent-interactive-active: #2f7dc6;
+  --hf-accent-on-accent: #0a0a0b;
+  --hf-focus-ring: #6aa5dc;
+  --hf-status-good-fill: #1d7c49;
+  --hf-status-good-on: #ffffff;
+  --hf-status-good-text: #49d48a;
+  --hf-status-fair-fill: #9d7925;
+  --hf-status-fair-on: #0a0a0b;
+  --hf-status-fair-text: #d4ab49;
+  --hf-status-poor-fill: #844b1f;
+  --hf-status-poor-on: #f4f5f5;
+  --hf-status-poor-text: #d48649;
+  --hf-status-closed-fill: #a53127;
+  --hf-status-closed-on: #f4f5f5;
+  --hf-status-closed-text: #d45549;
+  --hf-status-stale-fill: #586574;
+  --hf-status-stale-on: #f4f5f5;
+  --hf-status-stale-text: #96a2b0;
+  --hf-card-padding: 16px;
+  --hf-card-gap: 12px;
+  --hf-card-radius: 4px;
+  --hf-card-background: #222326;
+  --hf-card-border: #2b2d31;
+  --hf-button-padding-x: 16px;
+  --hf-button-padding-y: 8px;
+  --hf-button-radius: 2px;
+  --hf-button-background: #4991d4;
+  --hf-button-background-hover: #6aa5dc;
+  --hf-button-background-active: #2f7dc6;
+  --hf-button-foreground: #0a0a0b;
+  --hf-button-border: #4991d4;
+  --hf-badge-padding-x: 8px;
+  --hf-badge-padding-y: 4px;
+  --hf-badge-radius: 9999px;
+  --hf-badge-gap: 4px;
+  --hf-badge-border: #46494e;
+  --hf-data-row-padding-x: 12px;
+  --hf-data-row-padding-y: 8px;
+  --hf-data-row-background: #222326;
+  --hf-data-row-background-alt: #0a0a0b;
+  --hf-data-row-border: #2b2d31;
+  --hf-data-row-value-foreground: #f4f5f5;
+  --hf-data-row-timestamp-foreground: #9ba0a6;
+  --hf-focus-ring-width: 2px;
+  --hf-focus-ring-offset: 0px;
+  --hf-focus-ring-color: #6aa5dc;
+  --hf-map-background: #111213;
+  --hf-map-land: #111213;
+  --hf-map-water: #0a0a0b;
+  --hf-map-building: #222326;
+  --hf-map-boundary: #46494e;
+  --hf-map-road: #696f77;
+  --hf-map-label: #b9bcc1;
+  --hf-map-label-halo: #111213;
+  --hf-sequential-0: #00204d;
+  --hf-sequential-1: #00336f;
+  --hf-sequential-2: #39486b;
+  --hf-sequential-3: #575d6d;
+  --hf-sequential-4: #707173;
+  --hf-sequential-5: #8a8678;
+  --hf-sequential-6: #a69d75;
+  --hf-sequential-7: #ffea46;
+  --hf-categorical-0: #e69f00;
+  --hf-categorical-1: #56b4e9;
+  --hf-categorical-2: #009e73;
+  --hf-categorical-3: #f0e442;
+  --hf-categorical-4: #0072b2;
+  --hf-categorical-5: #d55e00;
+  --hf-categorical-6: #cc79a7;
+  --hf-categorical-7: #999999;
+}
+
+[data-theme="field-dark"] {
+  --hf-surface-default: #111213;
+  --hf-surface-raised: #222326;
+  --hf-surface-sunken: #0a0a0b;
+  --hf-surface-overlay: #2b2d31;
+  --hf-text-primary: #f4f5f5;
+  --hf-text-secondary: #b9bcc1;
+  --hf-text-muted: #9ba0a6;
+  --hf-text-inverse: #0a0a0b;
+  --hf-text-disabled: #565b61;
+  --hf-border-subtle: #2b2d31;
+  --hf-border-default: #46494e;
+  --hf-border-strong: #696f77;
+  --hf-accent-interactive: #4991d4;
+  --hf-accent-interactive-hover: #6aa5dc;
+  --hf-accent-interactive-active: #2f7dc6;
+  --hf-accent-on-accent: #0a0a0b;
+  --hf-focus-ring: #6aa5dc;
+  --hf-status-good-fill: #1d7c49;
+  --hf-status-good-on: #ffffff;
+  --hf-status-good-text: #49d48a;
+  --hf-status-fair-fill: #9d7925;
+  --hf-status-fair-on: #0a0a0b;
+  --hf-status-fair-text: #d4ab49;
+  --hf-status-poor-fill: #844b1f;
+  --hf-status-poor-on: #f4f5f5;
+  --hf-status-poor-text: #d48649;
+  --hf-status-closed-fill: #a53127;
+  --hf-status-closed-on: #f4f5f5;
+  --hf-status-closed-text: #d45549;
+  --hf-status-stale-fill: #586574;
+  --hf-status-stale-on: #f4f5f5;
+  --hf-status-stale-text: #96a2b0;
+  --hf-card-padding: 16px;
+  --hf-card-gap: 12px;
+  --hf-card-radius: 4px;
+  --hf-card-background: #222326;
+  --hf-card-border: #2b2d31;
+  --hf-button-padding-x: 16px;
+  --hf-button-padding-y: 8px;
+  --hf-button-radius: 2px;
+  --hf-button-background: #4991d4;
+  --hf-button-background-hover: #6aa5dc;
+  --hf-button-background-active: #2f7dc6;
+  --hf-button-foreground: #0a0a0b;
+  --hf-button-border: #4991d4;
+  --hf-badge-padding-x: 8px;
+  --hf-badge-padding-y: 4px;
+  --hf-badge-radius: 9999px;
+  --hf-badge-gap: 4px;
+  --hf-badge-border: #46494e;
+  --hf-data-row-padding-x: 12px;
+  --hf-data-row-padding-y: 8px;
+  --hf-data-row-background: #222326;
+  --hf-data-row-background-alt: #0a0a0b;
+  --hf-data-row-border: #2b2d31;
+  --hf-data-row-value-foreground: #f4f5f5;
+  --hf-data-row-timestamp-foreground: #9ba0a6;
+  --hf-focus-ring-width: 2px;
+  --hf-focus-ring-offset: 0px;
+  --hf-focus-ring-color: #6aa5dc;
+  --hf-map-background: #111213;
+  --hf-map-land: #111213;
+  --hf-map-water: #0a0a0b;
+  --hf-map-building: #222326;
+  --hf-map-boundary: #46494e;
+  --hf-map-road: #696f77;
+  --hf-map-label: #b9bcc1;
+  --hf-map-label-halo: #111213;
+  --hf-sequential-0: #00204d;
+  --hf-sequential-1: #00336f;
+  --hf-sequential-2: #39486b;
+  --hf-sequential-3: #575d6d;
+  --hf-sequential-4: #707173;
+  --hf-sequential-5: #8a8678;
+  --hf-sequential-6: #a69d75;
+  --hf-sequential-7: #ffea46;
+  --hf-categorical-0: #e69f00;
+  --hf-categorical-1: #56b4e9;
+  --hf-categorical-2: #009e73;
+  --hf-categorical-3: #f0e442;
+  --hf-categorical-4: #0072b2;
+  --hf-categorical-5: #d55e00;
+  --hf-categorical-6: #cc79a7;
+  --hf-categorical-7: #999999;
+}
+
+[data-theme="field-light"] {
+  --hf-surface-default: #f4f5f5;
+  --hf-surface-raised: #ffffff;
+  --hf-surface-sunken: #d9dbdd;
+  --hf-surface-overlay: #ffffff;
+  --hf-text-primary: #0a0a0b;
+  --hf-text-secondary: #46494e;
+  --hf-text-muted: #565b61;
+  --hf-text-inverse: #f4f5f5;
+  --hf-text-disabled: #80868e;
+  --hf-border-subtle: #b9bcc1;
+  --hf-border-default: #9ba0a6;
+  --hf-border-strong: #696f77;
+  --hf-accent-interactive: #2768a5;
+  --hf-accent-interactive-hover: #1f5384;
+  --hf-accent-interactive-active: #173e63;
+  --hf-accent-on-accent: #f4f5f5;
+  --hf-focus-ring: #2768a5;
+  --hf-status-good-fill: #1d7c49;
+  --hf-status-good-on: #ffffff;
+  --hf-status-good-text: #17633b;
+  --hf-status-fair-fill: #a57f27;
+  --hf-status-fair-on: #0a0a0b;
+  --hf-status-fair-text: #634c17;
+  --hf-status-poor-fill: #844b1f;
+  --hf-status-poor-on: #ffffff;
+  --hf-status-poor-text: #633817;
+  --hf-status-closed-fill: #84271f;
+  --hf-status-closed-on: #ffffff;
+  --hf-status-closed-text: #84271f;
+  --hf-status-stale-fill: #586574;
+  --hf-status-stale-on: #ffffff;
+  --hf-status-stale-text: #46505d;
+  --hf-card-padding: 16px;
+  --hf-card-gap: 12px;
+  --hf-card-radius: 4px;
+  --hf-card-background: #ffffff;
+  --hf-card-border: #b9bcc1;
+  --hf-button-padding-x: 16px;
+  --hf-button-padding-y: 8px;
+  --hf-button-radius: 2px;
+  --hf-button-background: #2768a5;
+  --hf-button-background-hover: #1f5384;
+  --hf-button-background-active: #173e63;
+  --hf-button-foreground: #f4f5f5;
+  --hf-button-border: #2768a5;
+  --hf-badge-padding-x: 8px;
+  --hf-badge-padding-y: 4px;
+  --hf-badge-radius: 9999px;
+  --hf-badge-gap: 4px;
+  --hf-badge-border: #9ba0a6;
+  --hf-data-row-padding-x: 12px;
+  --hf-data-row-padding-y: 8px;
+  --hf-data-row-background: #ffffff;
+  --hf-data-row-background-alt: #d9dbdd;
+  --hf-data-row-border: #b9bcc1;
+  --hf-data-row-value-foreground: #0a0a0b;
+  --hf-data-row-timestamp-foreground: #565b61;
+  --hf-focus-ring-width: 2px;
+  --hf-focus-ring-offset: 0px;
+  --hf-focus-ring-color: #2768a5;
+  --hf-map-background: #f4f5f5;
+  --hf-map-land: #f4f5f5;
+  --hf-map-water: #d9dbdd;
+  --hf-map-building: #ffffff;
+  --hf-map-boundary: #9ba0a6;
+  --hf-map-road: #696f77;
+  --hf-map-label: #46494e;
+  --hf-map-label-halo: #f4f5f5;
+  --hf-sequential-0: #00204d;
+  --hf-sequential-1: #00336f;
+  --hf-sequential-2: #39486b;
+  --hf-sequential-3: #575d6d;
+  --hf-sequential-4: #707173;
+  --hf-sequential-5: #8a8678;
+  --hf-sequential-6: #a69d75;
+  --hf-sequential-7: #ffea46;
+  --hf-categorical-0: #e69f00;
+  --hf-categorical-1: #56b4e9;
+  --hf-categorical-2: #009e73;
+  --hf-categorical-3: #f0e442;
+  --hf-categorical-4: #0072b2;
+  --hf-categorical-5: #d55e00;
+  --hf-categorical-6: #cc79a7;
+  --hf-categorical-7: #999999;
+}
+
+[data-theme="night-ops"] {
+  --hf-surface-default: #180807;
+  --hf-surface-raised: #220d0b;
+  --hf-surface-sunken: #100504;
+  --hf-surface-overlay: #220d0b;
+  --hf-text-primary: #f1a59d;
+  --hf-text-secondary: #d37369;
+  --hf-text-muted: #c46d64;
+  --hf-text-inverse: #180807;
+  --hf-text-disabled: #865750;
+  --hf-border-subtle: #2d1d1b;
+  --hf-border-default: #533632;
+  --hf-border-strong: #865750;
+  --hf-accent-interactive: #bf223c;
+  --hf-accent-interactive-hover: #ee8b9c;
+  --hf-accent-interactive-active: #f1a59d;
+  --hf-accent-on-accent: #fbefec;
+  --hf-focus-ring: #ee8b9c;
+  --hf-status-good-fill: #cda11d;
+  --hf-status-good-on: #180807;
+  --hf-status-good-text: #ebd48e;
+  --hf-status-fair-fill: #cd751d;
+  --hf-status-fair-on: #180807;
+  --hf-status-fair-text: #ebbd8e;
+  --hf-status-poor-fill: #ad421f;
+  --hf-status-poor-on: #fbefec;
+  --hf-status-poor-text: #e89f87;
+  --hf-status-closed-fill: #b12525;
+  --hf-status-closed-on: #fbefec;
+  --hf-status-closed-text: #ea9090;
+  --hf-status-stale-fill: #7a645c;
+  --hf-status-stale-on: #fbefec;
+  --hf-status-stale-text: #b4a29c;
+  --hf-card-padding: 16px;
+  --hf-card-gap: 12px;
+  --hf-card-radius: 4px;
+  --hf-card-background: #220d0b;
+  --hf-card-border: #2d1d1b;
+  --hf-button-padding-x: 16px;
+  --hf-button-padding-y: 8px;
+  --hf-button-radius: 2px;
+  --hf-button-background: #bf223c;
+  --hf-button-background-hover: #ee8b9c;
+  --hf-button-background-active: #f1a59d;
+  --hf-button-foreground: #fbefec;
+  --hf-button-border: #bf223c;
+  --hf-badge-padding-x: 8px;
+  --hf-badge-padding-y: 4px;
+  --hf-badge-radius: 9999px;
+  --hf-badge-gap: 4px;
+  --hf-badge-border: #533632;
+  --hf-data-row-padding-x: 12px;
+  --hf-data-row-padding-y: 8px;
+  --hf-data-row-background: #220d0b;
+  --hf-data-row-background-alt: #100504;
+  --hf-data-row-border: #2d1d1b;
+  --hf-data-row-value-foreground: #f1a59d;
+  --hf-data-row-timestamp-foreground: #c46d64;
+  --hf-focus-ring-width: 2px;
+  --hf-focus-ring-offset: 0px;
+  --hf-focus-ring-color: #ee8b9c;
+  --hf-map-background: #180807;
+  --hf-map-land: #180807;
+  --hf-map-water: #100504;
+  --hf-map-building: #220d0b;
+  --hf-map-boundary: #533632;
+  --hf-map-road: #865750;
+  --hf-map-label: #d37369;
+  --hf-map-label-halo: #180807;
+  --hf-sequential-0: #2a1310;
+  --hf-sequential-1: #4a201a;
+  --hf-sequential-2: #743224;
+  --hf-sequential-3: #a5492a;
+  --hf-sequential-4: #cf6b2f;
+  --hf-sequential-5: #e89a3f;
+  --hf-sequential-6: #f5c469;
+  --hf-sequential-7: #fbe6ad;
+  --hf-categorical-0: #dfb920;
+  --hf-categorical-1: #d6995c;
+  --hf-categorical-2: #df4620;
+  --hf-categorical-3: #d65c66;
+  --hf-categorical-4: #df2070;
+  --hf-categorical-5: #816b56;
+}
+
+
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--hf-surface-sunken);
+  color: var(--hf-text-primary);
+  font-family: var(--hf-font-family-sans);
+  font-size: var(--hf-font-size-base);
+  line-height: var(--hf-line-height-normal);
+}
+.mono { font-family: var(--hf-font-family-mono); font-variant-numeric: tabular-nums; }
+.dim { color: var(--hf-text-muted); }
+.sans { font-family: var(--hf-font-family-sans); }
+
+.page-header {
+  padding: var(--hf-spacing-6) var(--hf-spacing-6) var(--hf-spacing-4);
+  border-bottom: 1px solid var(--hf-border-default);
+  background: var(--hf-surface-default);
+}
+.page-header h1 { margin: 0 0 4px; font-size: var(--hf-font-size-2xl); }
+.page-header p { margin: 0; color: var(--hf-text-muted); max-width: 68ch; }
+
+main { display: flex; flex-direction: column; gap: var(--hf-spacing-8); padding: var(--hf-spacing-6); }
+
+.theme-panel {
+  background: var(--hf-surface-default);
+  color: var(--hf-text-primary);
+  border: 1px solid var(--hf-border-default);
+  border-radius: var(--hf-radius-lg);
+  padding: var(--hf-spacing-6);
+  transition: background var(--hf-duration-base) var(--hf-easing-standard), color var(--hf-duration-base) var(--hf-easing-standard);
+}
+.panel-header { display: flex; align-items: baseline; gap: var(--hf-spacing-3); margin-bottom: var(--hf-spacing-4); }
+.panel-header h2 { margin: 0; text-transform: uppercase; letter-spacing: 0.04em; font-size: var(--hf-font-size-lg); }
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--hf-spacing-6);
+  align-items: start;
+}
+.panel-grid h3 { margin: 0 0 var(--hf-spacing-3); font-size: var(--hf-font-size-sm); text-transform: uppercase; letter-spacing: 0.06em; color: var(--hf-text-secondary); }
+
+.token-groups { display: flex; flex-direction: column; gap: var(--hf-spacing-4); }
+.token-group h4 { margin: 0 0 var(--hf-spacing-1); font-size: var(--hf-font-size-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--hf-text-muted); }
+.swatch-row { display: flex; align-items: center; gap: var(--hf-spacing-2); padding: 3px 0; font-size: var(--hf-font-size-sm); }
+.swatch { width: 18px; height: 18px; border-radius: var(--hf-radius-sm); border: 1px solid var(--hf-border-default); flex: none; }
+/* flex:none + nowrap so long names (e.g. "status.closed", 13ch) size to their
+   content instead of overflowing the 9ch floor and colliding with the value. */
+.swatch-name { min-width: 9ch; flex: none; white-space: nowrap; color: var(--hf-text-secondary); }
+.swatch-value { font-family: var(--hf-font-family-mono); color: var(--hf-text-muted); font-size: var(--hf-font-size-xs); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: var(--hf-spacing-1);
+  padding: var(--hf-spacing-1) var(--hf-spacing-2);
+  border-radius: var(--hf-radius-full);
+  font-size: var(--hf-font-size-xs);
+  font-weight: var(--hf-font-weight-semibold);
+  letter-spacing: 0.03em;
+}
+
+.demo-card { max-width: 420px; }
+.data-row { display: flex; align-items: center; justify-content: space-between; gap: var(--hf-spacing-3); font-size: var(--hf-font-size-sm); }
+.demo-button {
+  font: inherit;
+  font-weight: var(--hf-font-weight-semibold);
+  padding: var(--hf-button-padding-y) var(--hf-button-padding-x);
+  border-radius: var(--hf-button-radius);
+  background: var(--hf-button-background);
+  color: var(--hf-button-foreground);
+  border: 1px solid var(--hf-button-border);
+  cursor: pointer;
+  transition: background var(--hf-duration-fast) var(--hf-easing-standard);
+}
+.demo-button:hover { background: var(--hf-button-background-hover); }
+.demo-button:active { background: var(--hf-button-background-active); }
+.demo-button:focus-visible {
+  outline: var(--hf-focus-ring-width) solid var(--hf-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.ramp { display: flex; height: 22px; border-radius: var(--hf-radius-sm); overflow: hidden; border: 1px solid var(--hf-border-default); margin: 0 0 var(--hf-spacing-3); }
+.ramp span { flex: 1; }
+
+.tabular-demo { border-collapse: collapse; font-size: var(--hf-font-size-base); margin-top: var(--hf-spacing-2); }
+.tabular-demo td { padding: 2px 10px 2px 0; text-align: right; }
+
+.theme-switcher { display: flex; gap: var(--hf-spacing-2); margin-top: var(--hf-spacing-3); }
+.theme-switcher button {
+  font: inherit; font-family: var(--hf-font-family-mono);
+  padding: 6px 12px; border-radius: var(--hf-radius-sm);
+  border: 1px solid var(--hf-border-default);
+  background: var(--hf-surface-raised); color: var(--hf-text-secondary);
+  cursor: pointer;
+}
+.theme-switcher button[aria-pressed="true"] {
+  border-color: var(--hf-accent-interactive);
+  color: var(--hf-text-primary);
+  background: var(--hf-surface-sunken);
+}
+
+footer { padding: var(--hf-spacing-6); color: var(--hf-text-muted); font-size: var(--hf-font-size-sm); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>HFKit &middot; Style Guide</h1>
+    <p>Every semantic token and a few representative components, rendered in all three shipped themes. This is the reskin test: everything below is styled only with <code class="mono">--hf-*</code> custom properties from <code class="mono">tokens.json</code> -- no component hardcodes a color, a spacing value, or a font size.</p>
+    <p class="mono dim">Live page theme (drives the header/body chrome only -- the panels below always show all three side by side):</p>
+    <div class="theme-switcher" role="group" aria-label="Page theme">
+      <button type="button" data-set-theme="field-dark" aria-pressed="true">field-dark</button>
+      <button type="button" data-set-theme="field-light" aria-pressed="false">field-light</button>
+      <button type="button" data-set-theme="night-ops" aria-pressed="false">night-ops</button>
+    </div>
+  </div>
+
+  <main>
+    
+  <section class="theme-panel" data-theme="field-dark">
+    <header class="panel-header">
+      <h2>field-dark</h2>
+      <p class="mono dim">data-theme="field-dark"</p>
+    </header>
+
+    <div class="panel-grid">
+      <div>
+        <h3>Semantic tokens</h3>
+        <div class="token-groups">
+          
+      <div class="token-group">
+        <h4>surface.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-default)"></span>
+    <span class="swatch-name">surface.default</span>
+    <span class="swatch-value">#111213</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-raised)"></span>
+    <span class="swatch-name">surface.raised</span>
+    <span class="swatch-value">#222326</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-sunken)"></span>
+    <span class="swatch-name">surface.sunken</span>
+    <span class="swatch-value">#0a0a0b</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-overlay)"></span>
+    <span class="swatch-name">surface.overlay</span>
+    <span class="swatch-value">#2b2d31</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>text.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-primary)"></span>
+    <span class="swatch-name">text.primary</span>
+    <span class="swatch-value">#f4f5f5</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-secondary)"></span>
+    <span class="swatch-name">text.secondary</span>
+    <span class="swatch-value">#b9bcc1</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-muted)"></span>
+    <span class="swatch-name">text.muted</span>
+    <span class="swatch-value">#9ba0a6</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-inverse)"></span>
+    <span class="swatch-name">text.inverse</span>
+    <span class="swatch-value">#0a0a0b</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-disabled)"></span>
+    <span class="swatch-name">text.disabled</span>
+    <span class="swatch-value">#565b61</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>border.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-subtle)"></span>
+    <span class="swatch-name">border.subtle</span>
+    <span class="swatch-value">#2b2d31</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-default)"></span>
+    <span class="swatch-name">border.default</span>
+    <span class="swatch-value">#46494e</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-strong)"></span>
+    <span class="swatch-name">border.strong</span>
+    <span class="swatch-value">#696f77</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>accent.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive)"></span>
+    <span class="swatch-name">accent.interactive</span>
+    <span class="swatch-value">#4991d4</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-hover)"></span>
+    <span class="swatch-name">accent.interactiveHover</span>
+    <span class="swatch-value">#6aa5dc</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-active)"></span>
+    <span class="swatch-name">accent.interactiveActive</span>
+    <span class="swatch-value">#2f7dc6</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-on-accent)"></span>
+    <span class="swatch-name">accent.onAccent</span>
+    <span class="swatch-value">#0a0a0b</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>focus.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-focus-ring)"></span>
+    <span class="swatch-name">focus.ring</span>
+    <span class="swatch-value">#6aa5dc</span>
+    
+  </div>
+      </div>
+          
+    <div class="token-group">
+      <h4>status.*</h4>
+      <div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)">
+            <span aria-hidden="true">●</span> GOOD
+          </span>
+          <span class="swatch-name">status.good</span>
+          <span class="swatch-value">fill #1d7c49 &middot; on #ffffff &middot; text #49d48a</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-fair-fill);color:var(--hf-status-fair-on)">
+            <span aria-hidden="true">▲</span> FAIR
+          </span>
+          <span class="swatch-name">status.fair</span>
+          <span class="swatch-value">fill #9d7925 &middot; on #0a0a0b &middot; text #d4ab49</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-poor-fill);color:var(--hf-status-poor-on)">
+            <span aria-hidden="true">◆</span> POOR
+          </span>
+          <span class="swatch-name">status.poor</span>
+          <span class="swatch-value">fill #844b1f &middot; on #f4f5f5 &middot; text #d48649</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-closed-fill);color:var(--hf-status-closed-on)">
+            <span aria-hidden="true">✖</span> CLOSED
+          </span>
+          <span class="swatch-name">status.closed</span>
+          <span class="swatch-value">fill #a53127 &middot; on #f4f5f5 &middot; text #d45549</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)">
+            <span aria-hidden="true">○</span> STALE
+          </span>
+          <span class="swatch-name">status.stale</span>
+          <span class="swatch-value">fill #586574 &middot; on #f4f5f5 &middot; text #96a2b0</span>
+        </div>
+    </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Representative components</h3>
+        
+    <div class="demo-card" style="background:var(--hf-card-background);border:1px solid var(--hf-card-border);padding:var(--hf-card-padding);border-radius:var(--hf-card-radius);display:flex;flex-direction:column;gap:var(--hf-card-gap)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <strong style="color:var(--hf-text-primary)">20m &middot; VK path</strong>
+        <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)"><span aria-hidden="true">●</span> GOOD</span>
+      </div>
+
+      <div class="data-row" style="background:var(--hf-data-row-background);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">14.230&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 78</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:41Z</span>
+      </div>
+      <div class="data-row" style="background:var(--hf-data-row-background-alt);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">18.100&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 54</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:36Z</span>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="demo-button" type="button">Plan circuit</button>
+        <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)"><span aria-hidden="true">○</span> STALE 41m</span>
+      </div>
+    </div>
+      </div>
+
+      <div>
+        <h3>Data-viz</h3>
+        <p class="mono dim">dataviz.sequential (MUF / coverage)</p>
+        <div class="ramp"><span style="background:#00204d" title="#00204d"></span><span style="background:#00336f" title="#00336f"></span><span style="background:#39486b" title="#39486b"></span><span style="background:#575d6d" title="#575d6d"></span><span style="background:#707173" title="#707173"></span><span style="background:#8a8678" title="#8a8678"></span><span style="background:#a69d75" title="#a69d75"></span><span style="background:#ffea46" title="#ffea46"></span></div>
+        <p class="mono dim">dataviz.categorical (multi-series)</p>
+        <div class="ramp"><span style="background:#e69f00" title="#e69f00"></span><span style="background:#56b4e9" title="#56b4e9"></span><span style="background:#009e73" title="#009e73"></span><span style="background:#f0e442" title="#f0e442"></span><span style="background:#0072b2" title="#0072b2"></span><span style="background:#d55e00" title="#d55e00"></span><span style="background:#cc79a7" title="#cc79a7"></span><span style="background:#999999" title="#999999"></span></div>
+      </div>
+
+      <div>
+        <h3>Typography</h3>
+        <p class="sans">Sans: which frequency, to reach where, at what time.</p>
+        <p class="mono">MUF 21.4 MHz&nbsp;&nbsp;&nbsp;foF2 6.8&nbsp;&nbsp;&nbsp;Kp 3</p>
+        <table class="mono tabular-demo">
+          <tr><td>14.230</td><td>0341Z</td><td>78</td></tr>
+          <tr><td>18.100</td><td>0336Z</td><td>54</td></tr>
+          <tr><td>7.040</td><td>0341Z</td><td>91</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="theme-panel" data-theme="field-light">
+    <header class="panel-header">
+      <h2>field-light</h2>
+      <p class="mono dim">data-theme="field-light"</p>
+    </header>
+
+    <div class="panel-grid">
+      <div>
+        <h3>Semantic tokens</h3>
+        <div class="token-groups">
+          
+      <div class="token-group">
+        <h4>surface.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-default)"></span>
+    <span class="swatch-name">surface.default</span>
+    <span class="swatch-value">#f4f5f5</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-raised)"></span>
+    <span class="swatch-name">surface.raised</span>
+    <span class="swatch-value">#ffffff</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-sunken)"></span>
+    <span class="swatch-name">surface.sunken</span>
+    <span class="swatch-value">#d9dbdd</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-overlay)"></span>
+    <span class="swatch-name">surface.overlay</span>
+    <span class="swatch-value">#ffffff</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>text.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-primary)"></span>
+    <span class="swatch-name">text.primary</span>
+    <span class="swatch-value">#0a0a0b</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-secondary)"></span>
+    <span class="swatch-name">text.secondary</span>
+    <span class="swatch-value">#46494e</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-muted)"></span>
+    <span class="swatch-name">text.muted</span>
+    <span class="swatch-value">#565b61</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-inverse)"></span>
+    <span class="swatch-name">text.inverse</span>
+    <span class="swatch-value">#f4f5f5</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-disabled)"></span>
+    <span class="swatch-name">text.disabled</span>
+    <span class="swatch-value">#80868e</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>border.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-subtle)"></span>
+    <span class="swatch-name">border.subtle</span>
+    <span class="swatch-value">#b9bcc1</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-default)"></span>
+    <span class="swatch-name">border.default</span>
+    <span class="swatch-value">#9ba0a6</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-strong)"></span>
+    <span class="swatch-name">border.strong</span>
+    <span class="swatch-value">#696f77</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>accent.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive)"></span>
+    <span class="swatch-name">accent.interactive</span>
+    <span class="swatch-value">#2768a5</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-hover)"></span>
+    <span class="swatch-name">accent.interactiveHover</span>
+    <span class="swatch-value">#1f5384</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-active)"></span>
+    <span class="swatch-name">accent.interactiveActive</span>
+    <span class="swatch-value">#173e63</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-on-accent)"></span>
+    <span class="swatch-name">accent.onAccent</span>
+    <span class="swatch-value">#f4f5f5</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>focus.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-focus-ring)"></span>
+    <span class="swatch-name">focus.ring</span>
+    <span class="swatch-value">#2768a5</span>
+    
+  </div>
+      </div>
+          
+    <div class="token-group">
+      <h4>status.*</h4>
+      <div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)">
+            <span aria-hidden="true">●</span> GOOD
+          </span>
+          <span class="swatch-name">status.good</span>
+          <span class="swatch-value">fill #1d7c49 &middot; on #ffffff &middot; text #17633b</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-fair-fill);color:var(--hf-status-fair-on)">
+            <span aria-hidden="true">▲</span> FAIR
+          </span>
+          <span class="swatch-name">status.fair</span>
+          <span class="swatch-value">fill #a57f27 &middot; on #0a0a0b &middot; text #634c17</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-poor-fill);color:var(--hf-status-poor-on)">
+            <span aria-hidden="true">◆</span> POOR
+          </span>
+          <span class="swatch-name">status.poor</span>
+          <span class="swatch-value">fill #844b1f &middot; on #ffffff &middot; text #633817</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-closed-fill);color:var(--hf-status-closed-on)">
+            <span aria-hidden="true">✖</span> CLOSED
+          </span>
+          <span class="swatch-name">status.closed</span>
+          <span class="swatch-value">fill #84271f &middot; on #ffffff &middot; text #84271f</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)">
+            <span aria-hidden="true">○</span> STALE
+          </span>
+          <span class="swatch-name">status.stale</span>
+          <span class="swatch-value">fill #586574 &middot; on #ffffff &middot; text #46505d</span>
+        </div>
+    </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Representative components</h3>
+        
+    <div class="demo-card" style="background:var(--hf-card-background);border:1px solid var(--hf-card-border);padding:var(--hf-card-padding);border-radius:var(--hf-card-radius);display:flex;flex-direction:column;gap:var(--hf-card-gap)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <strong style="color:var(--hf-text-primary)">20m &middot; VK path</strong>
+        <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)"><span aria-hidden="true">●</span> GOOD</span>
+      </div>
+
+      <div class="data-row" style="background:var(--hf-data-row-background);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">14.230&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 78</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:41Z</span>
+      </div>
+      <div class="data-row" style="background:var(--hf-data-row-background-alt);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">18.100&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 54</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:36Z</span>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="demo-button" type="button">Plan circuit</button>
+        <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)"><span aria-hidden="true">○</span> STALE 41m</span>
+      </div>
+    </div>
+      </div>
+
+      <div>
+        <h3>Data-viz</h3>
+        <p class="mono dim">dataviz.sequential (MUF / coverage)</p>
+        <div class="ramp"><span style="background:#00204d" title="#00204d"></span><span style="background:#00336f" title="#00336f"></span><span style="background:#39486b" title="#39486b"></span><span style="background:#575d6d" title="#575d6d"></span><span style="background:#707173" title="#707173"></span><span style="background:#8a8678" title="#8a8678"></span><span style="background:#a69d75" title="#a69d75"></span><span style="background:#ffea46" title="#ffea46"></span></div>
+        <p class="mono dim">dataviz.categorical (multi-series)</p>
+        <div class="ramp"><span style="background:#e69f00" title="#e69f00"></span><span style="background:#56b4e9" title="#56b4e9"></span><span style="background:#009e73" title="#009e73"></span><span style="background:#f0e442" title="#f0e442"></span><span style="background:#0072b2" title="#0072b2"></span><span style="background:#d55e00" title="#d55e00"></span><span style="background:#cc79a7" title="#cc79a7"></span><span style="background:#999999" title="#999999"></span></div>
+      </div>
+
+      <div>
+        <h3>Typography</h3>
+        <p class="sans">Sans: which frequency, to reach where, at what time.</p>
+        <p class="mono">MUF 21.4 MHz&nbsp;&nbsp;&nbsp;foF2 6.8&nbsp;&nbsp;&nbsp;Kp 3</p>
+        <table class="mono tabular-demo">
+          <tr><td>14.230</td><td>0341Z</td><td>78</td></tr>
+          <tr><td>18.100</td><td>0336Z</td><td>54</td></tr>
+          <tr><td>7.040</td><td>0341Z</td><td>91</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="theme-panel" data-theme="night-ops">
+    <header class="panel-header">
+      <h2>night-ops</h2>
+      <p class="mono dim">data-theme="night-ops"</p>
+    </header>
+
+    <div class="panel-grid">
+      <div>
+        <h3>Semantic tokens</h3>
+        <div class="token-groups">
+          
+      <div class="token-group">
+        <h4>surface.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-default)"></span>
+    <span class="swatch-name">surface.default</span>
+    <span class="swatch-value">#180807</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-raised)"></span>
+    <span class="swatch-name">surface.raised</span>
+    <span class="swatch-value">#220d0b</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-sunken)"></span>
+    <span class="swatch-name">surface.sunken</span>
+    <span class="swatch-value">#100504</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-surface-overlay)"></span>
+    <span class="swatch-name">surface.overlay</span>
+    <span class="swatch-value">#220d0b</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>text.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-primary)"></span>
+    <span class="swatch-name">text.primary</span>
+    <span class="swatch-value">#f1a59d</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-secondary)"></span>
+    <span class="swatch-name">text.secondary</span>
+    <span class="swatch-value">#d37369</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-muted)"></span>
+    <span class="swatch-name">text.muted</span>
+    <span class="swatch-value">#c46d64</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-inverse)"></span>
+    <span class="swatch-name">text.inverse</span>
+    <span class="swatch-value">#180807</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-text-disabled)"></span>
+    <span class="swatch-name">text.disabled</span>
+    <span class="swatch-value">#865750</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>border.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-subtle)"></span>
+    <span class="swatch-name">border.subtle</span>
+    <span class="swatch-value">#2d1d1b</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-default)"></span>
+    <span class="swatch-name">border.default</span>
+    <span class="swatch-value">#533632</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-border-strong)"></span>
+    <span class="swatch-name">border.strong</span>
+    <span class="swatch-value">#865750</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>accent.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive)"></span>
+    <span class="swatch-name">accent.interactive</span>
+    <span class="swatch-value">#bf223c</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-hover)"></span>
+    <span class="swatch-name">accent.interactiveHover</span>
+    <span class="swatch-value">#ee8b9c</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-interactive-active)"></span>
+    <span class="swatch-name">accent.interactiveActive</span>
+    <span class="swatch-value">#f1a59d</span>
+    
+  </div>
+<div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-accent-on-accent)"></span>
+    <span class="swatch-name">accent.onAccent</span>
+    <span class="swatch-value">#fbefec</span>
+    
+  </div>
+      </div>
+
+      <div class="token-group">
+        <h4>focus.*</h4>
+        <div class="swatch-row">
+    <span class="swatch" style="background:var(--hf-focus-ring)"></span>
+    <span class="swatch-name">focus.ring</span>
+    <span class="swatch-value">#ee8b9c</span>
+    
+  </div>
+      </div>
+          
+    <div class="token-group">
+      <h4>status.*</h4>
+      <div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)">
+            <span aria-hidden="true">●</span> GOOD
+          </span>
+          <span class="swatch-name">status.good</span>
+          <span class="swatch-value">fill #cda11d &middot; on #180807 &middot; text #ebd48e</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-fair-fill);color:var(--hf-status-fair-on)">
+            <span aria-hidden="true">▲</span> FAIR
+          </span>
+          <span class="swatch-name">status.fair</span>
+          <span class="swatch-value">fill #cd751d &middot; on #180807 &middot; text #ebbd8e</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-poor-fill);color:var(--hf-status-poor-on)">
+            <span aria-hidden="true">◆</span> POOR
+          </span>
+          <span class="swatch-name">status.poor</span>
+          <span class="swatch-value">fill #ad421f &middot; on #fbefec &middot; text #e89f87</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-closed-fill);color:var(--hf-status-closed-on)">
+            <span aria-hidden="true">✖</span> CLOSED
+          </span>
+          <span class="swatch-name">status.closed</span>
+          <span class="swatch-value">fill #b12525 &middot; on #fbefec &middot; text #ea9090</span>
+        </div>
+<div class="swatch-row">
+          <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)">
+            <span aria-hidden="true">○</span> STALE
+          </span>
+          <span class="swatch-name">status.stale</span>
+          <span class="swatch-value">fill #7a645c &middot; on #fbefec &middot; text #b4a29c</span>
+        </div>
+    </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Representative components</h3>
+        
+    <div class="demo-card" style="background:var(--hf-card-background);border:1px solid var(--hf-card-border);padding:var(--hf-card-padding);border-radius:var(--hf-card-radius);display:flex;flex-direction:column;gap:var(--hf-card-gap)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <strong style="color:var(--hf-text-primary)">20m &middot; VK path</strong>
+        <span class="badge" style="background:var(--hf-status-good-fill);color:var(--hf-status-good-on)"><span aria-hidden="true">●</span> GOOD</span>
+      </div>
+
+      <div class="data-row" style="background:var(--hf-data-row-background);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">14.230&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 78</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:41Z</span>
+      </div>
+      <div class="data-row" style="background:var(--hf-data-row-background-alt);border:1px solid var(--hf-data-row-border);padding:var(--hf-data-row-padding-y) var(--hf-data-row-padding-x);border-radius:var(--hf-radius-sm)">
+        <span class="mono" style="color:var(--hf-data-row-value-foreground)">18.100&nbsp;MHz</span>
+        <span style="color:var(--hf-text-secondary)">A-score 54</span>
+        <span class="mono" style="color:var(--hf-data-row-timestamp-foreground)">updated 2026-08-01 06:36Z</span>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="demo-button" type="button">Plan circuit</button>
+        <span class="badge" style="background:var(--hf-status-stale-fill);color:var(--hf-status-stale-on)"><span aria-hidden="true">○</span> STALE 41m</span>
+      </div>
+    </div>
+      </div>
+
+      <div>
+        <h3>Data-viz</h3>
+        <p class="mono dim">dataviz.sequential (MUF / coverage)</p>
+        <div class="ramp"><span style="background:#2a1310" title="#2a1310"></span><span style="background:#4a201a" title="#4a201a"></span><span style="background:#743224" title="#743224"></span><span style="background:#a5492a" title="#a5492a"></span><span style="background:#cf6b2f" title="#cf6b2f"></span><span style="background:#e89a3f" title="#e89a3f"></span><span style="background:#f5c469" title="#f5c469"></span><span style="background:#fbe6ad" title="#fbe6ad"></span></div>
+        <p class="mono dim">dataviz.categorical (multi-series)</p>
+        <div class="ramp"><span style="background:#dfb920" title="#dfb920"></span><span style="background:#d6995c" title="#d6995c"></span><span style="background:#df4620" title="#df4620"></span><span style="background:#d65c66" title="#d65c66"></span><span style="background:#df2070" title="#df2070"></span><span style="background:#816b56" title="#816b56"></span></div>
+      </div>
+
+      <div>
+        <h3>Typography</h3>
+        <p class="sans">Sans: which frequency, to reach where, at what time.</p>
+        <p class="mono">MUF 21.4 MHz&nbsp;&nbsp;&nbsp;foF2 6.8&nbsp;&nbsp;&nbsp;Kp 3</p>
+        <table class="mono tabular-demo">
+          <tr><td>14.230</td><td>0341Z</td><td>78</td></tr>
+          <tr><td>18.100</td><td>0336Z</td><td>54</td></tr>
+          <tr><td>7.040</td><td>0341Z</td><td>91</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer>
+    Generated by <code class="mono">scripts/build-styleguide.mjs</code> from <code class="mono">tokens.json</code>. Regenerate with <code class="mono">npm run styleguide</code> (inside packages/theme) after editing tokens.
+  </footer>
+
+<script>
+  var buttons = document.querySelectorAll('[data-set-theme]');
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var theme = btn.getAttribute('data-set-theme');
+      document.documentElement.setAttribute('data-theme', theme);
+      buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+    });
+  });
+</script>
+</body>
+</html>
