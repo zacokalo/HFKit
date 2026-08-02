@@ -12,9 +12,10 @@
 // Doing the parse in the request path would work until it did not, and then it
 // would fail for a user rather than for a cron job.
 
-import { buildBundle, SCHEMA_VERSION } from '@hfkit/spacewx';
+import { buildAurora, buildBundle, SCHEMA_VERSION } from '@hfkit/spacewx';
 
 const KEY = 'bundle:v1';
+const AURORA_KEY = 'aurora:v1';
 
 /** Long enough that the edge absorbs traffic, short enough to pick up a refresh
  *  promptly. `stale-while-revalidate` means a cold edge never blocks a reader. */
@@ -39,8 +40,22 @@ async function refresh(env, reason) {
   return bundle;
 }
 
+/** The aurora grid is refreshed alongside the bundle but stored separately: it
+ *  is ten times the size and only wanted when someone turns the overlay on, so
+ *  making every visitor download it would be a poor trade. */
+async function refreshAurora(env, reason) {
+  const aurora = await buildAurora();
+  aurora.refreshedBy = reason;
+  await env.SPACEWX.put(AURORA_KEY, JSON.stringify(aurora));
+  return aurora;
+}
+
 export default {
   async scheduled(event, env, ctx) {
+    // Independent of the bundle: an OVATION outage must not cost us the
+    // sunspot number, which is the one thing predictions actually need.
+    ctx.waitUntil(refreshAurora(env, `cron:${event.cron}`).catch(
+      (e) => { console.warn('aurora refresh failed:', e?.message ?? e); }));
     ctx.waitUntil(refresh(env, `cron:${event.cron}`).then(
       (b) => {
         const bad = Object.entries(b.sources).filter(([, s]) => !s.ok || s.stale);
@@ -80,6 +95,22 @@ export default {
       const ok = ageSeconds < 3 * 3600 && !b.degraded;
       return json({ ok, ageSeconds, degraded: b.degraded, generatedAt: b.generatedAt,
                     schema: b.schema, sources: b.sources }, { status: ok ? 200 : 503 });
+    }
+
+    if (url.pathname === '/aurora.json') {
+      let raw = await env.SPACEWX.get(AURORA_KEY);
+      if (!raw) {
+        try {
+          return json(await refreshAurora(env, 'cold-start'));
+        } catch (e) {
+          return json({ error: 'aurora unavailable', detail: String(e?.message ?? e) },
+            { status: 503, extra: { 'cache-control': 'no-store' } });
+        }
+      }
+      const a = JSON.parse(raw);
+      const age = Math.round((Date.now() - Date.parse(a.generatedAt)) / 1000);
+      if (age > 2 * 3600) ctx.waitUntil(refreshAurora(env, 'stale-on-read').catch(() => {}));
+      return json({ ...a, ageSeconds: age });
     }
 
     if (url.pathname !== '/' && url.pathname !== '/space-weather.json') {

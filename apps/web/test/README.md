@@ -44,11 +44,13 @@ npm i -D playwright
 | `reach.spec.mjs` | Blank first visit · geolocation · cost estimate · progressive fill · night-shading direction · receivers · session and grid restore · stale-grid invalidation |
 | `popup.spec.mjs` | Click popup before and after a run · per-band margin strip · add/remove receiver · set transmitter · hover popup is transient and button-free · popup tracks a pan |
 | `chart.spec.mjs` | 24-hour chart from a popup without any grid run · 24×9 grid shape · every cell a margin or an explicit dash · current hour marked · station controls inside the modal write through · cache on reopen |
+| `spacewx.spec.mjs` | Every fallback tier · live beats snapshot · HTML-with-200 falls through · SSN reaches the engine via the cache key · aurora overlay lazy-loads, paints, and draws nothing in the tropics |
+| `space.spec.mjs` | Headline figures carry provenance · storm copy leads with the storm · alerts verbatim · missing source stated not blanked |
 | `station.spec.mjs` | Power/antenna arithmetic to 0.1 dB · non-preset wattages · bad input falls back · 10× power is exactly +10 dB · never triggers a recompute · restore on reload · pre-split sessions migrate |
 
-## Three bugs these caught
+## Four bugs these caught
 
-Worth keeping in mind — all three looked fine by eye:
+Worth keeping in mind — none of these were visible in the code:
 
 1. **`[hidden]` did not hide the overlay.** `.hint` and `.run` set
    `display:flex`, and an author `display` beats the UA stylesheet's `[hidden]`
@@ -56,13 +58,19 @@ Worth keeping in mind — all three looked fine by eye:
 2. **An unshaded stripe at the antimeridian.** Layers were drawn copy-by-copy,
    and the grid image overhangs half a cell past its copy's edge, so one copy's
    image landed on top of the previous copy's night shading.
-3. **The first-visit overlay came back and blocked the map.** Setting the
+3. **NOAA publishes aurora at the equator.** OVATION's grid carried 325 non-zero
+   cells between 0° and 10°N and 635 between 0° and 10°S, which drew a bright
+   band straight across the tropics. There is no aurora there; it is an artifact
+   of the model output. Caught by screenshotting the overlay, not by reading the
+   data — and the test for it had to be rewritten as a difference, because an
+   absolute colour check flagged the terminator instead.
+4. **The first-visit overlay came back and blocked the map.** Setting the
    transmitter from a map click re-showed the full overlay to say "press
    Generate" — covering the map the user had just been working with. It is a
    non-blocking banner now.
 
-Both were found by asserting on pixels. A test that only checked "the element
-exists" would have passed.
+All four were found by asserting on pixels, or by looking at a render. A test
+that only checked "the element exists" would have passed every one of them.
 
 ## Writing more
 

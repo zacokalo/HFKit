@@ -84,6 +84,19 @@ try {
   console.warn('the site will fall back to a stated placeholder until the Worker is reachable');
 }
 
+// --- aurora snapshot ---
+// Same fallback reasoning as the bundle, and the same rule: never fail a build
+// over an overlay. If this is missing the map simply cannot offer the toggle.
+try {
+  const { buildAurora } = await import('@hfkit/spacewx');
+  const aurora = await buildAurora();
+  aurora.refreshedBy = 'build-snapshot';
+  await writeFile(path.join(here, 'data/aurora.json'), JSON.stringify(aurora));
+  console.log(`aurora snapshot written: ${aurora.cells.length / 3} cells, peak ${aurora.max}%`);
+} catch (e) {
+  console.warn(`aurora snapshot skipped: ${e.message}`);
+}
+
 // --- ITU data ---
 async function fetchTo(name, dest) {
   const url = `${ITU_RAW}/${encodeURIComponent(name)}`;

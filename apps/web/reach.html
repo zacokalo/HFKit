@@ -281,6 +281,10 @@ a{color:var(--hf-accent-interactive)}
       <div style="display:flex;gap:10px;align-items:center">
         <input id="hour" type="range" min="0" max="3" step="1" value="2">
         <span class="mono" id="hourval">12Z</span></div></div>
+    <div class="f"><label for="aurora">Aurora</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="aurora" type="range" min="0" max="100" step="5" value="0" style="width:120px">
+        <span class="mono" id="auroraval">off</span></div></div>
     <div class="f"><label for="night">Night shading</label>
       <div style="display:flex;gap:10px;align-items:center">
         <input id="night" type="range" min="0" max="100" step="5" value="70">
@@ -388,6 +392,12 @@ a{color:var(--hf-accent-interactive)}
     <div><strong>Receive</strong> antenna gain is deliberately excluded &mdash; at HF the
       receiver is limited by external noise, so a bigger receive antenna lifts signal and
       noise together and largely cancels out of SNR.</div>
+    <div><strong>The aurora overlay is observation, not prediction.</strong> It is NOAA's
+      OVATION model &mdash; where aurora is likely in the next half hour &mdash; drawn over
+      the map. It does not change a single number underneath it. What it adds is the thing a
+      Kp reading cannot give you: <em>where</em>. A path crossing the oval is the one to
+      worry about; a path well clear of it is largely unaffected no matter what Kp reads.
+      The grid is 2&deg; and anything below 2% probability is dropped as noise.</div>
     <div><strong>The 24-hour chart is the exact circuit.</strong> The map trades precision
       for breadth: a 6&deg; cell, and by default four snapshots of the day. The chart is the
       other side of that trade &mdash; one path, computed at its real coordinates, every hour
@@ -413,6 +423,7 @@ import { GridPool, ReachField, gridAxes, plannedPointCount, BASE_STEP, LAT_MIN, 
 import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
   from './lib/gridcache.mjs';
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
+import { loadAurora, renderAurora, auroraAt } from './lib/aurora.mjs';
 import { mountNav } from './lib/nav.mjs';
 mountNav(document.querySelector('.app'), 'reach.html');
 
@@ -440,6 +451,9 @@ let hours = [0, 6, 12, 18];
 let receivers = [];
 let COAST = null, PLACES = [];
 let pool = null, abort = null, running = false;
+// Loaded lazily: 40 KB nobody asked for is 40 KB wasted, and most sessions
+// never touch the overlay.
+let aurora = null, auroraImg = null, auroraLoading = false;
 let lastKey = null;
 
 // View transform. World coordinates are the unzoomed equirectangular canvas;
@@ -784,6 +798,20 @@ function draw() {
 
   layer(() => drawDaylight(h, night));
 
+  // Above the night shading: an aurora is something you see in the dark, and
+  // dimming it with the terminator would hide it exactly where it matters.
+  const auroraOpacity = Number($('aurora').value) / 100;
+  if (auroraImg && auroraOpacity > 0) {
+    layer(() => {
+      ctx.save();
+      ctx.globalAlpha = auroraOpacity;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(auroraImg.canvas, 0, 0, W, H);
+      ctx.restore();
+    });
+  }
+
   layer(() => {
     ctx.strokeStyle = cssv('--hf-text-muted');
     ctx.lineWidth = lw; ctx.globalAlpha = 0.55;
@@ -848,10 +876,25 @@ function draw() {
       : 'Map colour is the maximum usable frequency over the path to that point.';
 }
 
+function auroraLegend(lg) {
+  if (!auroraImg || Number($('aurora').value) === 0) return;
+  const c = document.createElement('span');
+  c.className = 'chip';
+  const sw = document.createElement('span');
+  sw.className = 'sw';
+  const [r, g, b] = rampColor(1);
+  sw.style.background = `rgb(${r},${g},${b})`;
+  const when = aurora?.forecastFor
+    ? ` (forecast for ${aurora.forecastFor.slice(11, 16)}Z)` : '';
+  c.append(sw, document.createTextNode(
+    `aurora, brighter = more likely, peak ${aurora?.max ?? '?'}%${when}`));
+  lg.append(c);
+}
+
 function drawLegend(mode) {
   const lg = $('lg');
   lg.replaceChildren();
-  if (!field) return;
+  if (!field) { auroraLegend(lg); return; }
   if (mode === 'margin') {
     for (const [k, t] of [['good', 'meets the requirement'], ['fair', 'within 10 dB'],
                           ['poor', '10–25 dB short'], ['closed', 'well short / no path']]) {
@@ -861,6 +904,7 @@ function drawLegend(mode) {
       c.append(s, document.createTextNode(t));
       lg.append(c);
     }
+    auroraLegend(lg);
     return;
   }
   const wrap = document.createElement('span'); wrap.style.display = 'flex';
@@ -876,6 +920,7 @@ function drawLegend(mode) {
   a.textContent = mode === 'band' ? BANDS[0] : '3 MHz';
   z.textContent = mode === 'band' ? BANDS[NB - 1] : '30 MHz';
   lg.append(a, wrap, z);
+  auroraLegend(lg);
 }
 
 function renderTable() {
@@ -1463,6 +1508,7 @@ function persist(key = lastKey) {
     detail: $('detail').value, span: $('span').value,
     pwr: $('pwr').value, ant: $('ant').value,
     mode: $('mode').value, hour: $('hour').value, night: $('night').value,
+    aurora: $('aurora').value,
     theme: $('theme').value, zoom, panX, panY,
   });
 }
@@ -1497,12 +1543,14 @@ cv.addEventListener('mousemove', (e) => {
   const pos = `${Math.abs(lat).toFixed(0)}°${lat < 0 ? 'S' : 'N'}  `
     + `${Math.abs(lon).toFixed(0)}°${lon < 0 ? 'W' : 'E'}`;
   const c = circuitAt(lat, lon, gain());
-  $('ro').textContent = !c
+  const au = Number($('aurora').value) > 0 ? auroraAt(aurora, lat, lon) : null;
+  const auLine = au !== null ? `\naurora ${au}%` : '';
+  $('ro').textContent = auLine + (!c
     ? pos + (field ? '\nno path predicted' : '\nnothing computed yet')
     : pos + `\nbest ${BANDS[c.best]}  ${c.bestMargin > 0 ? '+' : ''}${c.bestMargin} dB`
       + (c.muf != null ? `\nMUF ${c.muf.toFixed(1)} MHz` : '')
       + (c.lowest >= 0 ? `\nusable ${BANDS[c.lowest]}–${BANDS[c.highest]}`
-                       : '\nnone usable');
+                       : '\nnone usable'));
 });
 cv.addEventListener('mouseleave', () => {
   $('ro').textContent = 'Click anywhere for detail';
@@ -1612,6 +1660,26 @@ $('stop').onclick = () => {
   stopRun();
   showRun('Stopped', 'What was computed is still on the map.');
 };
+$('aurora').addEventListener('input', async () => {
+  const v = Number($('aurora').value);
+  $('auroraval').textContent = v === 0 ? 'off' : `${v}%`;
+  persist();
+  if (v > 0 && !aurora && !auroraLoading) {
+    auroraLoading = true;
+    $('auroraval').textContent = 'loading…';
+    aurora = await loadAurora();
+    auroraLoading = false;
+    if (aurora) {
+      auroraImg = renderAurora(aurora, rampColor(1));
+      $('auroraval').textContent = `${Number($('aurora').value)}%`;
+    } else {
+      // Say so rather than leaving a slider that visibly does nothing.
+      $('auroraval').textContent = 'unavailable';
+    }
+  }
+  schedule(true);
+});
+
 for (const id of ['mode', 'hour', 'night', 'pwr', 'ant'])
   $(id).addEventListener('input', () => {
     showGain(); persist(); schedule(true); refreshOpenChart();
@@ -1645,6 +1713,7 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
     for (const [id, v] of [['detail', s.detail], ['span', s.span],
                            ['pwr', s.pwr ?? legacy?.[0]], ['ant', s.ant ?? legacy?.[1]],
                            ['mode', s.mode], ['hour', s.hour], ['night', s.night],
+                           ['aurora', s.aurora],
                            ['theme', s.theme]])
       if (v != null) $(id).value = v;
     if (typeof s.zoom === 'number') { zoom = s.zoom; panX = s.panX; panY = s.panY; }
@@ -1675,6 +1744,9 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
   }
 
   showGain();
+  if (Number($('aurora').value) > 0) {
+    $('aurora').dispatchEvent(new Event('input', { bubbles: true }));
+  }
   updateGoLabel();
   schedule(true);
 })();
