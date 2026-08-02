@@ -73,7 +73,35 @@ button.ghost[aria-pressed=true]{border-color:var(--hf-accent-interactive);
   border-radius:var(--hf-radius-md);overflow:hidden;background:var(--hf-surface-sunken)}
 canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
 canvas.dragging{cursor:grabbing}
-canvas.picking{cursor:crosshair}
+canvas.overmarker{cursor:pointer}
+
+/* --- map popup --- */
+.pop{position:absolute;z-index:6;min-width:250px;max-width:320px;
+  background:var(--hf-surface-overlay);border:1px solid var(--hf-border-strong);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3);
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;gap:6px}
+.pop.transient{pointer-events:none}          /* hover preview must not eat clicks */
+.pop h3{margin:0;font-size:var(--hf-font-size-base);padding-right:18px;
+  font-weight:var(--hf-font-weight-semibold)}
+.pop .coords{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);font-variant-numeric:tabular-nums}
+.pop dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px var(--hf-spacing-3);
+  font-size:var(--hf-font-size-xs)}
+.pop dt{color:var(--hf-text-muted)}
+.pop dd{margin:0;text-align:right;font-family:var(--hf-font-family-mono);
+  font-variant-numeric:tabular-nums;color:var(--hf-text-primary)}
+.pop .bands{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;margin-top:2px}
+.pop .bands span{font-family:var(--hf-font-family-mono);font-size:9px;text-align:center;
+  padding:2px 0;border-radius:var(--hf-radius-sm);line-height:1.25}
+.pop .bands .lbl{color:var(--hf-text-muted);padding:0}
+.pop .none{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.pop .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.pop .btns button{padding:4px 9px;font-size:var(--hf-font-size-xs)}
+.popclose{position:absolute;top:4px;right:4px;background:none;border:none;
+  color:var(--hf-text-muted);font-size:var(--hf-font-size-md);line-height:1;
+  padding:2px 6px;cursor:pointer}
+.popclose:hover:not(:disabled){background:none;color:var(--hf-text-primary)}
 .zoomctl{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:4px}
 .zoomctl button{background:var(--hf-surface-overlay);color:var(--hf-text-primary);
   border:1px solid var(--hf-border-default);font-family:var(--hf-font-family-mono);
@@ -132,6 +160,9 @@ a{color:var(--hf-accent-interactive)}
     <p class="lede">Where your station can be heard, computed in this browser. Pick a
       transmitter and the map fills in as the maths completes &mdash; coarse first, then
       sharper. Add receivers to draw the paths and read each one&rsquo;s usable band range.</p>
+    <p class="note">Click anywhere on the map for the detail there &mdash; per-band margins,
+      path MUF, and buttons to make that point a receiver or the transmitter. Hover a
+      receiver to read its circuit without clicking.</p>
     <p class="note">Real ITU-R P.533 predictions across nine bands. Nothing is computed on a
       server and your position never leaves this device.</p>
   </header>
@@ -144,7 +175,6 @@ a{color:var(--hf-accent-interactive)}
       <div class="sugg" id="txsugg" hidden></div>
     </div>
     <button class="ghost" id="myloc" type="button">Use my location</button>
-    <button class="ghost" id="pick" type="button" aria-pressed="false">Pick on map</button>
     <div class="f"><label>Current</label><span class="mono" id="txnow">not set</span></div>
   </div>
 
@@ -207,7 +237,15 @@ a{color:var(--hf-accent-interactive)}
       <button id="zrst" aria-label="Reset view">reset</button>
     </div>
     <canvas id="cv" width="1440" height="648"></canvas>
-    <div class="readout" id="ro">Hover the map</div>
+    <div class="readout" id="ro">Click anywhere for detail</div>
+    <div class="pop" id="pop" hidden>
+      <button class="popclose" id="popclose" type="button" aria-label="Close">&times;</button>
+      <h3 id="poptitle"></h3>
+      <div class="coords" id="popcoords"></div>
+      <dl id="popfacts"></dl>
+      <div id="popbands"></div>
+      <div class="btns" id="popbtns"></div>
+    </div>
     <div class="hint" id="hint" hidden>
       <div class="card">
         <b id="hinttitle">Pick a transmitter to begin</b>
@@ -215,7 +253,7 @@ a{color:var(--hf-accent-interactive)}
           computed until you press Generate.</p>
         <div class="btns">
           <button id="hintloc" type="button">Use my location</button>
-          <button class="ghost" id="hintpick" type="button">Pick on map</button>
+          <button class="ghost" id="hintpick" type="button">Browse the map</button>
         </div>
       </div>
     </div>
@@ -280,7 +318,7 @@ let field = null;           // ReachField, or null for "nothing computed yet"
 let hours = [0, 6, 12, 18];
 let receivers = [];
 let COAST = null, PLACES = [];
-let pool = null, abort = null, running = false, picking = false;
+let pool = null, abort = null, running = false;
 let lastKey = null;
 
 // View transform. World coordinates are the unzoomed equirectangular canvas;
@@ -472,6 +510,26 @@ function schedule(ui = false) {
   requestAnimationFrame(() => { pending = false; draw(); });
 }
 
+/** Screen-space x offsets of the world copies that intersect the viewport. Shared
+ *  by drawing and hit-testing so a marker is clickable exactly where it is drawn. */
+function visibleCopies() {
+  return [-W, 0, W]
+    .map((dx) => (dx - panX) * zoom)
+    .filter((left) => left + W * zoom >= 0 && left <= W);
+}
+
+/** Canvas-pixel position of a lon/lat in whichever visible copy puts it closest
+ *  to the middle of the viewport. */
+function toCanvas(lon, lat) {
+  const y = py(lat) * zoom - panY * zoom;
+  let best = null;
+  for (const left of visibleCopies()) {
+    const x = px(lon) * zoom + left;
+    if (!best || Math.abs(x - W / 2) < Math.abs(best[0] - W / 2)) best = [x, y];
+  }
+  return best ?? [px(lon) * zoom - panX * zoom, y];
+}
+
 function clampView() {
   zoom = Math.max(MINZ, Math.min(MAXZ, zoom));
   panY = Math.max(0, Math.min(H - H / zoom, panY));   // vertical stays inside the map
@@ -577,11 +635,8 @@ function draw() {
   // copy-by-copy. The grid image overhangs half a cell past its copy's edge, so
   // copy-at-a-time would let one copy's image land on top of the previous copy's
   // night shading and leave an unshaded stripe at the seam.
-  const copies = [-W, 0, W]
-    .map((dx) => (dx - panX) * zoom)
-    .filter((left) => left + W * zoom >= 0 && left <= W);
   const layer = (fn) => {
-    for (const left of copies) {
+    for (const left of visibleCopies()) {
       ctx.setTransform(zoom, 0, 0, zoom, left, -panY * zoom);
       fn();
     }
@@ -621,6 +676,14 @@ function draw() {
       ctx.lineWidth = 1.5 / zoom;
       ctx.beginPath(); ctx.arc(px(rx.lon), py(rx.lat), 6 / zoom, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
+      // Halo on whichever receiver the popup is about, so the panel and the map
+      // are visibly talking about the same station.
+      if (rx === popup()?.rx) {
+        ctx.strokeStyle = cssv('--hf-accent-interactive');
+        ctx.lineWidth = 2 / zoom; ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(px(rx.lon), py(rx.lat), 11 / zoom, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -634,8 +697,14 @@ function draw() {
   });
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+  // Cheap on every frame so the panel tracks a pan; a full rebuild only when the
+  // numbers behind it could have changed.
+  const pop = popup();
+  if (pop) positionPopup(pop.lat, pop.lon);
+
   if (!uiDirty) return;
   uiDirty = false;
+  if (pop) renderPopup();
   drawLegend(mode);
   renderTable();
   $('explain').textContent = !field ? 'Nothing computed yet.'
@@ -723,6 +792,172 @@ function renderTable() {
     tr.insertCell().append(b);
   }
 }
+
+// --- map popup ------------------------------------------------------------
+// Two states, deliberately different: hovering a receiver shows a *transient*
+// panel with no controls, and clicking *pins* one that has buttons. A hover
+// panel carrying buttons is a trap — it vanishes the moment you reach for them.
+
+let pinned = null;      // {lat, lon, rx?}  — survives until dismissed
+let hovered = null;     // {lat, lon, rx}   — receiver under the cursor
+const popup = () => pinned ?? hovered;
+
+const HIT_PX = 13;      // canvas px; the marker is drawn at radius 6
+
+function receiverAt(cx, cy) {
+  let best = null, bd = HIT_PX;
+  for (const rx of receivers) {
+    const [x, y] = toCanvas(rx.lon, rx.lat);
+    const d = Math.hypot(x - cx, y - cy);
+    if (d <= bd) { bd = d; best = rx; }
+  }
+  return best;
+}
+
+/** Nearest gazetteer entry, so a clicked point gets a human name rather than
+ *  only a grid square. 400 km keeps "near Perth" from meaning open ocean. */
+function nearestPlace(lat, lon) {
+  let best = null, bd = 400;
+  for (const p of PLACES) {
+    const d = distanceKm({ lat, lon }, { lat: p[3], lon: p[4] });
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best && { name: best[0], cc: best[1], km: bd };
+}
+
+function fmtLatLon(lat, lon) {
+  return `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'}  `
+    + `${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'W' : 'E'}`;
+}
+
+function renderPopup() {
+  const s = popup();
+  const el = $('pop');
+  if (!s) { el.hidden = true; return; }
+  const transient = !pinned;
+  el.hidden = false;
+  el.classList.toggle('transient', transient);
+  $('popclose').hidden = transient;
+
+  const { lat, lon, rx } = s;
+  const atTx = !rx && tx && Math.abs(lat - tx.lat) < 0.5 && Math.abs(lon - tx.lon) < 0.5;
+  const near = rx ? null : nearestPlace(lat, lon);
+  $('poptitle').textContent = rx ? `${rx.name}${rx.cc ? ' · ' + rx.cc : ''}`
+    : atTx ? `Transmitter · ${tx.name}`
+    : near ? `Near ${near.name} · ${near.cc}`
+    : maidenhead(lat, lon);
+  $('popcoords').textContent = `${fmtLatLon(lat, lon)} · ${maidenhead(lat, lon)}`;
+
+  const c = circuitAt(lat, lon, gain());
+  const facts = $('popfacts');
+  facts.replaceChildren();
+  const row = (k, v) => {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    facts.append(dt, dd);
+  };
+  if (tx && !atTx) {
+    row('Distance', Math.round(distanceKm(tx, { lat, lon })).toLocaleString() + ' km');
+    row('Bearing', Math.round(bearingDeg(tx, { lat, lon })).toString().padStart(3, '0') + '°');
+  }
+  if (c) {
+    row('Path MUF', c.muf != null ? c.muf.toFixed(1) + ' MHz' : '—');
+    row('Best band', c.best >= 0
+      ? `${BANDS[c.best]}  ${c.bestMargin > 0 ? '+' : ''}${c.bestMargin} dB`
+      : '—');
+    row('Usable range', c.lowest >= 0 ? `${BANDS[c.lowest]}–${BANDS[c.highest]}` : 'none usable');
+    row('At', String(hours[hourIndex()]).padStart(2, '0') + 'Z');
+  }
+
+  // Per-band margins: the detail the summary rows flatten away.
+  const bands = $('popbands');
+  bands.replaceChildren();
+  if (c) {
+    const grid = document.createElement('div'); grid.className = 'bands';
+    const vals = document.createElement('div'); vals.className = 'bands';
+    for (let i = 0; i < NB; i++) {
+      const l = document.createElement('span'); l.className = 'lbl'; l.textContent = BANDS[i];
+      grid.append(l);
+      const m = c.margins[i];
+      const v = document.createElement('span');
+      const tok = marginToken(m);
+      v.style.background = statusFill(tok);
+      v.style.color = statusOn(tok);
+      v.textContent = m === null ? '—' : (m > 0 ? '+' : '') + m;
+      v.title = `${BANDS[i]} (${FREQS[i]} MHz): `
+        + (m === null ? 'no prediction' : `${m} dB against the ${REQ} dB requirement`);
+      vals.append(v);
+    }
+    bands.append(grid, vals);
+  } else {
+    const n = document.createElement('div'); n.className = 'none';
+    n.textContent = !tx ? 'Set a transmitter, then press Generate.'
+      : !field ? 'No prediction here yet — press Generate.'
+      : 'No path predicted to this point.';
+    bands.append(n);
+  }
+
+  const btns = $('popbtns');
+  btns.replaceChildren();
+  if (!transient) {
+    const add = (label, ghost, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (ghost) b.className = 'ghost';
+      b.textContent = label;
+      b.onclick = fn;
+      btns.append(b);
+    };
+    if (rx) {
+      add('Remove receiver', true, () => {
+        receivers = receivers.filter((x) => x !== rx);
+        closePopup();
+        persist();
+        schedule(true);
+      });
+    } else {
+      add('Add as receiver', true, () => {
+        receivers.push({ name: near ? near.name : maidenhead(lat, lon),
+                         cc: near ? near.cc : 'map',
+                         lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 });
+        pinned = { lat, lon, rx: receivers[receivers.length - 1] };
+        persist();
+        schedule(true);
+      });
+    }
+    if (!atTx) add('Set as transmitter', false, () => {
+      const p = rx ?? { name: near ? near.name : maidenhead(lat, lon),
+                        cc: near ? near.cc : 'map', lat, lon };
+      closePopup();
+      setTx({ name: p.name, cc: p.cc, lat: p.lat, lon: p.lon }, { recentre: false });
+    });
+  }
+
+  positionPopup(lat, lon);
+}
+
+function positionPopup(lat, lon) {
+  const el = $('pop');
+  const r = cv.getBoundingClientRect();
+  const [cx, cy] = toCanvas(lon, lat);
+  const x = cx * (r.width / W), y = cy * (r.height / H);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  // Prefer above-right of the point; flip and clamp so it never leaves the map.
+  let left = x + 14, top = y - h - 12;
+  if (left + w > r.width - 6) left = x - w - 14;
+  if (top < 6) top = y + 14;
+  el.style.left = Math.max(6, Math.min(r.width - w - 6, left)) + 'px';
+  el.style.top = Math.max(6, Math.min(r.height - h - 6, top)) + 'px';
+}
+
+function closePopup() {
+  pinned = null;
+  hovered = null;
+  renderPopup();
+  schedule();
+}
+$('popclose').onclick = closePopup;
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) closePopup(); });
 
 // --- place search over the bundled gazetteer ------------------------------
 function wireSearch(inputId, suggId, onPick) {
@@ -933,12 +1168,24 @@ function eventLonLat(e) {
   return [lon, Math.max(-90, Math.min(90, 90 - (wy / H) * 180))];
 }
 
+function canvasXY(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)];
+}
+
 cv.addEventListener('mousemove', (e) => {
   if (dragging) return;
   const [lon, lat] = eventLonLat(e);
+  const [cx, cy] = canvasXY(e);
+
+  const over = receiverAt(cx, cy);
+  cv.classList.toggle('overmarker', !!over);
+  const wasHovered = hovered?.rx;
+  hovered = over ? { lat: over.lat, lon: over.lon, rx: over } : null;
+  if (!pinned && wasHovered !== over) { renderPopup(); schedule(); }
+
   const pos = `${Math.abs(lat).toFixed(0)}°${lat < 0 ? 'S' : 'N'}  `
     + `${Math.abs(lon).toFixed(0)}°${lon < 0 ? 'W' : 'E'}`;
-  if (picking) { $('ro').textContent = pos + '\nclick to set the transmitter'; return; }
   const c = circuitAt(lat, lon, gain());
   $('ro').textContent = !c
     ? pos + (field ? '\nno path predicted' : '\nnothing computed yet')
@@ -947,7 +1194,11 @@ cv.addEventListener('mousemove', (e) => {
       + (c.lowest >= 0 ? `\nusable ${BANDS[c.lowest]}–${BANDS[c.highest]}`
                        : '\nnone usable');
 });
-cv.addEventListener('mouseleave', () => { $('ro').textContent = 'Hover the map'; });
+cv.addEventListener('mouseleave', () => {
+  $('ro').textContent = 'Click anywhere for detail';
+  cv.classList.remove('overmarker');
+  if (hovered) { hovered = null; if (!pinned) { renderPopup(); schedule(); } }
+});
 
 let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, pinchDist = null;
 cv.addEventListener('pointerdown', (e) => {
@@ -969,13 +1220,14 @@ cv.addEventListener('pointerup', (e) => {
   dragging = false;
   cv.classList.remove('dragging');
   // A click is a pointerup that barely moved. Anything further was a pan, and must
-  // not be mistaken for placing a transmitter.
-  if (picking && Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
+  // not open a panel the user was only trying to drag past.
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
     const [lon, lat] = eventLonLat(e);
-    setPicking(false);
-    setTx({ name: maidenhead(lat, lon), cc: 'map',
-            lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 },
-          { recentre: false });
+    const rx = receiverAt(...canvasXY(e));
+    pinned = rx ? { lat: rx.lat, lon: rx.lon, rx } : { lat, lon };
+    hovered = null;
+    renderPopup();
+    schedule();
   } else persist();
 });
 for (const ev of ['pointercancel', 'pointerleave'])
@@ -1008,13 +1260,7 @@ $('zin').onclick = () => zoomAt(W / 2, H / 2, 1.6);
 $('zout').onclick = () => zoomAt(W / 2, H / 2, 1 / 1.6);
 $('zrst').onclick = () => { zoom = 1; panX = 0; panY = 0; persist(); schedule(); };
 
-function setPicking(on) {
-  picking = on;
-  $('pick').setAttribute('aria-pressed', String(on));
-  cv.classList.toggle('picking', on);
-}
-$('pick').onclick = () => setPicking(!picking);
-$('hintpick').onclick = () => { setPicking(true); $('hint').hidden = true; };
+$('hintpick').onclick = () => { $('hint').hidden = true; };
 
 function useMyLocation(btn) {
   if (!navigator.geolocation) {

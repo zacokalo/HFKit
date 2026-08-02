@@ -7,7 +7,7 @@ computes anything.
 |---|---|
 | `index.html` | Landing, with an honest note on what is real and what is not |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
-| `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, receivers with per-circuit MUF and usable band range. Pan and zoom. |
+| `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter); hover a receiver for its circuit. Pan and zoom. |
 | `styleguide.html` | Every design token in all three themes |
 
 ## Build
@@ -91,4 +91,7 @@ fetches its data files.
 - Grids are cached in IndexedDB (12 most recent) and the last session in
   localStorage, so a return visit redraws instantly. Nothing is recomputed on
   load without an explicit Generate.
-- Receiver positions on the reach map snap to the nearest 6° cell (~330 km).
+- Receiver positions on the reach map snap to the nearest 6° cell (~330 km), so the
+  popup for a clicked point describes its cell, not the exact spot.
+- A pinned popup is a real element and swallows pointer events where it sits, so
+  the map cannot be dragged through it. Close it or grab elsewhere.
