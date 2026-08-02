@@ -14,15 +14,19 @@ npx wrangler kv namespace create SPACEWX   # once; paste the id into wrangler.js
 npm run deploy -w @hfkit/spacewx-worker
 ```
 
-Then point the site at it by setting the meta tag in `apps/web/reach.html` and
-`apps/web/planner.html`:
+`wrangler deploy` prints the Worker's URL. Point the site at it by setting a
+build environment variable on the Pages project — **not** by editing source:
 
-```html
-<meta name="hfkit-spacewx" content="https://hfkit-spacewx.<subdomain>.workers.dev/space-weather.json">
+```
+HFKIT_SPACEWX_URL = https://hfkit-spacewx.<subdomain>.workers.dev/space-weather.json
 ```
 
-Leaving it empty is a supported state, not a broken one: the site falls back to
-the snapshot published with the build and says so.
+(Cloudflare dashboard → the Pages project → Settings → Variables and secrets.)
+Then redeploy. `build.mjs` writes it into `vendor/config.mjs`, which is
+generated and gitignored, so a build never dirties tracked files.
+
+Leaving it unset is a supported state, not a broken one: the site falls back to
+the snapshot published with the build and says so on the page.
 
 ## Endpoints
 

@@ -51,16 +51,24 @@ function shape(bundle, tier) {
 }
 
 /**
- * Where the mothership lives. Deploy-time config, not a constant: the Worker
- * URL differs per account and the site must be publishable without editing
- * source. `globalThis.__HFKIT_SPACEWX_URL__` wins if set (tests use it to pin
- * the value, including to null to skip the live tier); otherwise a meta tag;
- * otherwise there is no live tier and the snapshot is the best available.
+ * Where the mothership lives. Deploy-time config, not a constant: the Worker URL
+ * differs per account and the site must be publishable without editing source.
+ *
+ * In order: a pinned global (tests), then vendor/config.mjs written by the build
+ * from HFKIT_SPACEWX_URL, then a meta tag as a manual override. None of them set
+ * is a supported state — there is simply no live tier, and the snapshot is the
+ * best available.
  */
-export function workerUrl() {
+export async function workerUrl() {
+  // Tests pin it, including to null to skip the live tier entirely.
   if ('__HFKIT_SPACEWX_URL__' in globalThis) return globalThis.__HFKIT_SPACEWX_URL__;
-  const meta = document.querySelector('meta[name="hfkit-spacewx"]')?.content?.trim();
-  return meta || null;
+  try {
+    const { SPACEWX_URL } = await import('../vendor/config.mjs');
+    if (SPACEWX_URL) return SPACEWX_URL;
+  } catch {
+    // No build config — running from source, or an older deploy.
+  }
+  return document.querySelector('meta[name="hfkit-spacewx"]')?.content?.trim() || null;
 }
 
 async function getJson(url, timeoutMs) {
@@ -89,7 +97,7 @@ async function getJson(url, timeoutMs) {
  * waiting for, and a slow mothership must cost a second, not a page load.
  */
 export async function loadSpaceWeather({ timeoutMs = 2500, allowNetwork = true } = {}) {
-  const live_url = allowNetwork ? workerUrl() : null;
+  const live_url = allowNetwork ? await workerUrl() : null;
   if (live_url) {
     try {
       const live = await getJson(live_url, timeoutMs);
