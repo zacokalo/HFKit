@@ -30,29 +30,44 @@ than shipping a site whose engine cannot start.
 `ITU_MONTHS=all` publishes all twelve months (~128 MB) instead of the current
 one.
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare (Workers with static assets)
 
-Point Pages at this repository and set:
+Cloudflare now defaults Git-connected projects to **Workers with static assets**
+rather than Pages. `wrangler.jsonc` at the repo root declares the site; there is
+no Worker script, because everything runs in the browser.
 
-| Setting | Value |
+In the Cloudflare dashboard, connect the repo and set:
+
+| Field | Value |
 |---|---|
+| Project name | `hfkit` |
 | Build command | `npm install && npm run build:web` |
-| Build output directory | `apps/web` |
-| Node version | 22 |
+| Deploy command | `npx wrangler deploy` |
+| Non-production branch deploy command | `npx wrangler versions upload` |
+| Build variable | `NODE_VERSION` = `22` |
 
-Nothing else is required — no environment variables, no server, no database.
+There is no "build output directory" field in this flow — the output path lives
+in `wrangler.jsonc` (`assets.directory`). The build must run before the deploy
+because `apps/web/vendor/` and `apps/web/data/` are generated and gitignored.
 
-`_headers` marks the WASM and ITU data immutable, so a returning visitor skips
-the ~11 MB download entirely.
+### Custom domain
+
+`wrangler.jsonc` declares `hfkit.caldwell.tech` as a custom domain route, so the
+deploy creates and maintains the DNS record. This requires the deploying API
+token to hold **Workers Scripts:Edit**, plus **Zone:Read** and **DNS:Edit** on
+the zone. A Workers-only token deploys fine but cannot attach the route — add
+the domain under the Worker's *Domains & Routes* instead.
 
 ### Fits the free tier with room to spare
 
 | Constraint | Limit | This site |
 |---|---|---|
-| Max file size | 25 MiB | 10.7 MB (`ionos08.bin`) |
-| Files per deployment | 20,000 | ~40 |
-| Storage | 10 GB | ~12 MB (one month) / ~140 MB (all twelve) |
-| Bandwidth | no hard cap | the reason this stays free |
+| Max asset size | 25 MiB | 10.7 MB (`ionos08.bin`) |
+| Assets per deployment | 20,000 | 71 |
+| Total upload | 100 MiB | ~14 MB (one month) |
+
+`_headers` is honoured by Workers static assets, so the WASM and ITU data are
+marked immutable and a returning visitor skips the ~11 MB download.
 
 ### Anywhere else
 
