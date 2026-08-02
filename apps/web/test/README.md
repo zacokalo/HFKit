@@ -43,10 +43,11 @@ npm i -D playwright
 |---|---|
 | `reach.spec.mjs` | Blank first visit · geolocation · cost estimate · progressive fill · night-shading direction · receivers · session and grid restore · stale-grid invalidation |
 | `popup.spec.mjs` | Click popup before and after a run · per-band margin strip · add/remove receiver · set transmitter · hover popup is transient and button-free · popup tracks a pan |
+| `chart.spec.mjs` | 24-hour chart from a popup without any grid run · 24×9 grid shape · every cell a margin or an explicit dash · current hour marked · station gain re-renders · cache on reopen |
 
-## Two bugs these caught
+## Three bugs these caught
 
-Worth keeping in mind, because both looked fine by eye:
+Worth keeping in mind — all three looked fine by eye:
 
 1. **`[hidden]` did not hide the overlay.** `.hint` and `.run` set
    `display:flex`, and an author `display` beats the UA stylesheet's `[hidden]`
@@ -54,6 +55,10 @@ Worth keeping in mind, because both looked fine by eye:
 2. **An unshaded stripe at the antimeridian.** Layers were drawn copy-by-copy,
    and the grid image overhangs half a cell past its copy's edge, so one copy's
    image landed on top of the previous copy's night shading.
+3. **The first-visit overlay came back and blocked the map.** Setting the
+   transmitter from a map click re-showed the full overlay to say "press
+   Generate" — covering the map the user had just been working with. It is a
+   non-blocking banner now.
 
 Both were found by asserting on pixels. A test that only checked "the element
 exists" would have passed.
@@ -65,6 +70,9 @@ exists" would have passed.
 - Wait for a run to *start* before waiting for it to finish. `#run` is still
   hidden while `generate()` awaits the cache lookup, so checking only for
   "finished" passes instantly and tests nothing.
+- Dismiss the first-visit overlay with `dismissHint()`, which waits for boot
+  first. Hiding it earlier does nothing — boot finishes and puts it back, and it
+  covers the canvas, so every later click lands on the overlay.
 - `page.waitForFunction(fn, arg, options)` — the timeout goes in the **third**
   argument. Passing `{ timeout }` second makes it an argument to `fn` and leaves
   the default 30 s in force, which silently truncates a long run.

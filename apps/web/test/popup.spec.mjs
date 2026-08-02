@@ -2,7 +2,7 @@
 // receiver's circuit.
 
 import {
-  reporter, watchErrors, clickCanvas, hoverCanvas, canvasRect, runToCompletion,
+  reporter, watchErrors, clickCanvas, hoverCanvas, canvasRect, runToCompletion, dismissHint,
 } from './harness.mjs';
 
 export default async function run(browser, origin) {
@@ -15,7 +15,7 @@ export default async function run(browser, origin) {
   const btnLabels = () => page.$$eval('#popbtns button', (b) => b.map((x) => x.textContent));
 
   await page.goto(`${origin}/reach.html`, { waitUntil: 'networkidle' });
-  await page.evaluate(() => { document.getElementById('hint').hidden = true; });
+  await dismissHint(page);
 
   // --- clicking before anything is computed ---
   await clickCanvas(page, 700, 320);

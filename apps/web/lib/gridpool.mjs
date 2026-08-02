@@ -43,6 +43,7 @@ export function plannedPointCount(steps) {
 export class GridPool {
   #workers = [];
   #booted = false;
+  #busy = false;
 
   constructor({ size = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 2)),
                 workerUrl = './gridworker.mjs', dataUrl = './data/itu' } = {}) {
@@ -71,6 +72,24 @@ export class GridPool {
     this.#booted = false;
   }
 
+  /** True while a grid run holds the workers. Callers use it to avoid queueing a
+   *  quick job behind a job measured in minutes. */
+  get busy() { return this.#busy; }
+
+  /** One circuit at full hourly resolution — the exact path, not a grid cell.
+   *  Reuses the booted pool, so it costs a fraction of a second once the engine
+   *  is up rather than another 11 MB of ITU data. */
+  async point({ tx, lat, lon, freqs, hours, month, year, ssn, powerW, reqSnr }) {
+    // Two conversations with the same worker would cross their replies, so this
+    // refuses rather than corrupting a run in progress. Callers check `busy`.
+    if (this.#busy) throw new Error('pool is busy with a grid run');
+    await this.boot();
+    const d = await this.#ask(this.#workers[0], {
+      cmd: 'grid', tx, points: [[lat, lon]], freqs, hours, month, year, ssn, powerW, reqSnr,
+    });
+    return d.cells[0] ?? null;      // [lat, lon, perHour]
+  }
+
   #ask(w, msg) {
     return new Promise((resolve, reject) => {
       const done = () => {
@@ -95,8 +114,13 @@ export class GridPool {
    * granularity, so `signal` stops a long run in about a second instead of
    * making the user wait out a whole resolution.
    */
-  async run({ tx, freqs, hours, month, year, ssn, powerW, reqSnr,
-              steps = [24, 12], onCells, onPass, onProgress, onEngine, signal }) {
+  async run(opts) {
+    this.#busy = true;
+    try { await this.#runPasses(opts); } finally { this.#busy = false; }
+  }
+
+  async #runPasses({ tx, freqs, hours, month, year, ssn, powerW, reqSnr,
+                     steps = [24, 12], onCells, onPass, onProgress, onEngine, signal }) {
     await this.boot();
     const total = steps.reduce((n, s, i) => n + newPointsFor(s, i ? steps[i - 1] : null).length, 0);
     const t0 = performance.now();

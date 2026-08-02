@@ -123,6 +123,16 @@ export const clickCanvas = async (page, cx, cy) =>
 export const hoverCanvas = async (page, cx, cy) =>
   page.mouse.move(...await atCanvas(page, cx, cy));
 
+/** Dismiss the first-visit overlay, after boot rather than before it.
+ *  Hiding it early does nothing: boot finishes its fetches and calls showHint(),
+ *  which puts the overlay back — and it covers the canvas, so every later click
+ *  lands on it instead of the map. */
+export async function dismissHint(page) {
+  await page.waitForFunction(
+    () => !document.getElementById('hint').hidden, null, { timeout: 30000 });
+  await page.evaluate(() => { document.getElementById('hint').hidden = true; });
+}
+
 /** Waits for a run to actually start before waiting for it to finish. Checking
  *  only for "finished" passes instantly, because the panel is still hidden while
  *  generate() awaits the cache lookup. */

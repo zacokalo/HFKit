@@ -98,6 +98,32 @@ canvas.overmarker{cursor:pointer}
 .pop .none{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
 .pop .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .pop .btns button{padding:4px 9px;font-size:var(--hf-font-size-xs)}
+/* --- 24-hour circuit chart --- */
+dialog{border:1px solid var(--hf-border-strong);border-radius:var(--hf-radius-md);
+  background:var(--hf-surface-raised);color:var(--hf-text-primary);padding:0;
+  max-width:min(96vw,860px);max-height:90vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.chead{position:sticky;top:0;z-index:1;display:flex;gap:var(--hf-spacing-4);
+  align-items:flex-start;justify-content:space-between;
+  background:var(--hf-surface-raised);border-bottom:1px solid var(--hf-border-subtle);
+  padding:var(--hf-spacing-4)}
+.chead h3{margin:0;font-size:var(--hf-font-size-lg)}
+.csub{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;margin-top:3px}
+.cbody{padding:var(--hf-spacing-4);display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+.cwait{display:flex;align-items:center;gap:var(--hf-spacing-4);
+  color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+.cwait .rl{--rl-size:34px}
+table.chart{border-collapse:collapse;font-size:var(--hf-font-size-xs);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums;width:100%}
+table.chart th,table.chart td{padding:3px 6px;text-align:right;
+  border:1px solid var(--hf-border-subtle);white-space:nowrap}
+table.chart th{color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold);
+  background:var(--hf-surface-raised);position:sticky;top:0}
+table.chart td.h,table.chart th.h{text-align:left;color:var(--hf-text-muted);
+  background:var(--hf-surface-raised)}
+table.chart tr.now td{outline:2px solid var(--hf-accent-interactive);outline-offset:-2px}
+.cnote{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);max-width:78ch}
 .popclose{position:absolute;top:4px;right:4px;background:none;border:none;
   color:var(--hf-text-muted);font-size:var(--hf-font-size-md);line-height:1;
   padding:2px 6px;cursor:pointer}
@@ -121,6 +147,16 @@ canvas.overmarker{cursor:pointer}
 .hint b{font-size:var(--hf-font-size-lg)}
 .hint p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
 .hint .btns{display:flex;gap:var(--hf-spacing-2);flex-wrap:wrap;justify-content:center}
+/* Non-blocking variant. Once the user has a transmitter they are looking at the
+   map, and covering it to say "press Generate" takes the map away to state
+   something the button already says. */
+.hint.soft{background:none;align-items:flex-start;justify-content:center;
+  padding:var(--hf-spacing-3);pointer-events:none}
+.hint.soft .card{padding:var(--hf-spacing-2) var(--hf-spacing-4);gap:2px;
+  flex-direction:row;align-items:baseline;max-width:none}
+.hint.soft b{font-size:var(--hf-font-size-sm)}
+.hint.soft p{font-size:var(--hf-font-size-xs)}
+.hint.soft .btns{display:none}
 
 .legend{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-4);align-items:center;
   font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);min-height:14px}
@@ -161,8 +197,9 @@ a{color:var(--hf-accent-interactive)}
       transmitter and the map fills in as the maths completes &mdash; coarse first, then
       sharper. Add receivers to draw the paths and read each one&rsquo;s usable band range.</p>
     <p class="note">Click anywhere on the map for the detail there &mdash; per-band margins,
-      path MUF, and buttons to make that point a receiver or the transmitter. Hover a
-      receiver to read its circuit without clicking.</p>
+      path MUF, and buttons to make that point a receiver or the transmitter, or to open a
+      full 24-hour chart for that one circuit. Hover a receiver to read its circuit without
+      clicking.</p>
     <p class="note">Real ITU-R P.533 predictions across nine bands. Nothing is computed on a
       server and your position never leaves this device.</p>
   </header>
@@ -259,6 +296,26 @@ a{color:var(--hf-accent-interactive)}
     </div>
   </div>
 
+  <dialog id="chart">
+    <div class="chead">
+      <div>
+        <h3 id="chtitle"></h3>
+        <div class="csub" id="chsub"></div>
+      </div>
+      <button class="popclose" id="chclose" type="button" aria-label="Close"
+        style="position:static">&times;</button>
+    </div>
+    <div class="cbody">
+      <div class="cwait" id="chwait">
+        <div class="rl" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+        <span id="chwaittext">Computing the full circuit&hellip;</span>
+      </div>
+      <div class="scroll" id="chgrid"></div>
+      <div class="legend" id="chlegend"></div>
+      <div class="cnote" id="chnote"></div>
+    </div>
+  </dialog>
+
   <div class="legend" id="lg"></div>
 
   <div>
@@ -282,6 +339,12 @@ a{color:var(--hf-accent-interactive)}
       applied exactly. <em>Receive</em> antenna gain is deliberately excluded &mdash; at HF the
       receiver is limited by external noise, so a bigger receive antenna lifts signal and
       noise together and largely cancels out of SNR.</div>
+    <div><strong>The 24-hour chart is the exact circuit.</strong> The map trades precision
+      for breadth: a 6&deg; cell, and by default four snapshots of the day. The chart is the
+      other side of that trade &mdash; one path, computed at its real coordinates, every hour
+      and every band. It is a single prediction, so it takes a fraction of a second once the
+      engine is running, which is why it is on demand rather than precomputed for every
+      receiver.</div>
     <div><strong>Coarse passes are coarse.</strong> A 24&deg; sample is painted across the
       whole block it stands for, so the early picture is a sketch of its own neighbourhood
       rather than a prediction for every point in it. Let the finer passes land before
@@ -925,6 +988,22 @@ function renderPopup() {
         schedule(true);
       });
     }
+    if (tx && !atTx) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ghost';
+      b.textContent = '24-hour chart';
+      if (pool?.busy) {
+        b.disabled = true;
+        b.title = 'Available once the reach grid finishes — the workers are busy.';
+      } else {
+        b.onclick = () => {
+          chartTarget = rx ?? { name: near ? near.name : maidenhead(lat, lon), lat, lon };
+          showChart(chartTarget);
+        };
+      }
+      btns.append(b);
+    }
     if (!atTx) add('Set as transmitter', false, () => {
       const p = rx ?? { name: near ? near.name : maidenhead(lat, lon),
                         cc: near ? near.cc : 'map', lat, lon };
@@ -958,6 +1037,141 @@ function closePopup() {
 }
 $('popclose').onclick = closePopup;
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) closePopup(); });
+
+// --- 24-hour circuit chart ------------------------------------------------
+// The map is a compromise by construction: a 6° cell and, by default, four
+// snapshots of the day. This is the other half of that trade -- one exact
+// circuit, every hour, every band. It is a single predict call, so it costs a
+// fraction of a second once the engine is up, which is why it is on demand
+// rather than something the map tries to precompute for every receiver.
+
+const CHART_HOURS = Array.from({ length: 24 }, (_, i) => i);
+const chartCache = new Map();
+let chartTarget = null;
+
+const chartKey = (a, b, month) =>
+  `${a.lat.toFixed(2)},${a.lon.toFixed(2)}>${b.lat.toFixed(2)},${b.lon.toFixed(2)}|m${month}|s${SSN}`;
+
+async function showChart(target) {
+  if (!tx) return;
+  const dlg = $('chart');
+  const now = new Date();
+  const month = now.getUTCMonth() + 1, year = now.getUTCFullYear();
+  const key = chartKey(tx, target, month);
+
+  $('chtitle').textContent = `${tx.name} → ${target.name}`;
+  $('chsub').textContent =
+    `${Math.round(distanceKm(tx, target)).toLocaleString()} km · `
+    + `${Math.round(bearingDeg(tx, target)).toString().padStart(3, '0')}° · `
+    + `${maidenhead(tx.lat, tx.lon)} → ${maidenhead(target.lat, target.lon)}`;
+  $('chgrid').replaceChildren();
+  $('chlegend').replaceChildren();
+  $('chnote').textContent = '';
+  $('chwait').hidden = chartCache.has(key);
+  $('chwaittext').textContent = pool?.busy
+    ? 'Waiting for the reach grid to finish…'
+    : 'Computing the full circuit…';
+  if (!dlg.open) dlg.showModal();
+
+  let per = chartCache.get(key);
+  if (!per) {
+    try {
+      pool ??= new GridPool({ size: POOL_SIZE });
+      const cell = await pool.point({
+        tx: { latitude: tx.lat, longitude: tx.lon },
+        lat: target.lat, lon: target.lon,
+        freqs: FREQS, hours: CHART_HOURS, month, year, ssn: SSN,
+        powerW: POWER_W, reqSnr: REQ,
+      });
+      per = cell?.[2];
+      if (per) chartCache.set(key, per);
+    } catch (e) {
+      $('chwait').hidden = true;
+      $('chnote').textContent = 'Could not compute this circuit: ' + (e?.message ?? e);
+      return;
+    }
+  }
+  $('chwait').hidden = true;
+  if (!per) {
+    $('chnote').textContent = 'The engine returned no prediction for this circuit.';
+    return;
+  }
+  renderChart(per, target);
+}
+
+function renderChart(per, target) {
+  const gainDb = gain();
+  const nowHour = new Date().getUTCHours();
+  const t = document.createElement('table');
+  t.className = 'chart';
+
+  const head = t.createTHead().insertRow();
+  head.insertCell().outerHTML = '<th class="h" scope="col">UTC</th>';
+  for (const bnd of BANDS) head.insertCell().outerHTML = `<th scope="col">${bnd}</th>`;
+  head.insertCell().outerHTML = '<th scope="col">MUF</th>';
+
+  const body = t.createTBody();
+  let bestCell = null;
+  for (let h = 0; h < CHART_HOURS.length; h++) {
+    const [margins, muf] = per[h] ?? [[], null];
+    const tr = body.insertRow();
+    if (h === nowHour) tr.className = 'now';
+    const hc = tr.insertCell();
+    hc.className = 'h';
+    hc.textContent = String(CHART_HOURS[h]).padStart(2, '0') + 'Z';
+    for (let i = 0; i < BANDS.length; i++) {
+      const raw = margins[i];
+      const m = raw === null || raw === undefined ? null : raw + gainDb;
+      const td = tr.insertCell();
+      const tok = marginToken(m);
+      if (m !== null) {
+        td.style.background = statusFill(tok);
+        td.style.color = statusOn(tok);
+      }
+      td.textContent = m === null ? '—' : (m > 0 ? '+' : '') + m;
+      td.title = `${BANDS[i]} (${FREQS[i]} MHz) at ${String(CHART_HOURS[h]).padStart(2, '0')}Z — `
+        + (m === null ? 'no prediction'
+          : `${m} dB against the ${REQ} dB requirement`);
+      if (m !== null && (!bestCell || m > bestCell.m)) bestCell = { m, h: CHART_HOURS[h], i };
+    }
+    const mc = tr.insertCell();
+    mc.className = 'h';
+    mc.textContent = muf == null ? '—' : muf.toFixed(1);
+  }
+  $('chgrid').replaceChildren(t);
+
+  const lg = $('chlegend');
+  lg.replaceChildren();
+  for (const [k, label] of [['good', 'meets the requirement'], ['fair', 'within 10 dB'],
+                            ['poor', '10–25 dB short'], ['closed', 'well short / no path']]) {
+    const c = document.createElement('span'); c.className = 'chip';
+    const s = document.createElement('span'); s.className = 'sw';
+    s.style.background = statusFill(k);
+    c.append(s, document.createTextNode(label));
+    lg.append(c);
+  }
+
+  const best = bestCell
+    ? `Best window: ${BANDS[bestCell.i]} at ${String(bestCell.h).padStart(2, '0')}Z, `
+      + `${bestCell.m > 0 ? '+' : ''}${bestCell.m} dB. `
+    : 'No hour on any band is predicted to carry this circuit. ';
+  $('chnote').textContent = best
+    + `Cells are SNR margin in dB against the ${REQ} dB requirement in 3 kHz, at the `
+    + 'station setting chosen on the map. This is the exact path — unlike the map, which '
+    + 'snaps to the nearest 6° cell — and covers all 24 hours regardless of the map\'s '
+    + 'time span. Effective sunspot number is a fixed placeholder of 60.';
+}
+
+$('chclose').onclick = () => $('chart').close();
+// Recompute the rendering (not the prediction) when the station selector moves,
+// so an open chart never disagrees with the map behind it.
+function refreshOpenChart() {
+  const dlg = $('chart');
+  if (dlg.open && chartTarget) {
+    const per = chartCache.get(chartKey(tx, chartTarget, new Date().getUTCMonth() + 1));
+    if (per) renderChart(per, chartTarget);
+  }
+}
 
 // --- place search over the bundled gazetteer ------------------------------
 function wireSearch(inputId, suggId, onPick) {
@@ -1005,7 +1219,8 @@ function setTx(t, { recentre = true } = {}) {
     panX = px(t.lon) - (W / zoom) / 2;
     panY = py(t.lat) - (H / zoom) / 2;
   }
-  showHint('Ready to compute', `Press Generate to work out where ${t.name} can be heard.`);
+  showHint('Ready to compute',
+    `press Generate to map where ${t.name} can be heard`, { soft: true });
   persist();
   updateGoLabel();
   schedule(true);
@@ -1036,8 +1251,11 @@ function showRun(line, sub = '', frac = null) {
   $('runsub').textContent = sub;
   if (frac !== null) $('runbar').style.width = Math.round(frac * 100) + '%';
 }
-function showHint(title, text) {
+/** `soft` shows a small non-blocking banner instead of an overlay over the map.
+ *  Reserve the blocking form for when there is genuinely nothing to look at. */
+function showHint(title, text, { soft = false } = {}) {
   $('hint').hidden = false;
+  $('hint').classList.toggle('soft', soft);
   $('hinttitle').textContent = title;
   $('hinttext').textContent = text;
 }
@@ -1303,7 +1521,7 @@ $('stop').onclick = () => {
   showRun('Stopped', 'What was computed is still on the map.');
 };
 for (const id of ['mode', 'hour', 'night', 'station'])
-  $(id).addEventListener('input', () => { persist(); schedule(true); });
+  $(id).addEventListener('input', () => { persist(); schedule(true); refreshOpenChart(); });
 for (const id of ['detail', 'span'])
   $(id).addEventListener('change', () => { persist(); updateGoLabel(); });
 $('theme').addEventListener('change', () => { applyTheme(); persist(); });
