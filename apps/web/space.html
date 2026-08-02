@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — space weather</title>
+<meta name="description" content="Current space weather for HF operators: effective sunspot number, solar flux, planetary K index, forecast and alerts, with what each means for the bands.">
+<!-- Space weather mothership. Empty or absent = no live tier; the page then
+     uses the snapshot published with this build, labelled with its age. -->
+<meta name="hfkit-spacewx" content="">
+<link rel="stylesheet" href="./vendor/tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
+  font-family:var(--hf-font-family-sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:clamp(16px,4vw,44px);
+  display:flex;flex-direction:column;gap:var(--hf-spacing-6)}
+header{display:flex;flex-direction:column;gap:var(--hf-spacing-2);
+  border-bottom:1px solid var(--hf-border-subtle);padding-bottom:var(--hf-spacing-4)}
+h1{margin:0;font-size:clamp(24px,4vw,34px);letter-spacing:-.02em}
+h2{margin:0 0 var(--hf-spacing-3);font-size:var(--hf-font-size-sm);text-transform:uppercase;
+  letter-spacing:.06em;color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
+.lede{margin:0;color:var(--hf-text-secondary);max-width:70ch}
+.nav{display:flex;gap:var(--hf-spacing-4);font-size:var(--hf-font-size-sm)}
+a{color:var(--hf-accent-interactive)}
+
+/* headline summary */
+.summary{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-left:3px solid var(--hf-accent-interactive);border-radius:var(--hf-radius-md);
+  padding:var(--hf-spacing-4);font-size:var(--hf-font-size-lg);text-wrap:balance}
+
+/* the numbers */
+.cards{display:grid;gap:var(--hf-spacing-3);
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4);
+  display:flex;flex-direction:column;gap:2px}
+.card .k{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--hf-text-muted)}
+.card .v{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-3xl);
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.card .u{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+.card .age{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:4px}
+.card.bad{border-left:3px solid var(--hf-status-closed-fill)}
+.pill{display:inline-block;padding:1px 8px;border-radius:var(--hf-radius-full);
+  font-size:var(--hf-font-size-xs);font-weight:var(--hf-font-weight-semibold);
+  align-self:flex-start;margin-top:4px}
+
+/* interpretation */
+.means{display:grid;gap:var(--hf-spacing-4);grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.means section{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4)}
+.means h3{margin:0 0 4px;font-size:var(--hf-font-size-md)}
+.means p{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+
+/* Kp forecast */
+.fc{display:flex;gap:3px;align-items:flex-end;height:130px;overflow-x:auto;padding-bottom:2px}
+.fc .bar{flex:1 0 26px;display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;gap:3px;height:100%}
+.fc .fill{width:100%;border-radius:var(--hf-radius-sm) var(--hf-radius-sm) 0 0;min-height:2px}
+.fc .kp{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  font-variant-numeric:tabular-nums}
+.fc .t{font-family:var(--hf-font-family-mono);font-size:9px;color:var(--hf-text-muted);
+  white-space:nowrap}
+.fcday{display:flex;gap:var(--hf-spacing-4);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:6px}
+
+/* alerts */
+.alerts{display:flex;flex-direction:column;gap:var(--hf-spacing-2)}
+details{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3) var(--hf-spacing-4)}
+details[open]{border-color:var(--hf-border-default)}
+summary{cursor:pointer;font-size:var(--hf-font-size-sm)}
+summary::marker{color:var(--hf-text-muted)}
+details .when{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted)}
+details pre{margin:var(--hf-spacing-3) 0 0;white-space:pre-wrap;word-break:break-word;
+  font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-secondary);background:var(--hf-surface-sunken);
+  padding:var(--hf-spacing-3);border-radius:var(--hf-radius-sm);overflow-x:auto}
+
+/* provenance */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:var(--hf-font-size-xs);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--hf-border-subtle);
+  white-space:nowrap}
+th{color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold);
+  border-bottom:1px solid var(--hf-border-default)}
+th:first-child,td:first-child{text-align:left}
+td.ok{color:var(--hf-status-good-text)}
+td.no{color:var(--hf-status-closed-text)}
+
+footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-4);
+  color:var(--hf-text-muted);font-size:var(--hf-font-size-xs);
+  display:flex;flex-direction:column;gap:6px;max-width:80ch}
+footer strong{color:var(--hf-text-secondary)}
+.loading{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Space weather</h1>
+    <p class="lede">What the sun and the geomagnetic field are doing right now, and what
+      that usually means for the bands. Fetched by our own service once an hour, so your
+      browser never contacts NOAA or KC2G.</p>
+    <div class="nav">
+      <a href="./index.html">Home</a>
+      <a href="./reach.html">Reach map</a>
+      <a href="./planner.html">Path planner</a>
+    </div>
+  </header>
+
+  <div class="loading" id="loading">Loading space weather&hellip;</div>
+
+  <div id="content" hidden>
+    <div class="summary" id="summary"></div>
+
+    <div style="margin-top:var(--hf-spacing-6)">
+      <h2>Right now</h2>
+      <div class="cards" id="cards"></div>
+    </div>
+
+    <div style="margin-top:var(--hf-spacing-6)">
+      <h2>What it means for HF</h2>
+      <div class="means">
+        <section>
+          <h3 id="fluxhead"></h3>
+          <p id="fluxbody"></p>
+        </section>
+        <section>
+          <h3 id="kphead"></h3>
+          <p id="kpbody"></p>
+        </section>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--hf-spacing-6)" id="fcwrap">
+      <h2>Geomagnetic forecast <span style="text-transform:none;letter-spacing:0"
+        id="fcnote"></span></h2>
+      <div class="fc" id="fc"></div>
+      <div class="fcday" id="fcdays"></div>
+    </div>
+
+    <div style="margin-top:var(--hf-spacing-6)">
+      <h2>NOAA alerts <span style="text-transform:none;letter-spacing:0" id="alertnote"></span></h2>
+      <div class="alerts" id="alerts"></div>
+    </div>
+
+    <div style="margin-top:var(--hf-spacing-6)">
+      <h2>Where this came from</h2>
+      <div class="scroll"><table id="prov"></table></div>
+    </div>
+  </div>
+
+  <footer>
+    <div><strong>These figures do not change the predictions on this site.</strong>
+      Only the effective sunspot number is fed to the propagation engine &mdash; it is the
+      one input ITU-R P.533 takes. Kp, solar flux and alerts are shown here for your own
+      judgement. Every prediction on the reach map and path planner assumes
+      <em>quiet</em> geomagnetic conditions, so during a storm they read optimistic.</div>
+    <div><strong>The interpretations are rules of thumb</strong>, not predictions. They
+      describe what an index usually means for the bands. For an actual circuit at an
+      actual time, use the <a href="./planner.html">path planner</a> or the
+      <a href="./reach.html">reach map</a>, which run the real model.</div>
+    <div><strong>Solar flux appears twice</strong> because two organisations estimate it
+      differently: NOAA measures the 10.7&nbsp;cm flux at Penticton, while KC2G derives an
+      equivalent figure from its ionosonde fit. They usually agree closely; when they do
+      not, that disagreement is itself information.</div>
+    <div>Sources: NOAA Space Weather Prediction Center (US Government work, public domain)
+      and <a href="https://prop.kc2g.com">prop.kc2g.com</a> by Andrew Rodland, KC2G
+      (attribution required). Alert text is reproduced verbatim &mdash; paraphrasing a space
+      weather bulletin is not our job.</div>
+  </footer>
+</div>
+
+<script type="module">
+import { loadSpaceWeather, describeAge } from './lib/spacewx.mjs';
+import { describeFlux, describeKp, kpToken, summarise, geomagneticScale }
+  from './lib/spacewx-copy.mjs';
+
+const $ = (i) => document.getElementById(i);
+const tok = (k) => getComputedStyle(document.documentElement)
+  .getPropertyValue(`--hf-status-${k}-fill`).trim();
+const tokOn = (k) => getComputedStyle(document.documentElement)
+  .getPropertyValue(`--hf-status-${k}-on`).trim();
+
+// Match the viewer's theme the same way the rest of the site does.
+document.documentElement.setAttribute('data-theme',
+  matchMedia('(prefers-color-scheme: light)').matches ? 'field-light' : 'field-dark');
+
+function card({ label, value, unit, age, pill, pillToken, bad }) {
+  const el = document.createElement('div');
+  el.className = 'card' + (bad ? ' bad' : '');
+  const k = document.createElement('div'); k.className = 'k'; k.textContent = label;
+  const v = document.createElement('div'); v.className = 'v';
+  v.textContent = value === null || value === undefined ? '—' : value;
+  el.append(k, v);
+  if (unit) { const u = document.createElement('div'); u.className = 'u'; u.textContent = unit; el.append(u); }
+  if (pill) {
+    const p = document.createElement('span'); p.className = 'pill';
+    p.style.background = tok(pillToken); p.style.color = tokOn(pillToken);
+    p.textContent = pill;
+    el.append(p);
+  }
+  const a = document.createElement('div'); a.className = 'age';
+  a.textContent = age;
+  el.append(a);
+  return el;
+}
+
+function render(sw) {
+  const solar = sw.solar, geo = sw.geomag, flux = sw.flux;
+  const kp = geo?.kp ?? null;
+  const sfi = solar?.sfi ?? flux?.f107 ?? null;
+
+  $('summary').textContent = summarise({ sfi, kp });
+
+  // --- the numbers ---
+  const ageOf = (iso) => iso
+    ? describeAge(Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000)))
+    : 'age unknown';
+  const cards = $('cards');
+  cards.replaceChildren(
+    card({ label: 'Effective sunspot number', value: solar?.ssn ?? null,
+           unit: solar ? `fed to the engine as ${solar.engineSsn}` : 'unavailable',
+           age: `KC2G · ${ageOf(solar?.observedAt)}`, bad: !solar }),
+    card({ label: 'Solar flux (KC2G)', value: solar?.sfi ?? null, unit: 'derived from ionosondes',
+           age: `KC2G · ${ageOf(solar?.observedAt)}`, bad: !solar }),
+    card({ label: 'Solar flux (NOAA 10.7 cm)', value: flux?.f107 ?? null, unit: 'measured at Penticton',
+           age: `NOAA · ${ageOf(flux?.observedAt)}`, bad: !flux }),
+    card({ label: 'Planetary K index', value: kp, unit: '0–9, three-hourly',
+           pill: kp === null ? null : (geomagneticScale(kp) ?? describeKp(kp).headline),
+           pillToken: kpToken(kp),
+           age: `NOAA · ${ageOf(geo?.observedAt)}`, bad: !geo }),
+  );
+
+  // --- interpretation ---
+  const f = describeFlux(sfi), k = describeKp(kp);
+  $('fluxhead').textContent = `Solar flux: ${f.headline}`;
+  $('fluxbody').textContent = f.detail;
+  $('kphead').textContent = `Geomagnetic field: ${k.headline}`;
+  $('kpbody').textContent = k.detail;
+
+  // --- forecast ---
+  const fc = geo?.forecast ?? [];
+  $('fcwrap').hidden = fc.length === 0;
+  if (fc.length) {
+    const max = Math.max(5, ...fc.map((r) => r.kp));
+    $('fcnote').textContent = `— NOAA's predicted Kp, three-hourly`;
+    $('fc').replaceChildren(...fc.map((r) => {
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const val = document.createElement('div'); val.className = 'kp';
+      val.textContent = r.kp.toFixed(1);
+      const fill = document.createElement('div'); fill.className = 'fill';
+      fill.style.height = `${Math.max(2, (r.kp / max) * 100)}%`;
+      fill.style.background = tok(kpToken(r.kp));
+      const d = new Date(r.time);
+      const t = document.createElement('div'); t.className = 't';
+      t.textContent = String(d.getUTCHours()).padStart(2, '0') + 'Z';
+      bar.title = `${r.time.slice(0, 16).replace('T', ' ')}Z — Kp ${r.kp}`
+        + `${geomagneticScale(r.kp) ? ` (${geomagneticScale(r.kp)})` : ''}`;
+      bar.append(val, fill, t);
+      return bar;
+    }));
+    const days = [...new Set(fc.map((r) => r.time.slice(0, 10)))];
+    $('fcdays').textContent = days.join('  ·  ') + '  (UTC)';
+  }
+
+  // --- alerts, verbatim ---
+  const al = sw.alerts ?? [];
+  $('alertnote').textContent = al.length
+    ? `— ${al.length} most recent, newest first`
+    : '';
+  $('alerts').replaceChildren(...(al.length ? al.map((a) => {
+    const d = document.createElement('details');
+    const s = document.createElement('summary');
+    s.textContent = a.headline || a.id || 'Alert';
+    const w = document.createElement('span'); w.className = 'when';
+    w.textContent = `  ${a.issuedAt.slice(0, 16).replace('T', ' ')}Z · ${ageOf(a.issuedAt)}`;
+    s.append(w);
+    const pre = document.createElement('pre');
+    pre.textContent = a.message;
+    d.append(s, pre);
+    return d;
+  }) : [Object.assign(document.createElement('p'), {
+    className: 'loading',
+    textContent: 'No recent alerts — which is itself good news.',
+  })]));
+
+  // --- provenance ---
+  const t = $('prov');
+  t.replaceChildren();
+  const head = t.createTHead().insertRow();
+  for (const h of ['Source', 'Status', 'Observed', 'Age', 'Stale after'])
+    head.insertCell().outerHTML = `<th scope="col">${h}</th>`;
+  const body = t.createTBody();
+  const NAMES = { essn: 'KC2G effective SSN', kp: 'NOAA planetary K',
+                  kpForecast: 'NOAA Kp forecast', f107: 'NOAA 10.7 cm flux',
+                  alerts: 'NOAA alerts' };
+  for (const [key, s] of Object.entries(sw.sources ?? {})) {
+    const tr = body.insertRow();
+    tr.insertCell().textContent = NAMES[key] ?? key;
+    const st = tr.insertCell();
+    st.className = s.ok ? 'ok' : 'no';
+    st.textContent = s.ok ? (s.stale ? 'stale' : 'ok') : 'failed';
+    if (!s.ok) st.title = s.error ?? '';
+    tr.insertCell().textContent = s.observedAt ? s.observedAt.slice(0, 16).replace('T', ' ') + 'Z' : '—';
+    tr.insertCell().textContent = s.ageSeconds === null || s.ageSeconds === undefined
+      ? '—' : describeAge(s.ageSeconds);
+    // A null threshold is a statement, not a gap: this feed's content age says
+    // nothing about our health, so judging it by that would invent faults.
+    tr.insertCell().textContent = s.staleAfterSeconds
+      ? `${Math.round(s.staleAfterSeconds / 3600)} h`
+      : 'not judged by age';
+  }
+
+  $('loading').hidden = true;
+  $('content').hidden = false;
+}
+
+const sw = await loadSpaceWeather({ timeoutMs: 6000 });
+render(sw);
+
+// Freshness of the bundle itself, distinct from the age of each observation.
+const tier = document.createElement('div');
+tier.style.cssText = 'margin-top:var(--hf-spacing-4);font-family:var(--hf-font-family-mono);'
+  + 'font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)';
+tier.textContent = `Bundle: ${sw.tierLabel}, ${describeAge(sw.ageSeconds)}`
+  + (sw.degraded ? ' — some sources missing or stale, see the table above.' : '.');
+$('content').append(tier);
+</script>
+</body>
+</html>

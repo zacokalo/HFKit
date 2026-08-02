@@ -13,6 +13,7 @@ import popupSpec from './popup.spec.mjs';
 import chartSpec from './chart.spec.mjs';
 import stationSpec from './station.spec.mjs';
 import spacewxSpec from './spacewx.spec.mjs';
+import spaceSpec from './space.spec.mjs';
 
 // Fail loudly on an unbuilt site rather than reporting a wall of confusing
 // element-not-found errors.
@@ -61,7 +62,8 @@ const failed = [];
 for (const [name, spec] of [['reach map', reachSpec], ['map popups', popupSpec],
                             ['circuit chart', chartSpec],
                             ['station controls', stationSpec],
-                            ['space weather', spacewxSpec]]) {
+                            ['space weather', spacewxSpec],
+                            ['space weather page', spaceSpec]]) {
   console.log(`\n${name}`);
   try {
     failed.push(...(await spec(browser, origin)));
