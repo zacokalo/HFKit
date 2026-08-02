@@ -103,6 +103,10 @@ code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
         <input id="hour" type="range" min="0" max="3" step="1" value="2">
         <span class="hourval" id="hourval">12Z</span>
       </div></div>
+    <div class="f"><label for="daylight">Daylight</label><select id="daylight">
+      <option value="1" selected>Show</option>
+      <option value="0">Hide</option>
+    </select></div>
     <div class="f"><label for="theme">Theme</label><select id="theme">
       <option value="auto">match viewer</option><option value="field-dark">field-dark</option>
       <option value="field-light">field-light</option><option value="night-ops">night-ops</option>
@@ -118,6 +122,12 @@ code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
 
   <footer>
     <div id="explain"></div>
+    <div><strong>The shaded half is night.</strong> The bright line is the terminator &mdash;
+      the &ldquo;grey line&rdquo; operators watch, because the D layer that absorbs low
+      frequencies by day decays quickly after sunset while the reflecting F layer lingers,
+      so paths along it often run unusually long. The marked point is where the sun is
+      directly overhead. Compare it against the colours: the daylit side favours the higher
+      bands, the dark side the lower ones.</div>
     <div><strong>About the station setting:</strong> the grid was computed at 100&nbsp;W into
       isotropic antennas. Transmit power and transmit antenna gain add directly to the
       signal while the noise at the far end is unchanged, so they shift SNR by a flat
@@ -156,6 +166,82 @@ function rampColor(t){ // t in 0..1 across the 8-stop sequential ramp
 // equirectangular
 const px=(lon)=> (lon+180)/360*W;
 const py=(lat)=> (90-lat)/180*H;
+
+// --- solar geometry ------------------------------------------------------
+// The grids are monthly predictions, so the 15th is the representative date.
+// Declination via the standard approximation (good to a fraction of a degree);
+// the equation of time is ignored, which moves the terminator by at most a few
+// minutes of longitude -- invisible at this scale.
+const REP_DAY_OF_YEAR = 227;              // 15 August
+const DEG = Math.PI/180;
+function solarDeclinationDeg(){
+  return 23.44 * Math.sin(DEG * (360/365.24) * (REP_DAY_OF_YEAR - 81));
+}
+function subsolarLonDeg(utcHour){
+  let l = 180 - 15*utcHour;
+  while(l>180) l-=360; while(l<-180) l+=360;
+  return l;
+}
+// Latitude where the sun sits exactly on the horizon, for a given longitude.
+// From sin(elev)=sin(lat)sin(dec)+cos(lat)cos(dec)cos(H), set elev=0:
+//   tan(lat) = -cos(H)/tan(dec)
+function terminatorLatDeg(lonDeg, decDeg, subLonDeg){
+  const Hh = (lonDeg - subLonDeg) * DEG;
+  const t = Math.tan(decDeg*DEG);
+  if(Math.abs(t) < 1e-6) return 0;         // equinox: terminator is a meridian pair
+  return Math.atan(-Math.cos(Hh)/t) / DEG;
+}
+function drawDaylight(utcHour){
+  const dec = solarDeclinationDeg(), sub = subsolarLonDeg(utcHour);
+  // With dec > 0 the summer (north) pole is lit, so night lies south of the
+  // curve; with dec < 0 it is the other way round.
+  const nightIsSouth = dec > 0;
+  const pts=[];
+  for(let x=0; x<=W; x+=3){
+    const lon = (x/W)*360 - 180;
+    pts.push([x, py(terminatorLatDeg(lon, dec, sub))]);
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(const [x,y] of pts) ctx.lineTo(x,y);
+  ctx.lineTo(W, nightIsSouth ? H : 0);
+  ctx.lineTo(0, nightIsSouth ? H : 0);
+  ctx.closePath();
+  // 'multiply' with a neutral, slightly cool grey rather than a themed fill.
+  // Night is an absence of light, so it must darken whatever is underneath in
+  // every theme -- a surface token would be near-white in the light theme and
+  // would brighten the night side instead (which is exactly what it did before
+  // this was caught). Compositing is a lighting operation, not a palette choice,
+  // so it is deliberately theme-independent.
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = 'rgb(122,128,146)';
+  ctx.fill();
+  ctx.restore();
+
+  // the terminator itself -- the "grey line", where HF often runs long
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(const [x,y] of pts) ctx.lineTo(x,y);
+  ctx.strokeStyle = cssv('--hf-status-fair-fill');
+  ctx.lineWidth = 2; ctx.globalAlpha = 0.9; ctx.stroke();
+  ctx.restore();
+
+  // subsolar point
+  const sx = px(sub), sy = py(dec);
+  ctx.save();
+  ctx.strokeStyle = cssv('--hf-status-fair-fill'); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+  ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI*2); ctx.stroke();
+  for(let a=0; a<8; a++){
+    const th = a*Math.PI/4;
+    ctx.beginPath();
+    ctx.moveTo(sx+Math.cos(th)*9, sy+Math.sin(th)*9);
+    ctx.lineTo(sx+Math.cos(th)*13, sy+Math.sin(th)*13);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 // Margin -> opacity. Fully opaque once the circuit meets its requirement,
 // fading to nothing well below it. No hard edge.
@@ -204,6 +290,10 @@ function draw(){
   ctx.fillStyle=cssv('--hf-surface-sunken'); ctx.fillRect(0,0,W,H);
   ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
   ctx.drawImage(off,0,0,gw,gh, px(LON[0]), 0, W, H);
+
+  // daylight sits above the data field but below the coastlines, so it reads as
+  // a lighting condition rather than as another data layer
+  if($('daylight').value === '1') drawDaylight(COV.hours[hi]);
 
   // coastlines on top, quiet
   ctx.strokeStyle=cssv('--hf-text-muted'); ctx.lineWidth=1; ctx.globalAlpha=.55;
@@ -281,7 +371,7 @@ cv.addEventListener('mousemove',(e)=>{
 });
 cv.addEventListener('mouseleave',()=>{ $('ro').textContent='Hover the map'; });
 
-for(const id of ['site','mode','hour','station']) $(id).addEventListener('input',draw);
+for(const id of ['site','mode','hour','station','daylight']) $(id).addEventListener('input',draw);
 $('theme').addEventListener('change',(e)=>{ $('app').setAttribute('data-app-theme',e.target.value); draw(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 $('ro').style.whiteSpace='pre';
