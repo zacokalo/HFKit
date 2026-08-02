@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Cloudflare Worker: refreshes the space weather bundle hourly into KV and serves it. The mothership — clients never contact upstream.",
+  "description": "Cloudflare Worker: refreshes the space weather bundle hourly into KV and serves it. The mothership \u2014 clients never contact upstream.",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "tail": "wrangler tail"
+    "deploy": "npx --yes wrangler@4 deploy",
+    "dev": "npx --yes wrangler@4 dev",
+    "tail": "npx --yes wrangler@4 tail",
+    "kv:create": "npx --yes wrangler@4 kv namespace create SPACEWX"
   }
 }
