@@ -105,12 +105,13 @@
     <div>The <b>A-score</b> described in the design docs does not exist yet. It is meant to be
       a calibrated probability, and calibrating it depends on resolving that defect first.</div>
     <div>Reach maps are computed for whatever transmitter you pick, at 100 W into an isotropic
-      antenna. Your own power and antenna are applied on top as an exact offset. Antenna
-      figures are <b>peak</b> gain applied flat, so beams read optimistic on paths whose
-      take-off angle they do not favour &mdash; the
-      <a href="./antenna.html">antenna visualiser</a> shows how far down that costs you for a
-      given path length. Coarse passes paint each sample across the block it
-      stands for, so an early frame is a sketch until the finer passes land.</div>
+      antenna. Power is applied on top as an exact offset. <b>Wire antennas now carry their
+      real elevation pattern</b>, applied per map cell &mdash; the distance to a cell sets the
+      take-off angle that path needs, and the pattern gives the gain there. Beams still use
+      peak gain applied flat, and still read optimistic on paths whose take-off angle they do
+      not favour, because their gain does not follow from the thin-wire model. Coarse passes
+      paint each sample across the block it stands for, so an early frame is a sketch until
+      the finer passes land.</div>
     <div>The antenna visualiser is a <b>thin-wire model over perfect ground</b>, not NEC. It
       is pinned against the textbook constants it can be checked against &mdash; 2.15 dBi for a
       free-space dipole, 5.15 for a quarter wave over ground &mdash; and it reports directivity,

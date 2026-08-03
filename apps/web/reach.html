@@ -246,18 +246,34 @@ a{color:var(--hf-accent-interactive)}
       </datalist>
     </div>
     <div class="f"><label for="ant">Transmit antenna</label><select id="ant">
-      <option value="-6">Mobile whip (&minus;6 dBi)</option>
-      <option value="-3">Random wire / end-fed (&minus;3 dBi)</option>
-      <option value="0">Isotropic (0 dBi)</option>
-      <option value="0.5">Vertical, ground plane (+0.5 dBi)</option>
-      <option value="1.5">Inverted V (+1.5 dBi)</option>
-      <option value="2.1" selected>Dipole, half-wave (+2.1 dBi)</option>
-      <option value="4">Loop / hex beam (+4 dBi)</option>
-      <option value="5">2-element Yagi (+5 dBi)</option>
-      <option value="6">Log-periodic (+6 dBi)</option>
-      <option value="7">3-element Yagi (+7 dBi)</option>
-      <option value="8.5">4-element Yagi (+8.5 dBi)</option>
+      <optgroup label="Modelled pattern — gain varies with angle">
+        <option value="pattern:dipole">Half-wave dipole</option>
+        <option value="pattern:inverted-v">Inverted V</option>
+        <option value="pattern:efhw">End-fed half-wave</option>
+        <option value="pattern:doublet">Doublet, 40 m of wire</option>
+        <option value="pattern:vertical-ground">Ground-mounted vertical</option>
+        <option value="pattern:ground-plane">Elevated ground plane</option>
+      </optgroup>
+      <optgroup label="Fixed gain — peak, applied flat">
+        <option value="-6">Mobile whip (&minus;6 dBi)</option>
+        <option value="-3">Random wire / end-fed (&minus;3 dBi)</option>
+        <option value="0">Isotropic (0 dBi)</option>
+        <option value="0.5">Vertical, ground plane (+0.5 dBi)</option>
+        <option value="1.5">Inverted V (+1.5 dBi)</option>
+        <option value="2.1" selected>Dipole, half-wave (+2.1 dBi)</option>
+        <option value="4">Loop / hex beam (+4 dBi)</option>
+        <option value="5">2-element Yagi (+5 dBi)</option>
+        <option value="6">Log-periodic (+6 dBi)</option>
+        <option value="7">3-element Yagi (+7 dBi)</option>
+        <option value="8.5">4-element Yagi (+8.5 dBi)</option>
+      </optgroup>
     </select></div>
+    <div class="f" id="anthrow" hidden><label for="anth">Antenna height
+      <span class="mono" id="anthval"></span></label>
+      <input type="range" id="anth" min="3" max="30" step="1" value="10"></div>
+    <div class="f" id="antorow" hidden><label for="anto">Wire runs
+      <span class="mono" id="antoval"></span></label>
+      <input type="range" id="anto" min="0" max="170" step="10" value="90"></div>
     <div class="f"><label>Station total</label><span class="mono" id="gainval">+12.1 dB</span></div>
     <button id="go" type="button" disabled>Generate</button>
     <button class="ghost" id="stop" type="button" hidden>Stop</button>
@@ -378,17 +394,29 @@ a{color:var(--hf-accent-interactive)}
       &ldquo;grey line&rdquo; operators watch: the absorbing D layer decays quickly after
       sunset while the reflecting F layer lingers, so paths along it often run long.</div>
     <div><strong>Power and antenna:</strong> the grid is computed once at 100&nbsp;W into an
-      isotropic antenna, and your station is applied on top as a flat offset &mdash;
-      10&nbsp;log&#8321;&#8320;(W/100) for power plus the antenna's gain in dBi. Both scale the
-      signal while the noise at the far end is unchanged, so the shift is exact and changing
-      either <em>does not</em> require regenerating the map.</div>
-    <div><strong>The antenna figures are peak gain, applied flat.</strong> A real antenna's
-      gain depends on elevation angle, and a beam only reaches its rated figure over a narrow
-      range of angles. So a Yagi here is <em>optimistic</em> on paths that need a take-off
-      angle it does not favour &mdash; short paths wanting high angles, or very long ones
-      wanting very low. Treat the wire antennas as close to right and the beams as an upper
-      bound. Modelling this properly needs real antenna patterns fed to P.533, which is on
-      the roadmap.</div>
+      isotropic antenna, and your station is applied on top. Power is a flat offset &mdash;
+      10&nbsp;log&#8321;&#8320;(W/100) &mdash; which scales the signal while the noise at the
+      far end is unchanged, so it is exact. Neither power nor antenna requires regenerating
+      the map.</div>
+    <div><strong>A modelled antenna's gain varies across the map, and that is the point.</strong>
+      Pick one from the top group and its real elevation pattern is applied per cell: the
+      distance to a cell sets the take-off angle that path needs, and the pattern gives the
+      gain at that angle and bearing. A dipole 10&nbsp;m up shows roughly 13&nbsp;dB between
+      the distance it favours and the ones it does not, and swings further still off the ends
+      of the wire. No P.533 output changes &mdash; this is geometry laid over the same grid,
+      which is why switching antennas is still instant.</div>
+    <div><strong>The fixed-gain entries are peak gain, applied flat</strong>, exactly as
+      before. Beams stay in that group because their gain does not follow from the thin-wire
+      model this uses, so a Yagi here remains <em>optimistic</em> on paths whose take-off
+      angle it does not favour. For a wire antenna, prefer the modelled entry.</div>
+    <div><strong>Modelled gain assumes perfect ground and stops at 3&deg;.</strong> Over a
+      perfect reflector a horizontal antenna has an absolute null at the horizon, which is an
+      idealisation, not a fact &mdash; so the lookup is clamped at 3&deg; of elevation and no
+      gain is allowed below &minus;20&nbsp;dBi. Without those limits a modelling artifact
+      would erase whole regions of the map. Real ground also costs 1&ndash;2&nbsp;dB that
+      none of this charges you for, and more for a ground-mounted vertical. The
+      <a href="./antenna.html">antenna visualiser</a> shows the pattern behind these numbers
+      and states its own limits.</div>
     <div><strong>Receive</strong> antenna gain is deliberately excluded &mdash; at HF the
       receiver is limited by external noise, so a bigger receive antenna lifts signal and
       noise together and largely cancels out of SNR.</div>
@@ -425,6 +453,8 @@ import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
 import { loadAurora, renderAurora, auroraAt } from './lib/aurora.mjs';
 import { mountNav } from './lib/nav.mjs';
+import { PatternGain, MODELLED, modelled, MIN_ELEVATION_DEG, elevationForDistance }
+  from './lib/antenna-gain.mjs';
 mountNav(document.querySelector('.app'), 'reach.html');
 
 const $ = (i) => document.getElementById(i);
@@ -513,12 +543,13 @@ function cellIndex(lat, lon) {
   const c = Math.round((((lon + 180) % 360 + 360) % 360) / BASE_STEP) % GLON.length;
   return [r, c];
 }
-function circuitAt(lat, lon, gainDb) {
+function circuitAt(lat, lon) {
   if (!field) return null;
   const [r, c] = cellIndex(lat, lon);
   const cell = field.at(r, c, hourIndex());
   if (!cell || !cell.margins) return null;
-  const m = cell.margins.map((v) => (v === null ? null : Math.round(v + gainDb)));
+  const g = stationGains(lat, lon);
+  const m = cell.margins.map((v, i) => (v === null ? null : Math.round(v + g[i])));
   let best = -1, bestMargin = null, lowest = -1, highest = -1;
   m.forEach((v, i) => {
     if (v === null) return;
@@ -638,14 +669,87 @@ const hourIndex = () => Math.max(0, Math.min(hours.length - 1, Number($('hour').
  *  antenna. Power and transmit antenna gain both scale the signal while the
  *  noise at the far end is unchanged, so together they shift SNR by a flat
  *  amount — no recompute needed when either changes. */
-function gain() {
+function powerDb() {
   const w = Number($('pwr').value);
   const watts = Number.isFinite(w) && w > 0 ? w : POWER_W;
-  return 10 * Math.log10(watts / POWER_W) + Number($('ant').value);
+  return 10 * Math.log10(watts / POWER_W);
 }
+const usingPattern = () => $('ant').value.startsWith('pattern:');
+const patternId = () => $('ant').value.slice('pattern:'.length);
+/** Fixed-mode station total. In pattern mode the antenna half is per-cell, so
+ *  this is the power offset alone and the readout says so. */
+function gain() {
+  return powerDb() + (usingPattern() ? 0 : Number($('ant').value) || 0);
+}
+
+// The antenna's real pattern, sampled per band. Null whenever a fixed-gain
+// antenna is selected, which is what keeps the old exact-offset behaviour
+// available and unchanged.
+let patternGain = null, patternToken = 0;
+
+/**
+ * Total dB to add to each band's margin at a point.
+ *
+ * In fixed mode this is one number repeated, exactly as before. In pattern mode
+ * the antenna's contribution depends on how far away the point is — because
+ * distance sets the take-off angle the path needs — and on its bearing. No
+ * P.533 output changes either way; this is geometry laid over the same grid.
+ */
+function stationGains(lat, lon) {
+  const p = powerDb();
+  if (!patternGain || !tx) return new Array(NB).fill(gain());
+  const d = distanceKm(tx, { lat, lon });
+  const b = bearingDeg(tx, { lat, lon });
+  const out = new Array(NB);
+  for (let i = 0; i < NB; i++) out[i] = p + patternGain.gainDb(d, b, i);
+  return out;
+}
+
 function showGain() {
-  const g = gain();
-  $('gainval').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+  if (!usingPattern()) {
+    const g = gain();
+    $('gainval').textContent = `${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`;
+    return;
+  }
+  const p = powerDb();
+  const power = `${p >= 0 ? '+' : ''}${p.toFixed(1)} dB`;
+  $('gainval').textContent = patternGain
+    ? `${power} · antenna ${patternGain.minDbi.toFixed(0)} to `
+      + `+${patternGain.maxDbi.toFixed(1)} dBi by direction`
+    : `${power} · computing pattern…`;
+}
+
+/** Rebuild the pattern tables. Guarded by a token so a fast series of slider
+ *  moves cannot let an older, slower build overwrite a newer one. */
+async function refreshPattern() {
+  const spec = usingPattern() ? modelled(patternId()) : null;
+  $('anthrow').hidden = !spec?.height;
+  $('antorow').hidden = !spec?.directional;
+  if (spec?.height) $('anthval').textContent = `${$('anth').value} m`;
+  if (spec?.directional) {
+    const o = Number($('anto').value);
+    $('antoval').textContent = `${String(o).padStart(3, '0')}°–`
+      + `${String((o + 180) % 360).padStart(3, '0')}°`;
+  }
+  const token = ++patternToken;
+  if (!spec) { patternGain = null; showGain(); return; }
+  showGain();
+  try {
+    const pg = await PatternGain.build({
+      antennaId: spec.id,
+      heightM: Number($('anth').value),
+      orientationDeg: Number($('anto').value),
+      freqs: FREQS,
+    });
+    if (token !== patternToken) return;          // superseded while we computed
+    patternGain = pg;
+  } catch {
+    patternGain = null;                          // never leave a half-built table
+  }
+  showGain();
+  gridVersion++;                                 // the image cache is now stale
+  schedule(true);
+  refreshOpenChart();
 }
 
 let pending = false, uiDirty = true;
@@ -719,20 +823,25 @@ function buildCoastPath() {
 let gridImg = null, gridImgKey = '', gridVersion = 0;
 function gridImage(mode, gainDb) {
   const hi = hourIndex();
-  const key = `${mode}|${gainDb}|${hi}|${gridVersion}`;
+  const key = `${mode}|${gainDb}|${patternGain?.key ?? '-'}|${hi}|${gridVersion}`;
   if (gridImg && gridImgKey === key) return gridImg;
   const gw = GLON.length, gh = GLAT.length;
   const off = document.createElement('canvas');
   off.width = gw; off.height = gh;
   const octx = off.getContext('2d');
   const img = octx.createImageData(gw, gh);
+  // In pattern mode the offset differs per cell and per band, so it is looked
+  // up here rather than added as a constant. Two table reads per band per cell;
+  // the grid is 1800 cells, so this stays well inside a frame.
+  const perCell = patternGain !== null && tx !== null;
   for (let r = 0; r < gh; r++) for (let c = 0; c < gw; c++) {
     const cell = field.at(r, c, hi);
     if (!cell || !cell.margins) continue;
+    const g = perCell ? stationGains(GLAT[r], GLON[c]) : null;
     let bi = -1, bm = null;
     cell.margins.forEach((v, i) => {
       if (v === null) return;
-      const x = v + gainDb;
+      const x = v + (g ? g[i] : gainDb);
       if (bm === null || x > bm) { bm = x; bi = i; }
     });
     let rgb = null, a = 0;
@@ -823,7 +932,7 @@ function draw() {
 
   if (tx) layer(() => {
     for (const rx of receivers) {
-      const c = circuitAt(rx.lat, rx.lon, gainDb);
+      const c = circuitAt(rx.lat, rx.lon);
       const tok = c ? marginToken(c.bestMargin) : 'stale';
       ctx.save();
       ctx.strokeStyle = statusFill(tok); ctx.lineWidth = 3 / zoom; ctx.globalAlpha = 0.95;
@@ -931,14 +1040,13 @@ function renderTable() {
     ? 'No receivers yet — search above to add one.'
     : 'Set a transmitter first, then add receivers to see each circuit.';
   if (!receivers.length || !tx) return;
-  const gainDb = gain();
   const head = t.createTHead().insertRow();
   for (const h of ['Receiver', 'Distance', 'Bearing', 'Path MUF', 'Usable range', 'Best band',
                    'Margin', ''])
     head.insertCell().outerHTML = `<th scope="col">${h}</th>`;
   const tb = t.createTBody();
   for (const rx of receivers) {
-    const c = circuitAt(rx.lat, rx.lon, gainDb);
+    const c = circuitAt(rx.lat, rx.lon);
     const tok = c ? marginToken(c.bestMargin) : 'stale';
     const tr = tb.insertRow();
     const nm = tr.insertCell(); nm.className = 'name';
@@ -1027,7 +1135,7 @@ function renderPopup() {
     : maidenhead(lat, lon);
   $('popcoords').textContent = `${fmtLatLon(lat, lon)} · ${maidenhead(lat, lon)}`;
 
-  const c = circuitAt(lat, lon, gain());
+  const c = circuitAt(lat, lon);
   const facts = $('popfacts');
   facts.replaceChildren();
   const row = (k, v) => {
@@ -1036,8 +1144,18 @@ function renderPopup() {
     facts.append(dt, dd);
   };
   if (tx && !atTx) {
-    row('Distance', Math.round(distanceKm(tx, { lat, lon })).toLocaleString() + ' km');
+    const d = distanceKm(tx, { lat, lon });
+    row('Distance', Math.round(d).toLocaleString() + ' km');
     row('Bearing', Math.round(bearingDeg(tx, { lat, lon })).toString().padStart(3, '0') + '°');
+    // Where the antenna correction for this particular point comes from. Shown
+    // on the best band, because a per-band list here would bury it — and the
+    // point is that the number is different from the one at the next cell over.
+    if (patternGain && c && c.best >= 0) {
+      const g = patternGain.gainDb(d, bearingDeg(tx, { lat, lon }), c.best);
+      const elev = Math.max(MIN_ELEVATION_DEG, elevationForDistance(d));
+      row('Take-off needed', `${elev.toFixed(0)}°`);
+      row('Antenna here', `${g >= 0 ? '+' : ''}${g.toFixed(1)} dBi on ${BANDS[c.best]}`);
+    }
   }
   if (c) {
     row('Path MUF', c.muf != null ? c.muf.toFixed(1) + ' MHz' : '—');
@@ -1217,7 +1335,7 @@ async function showChart(target) {
 }
 
 function renderChart(per, target) {
-  const gainDb = gain();
+  const gains = stationGains(target.lat, target.lon);
   const nowHour = new Date().getUTCHours();
   const t = document.createElement('table');
   t.className = 'chart';
@@ -1238,7 +1356,7 @@ function renderChart(per, target) {
     hc.textContent = String(CHART_HOURS[h]).padStart(2, '0') + 'Z';
     for (let i = 0; i < BANDS.length; i++) {
       const raw = margins[i];
-      const m = raw === null || raw === undefined ? null : Math.round(raw + gainDb);
+      const m = raw === null || raw === undefined ? null : Math.round(raw + gains[i]);
       const td = tr.insertCell();
       const tok = marginToken(m);
       if (m !== null) {
@@ -1507,6 +1625,7 @@ function persist(key = lastKey) {
     tx, receivers, key,
     detail: $('detail').value, span: $('span').value,
     pwr: $('pwr').value, ant: $('ant').value,
+    anth: $('anth').value, anto: $('anto').value,
     mode: $('mode').value, hour: $('hour').value, night: $('night').value,
     aurora: $('aurora').value,
     theme: $('theme').value, zoom, panX, panY,
@@ -1542,7 +1661,7 @@ cv.addEventListener('mousemove', (e) => {
 
   const pos = `${Math.abs(lat).toFixed(0)}°${lat < 0 ? 'S' : 'N'}  `
     + `${Math.abs(lon).toFixed(0)}°${lon < 0 ? 'W' : 'E'}`;
-  const c = circuitAt(lat, lon, gain());
+  const c = circuitAt(lat, lon);
   const au = Number($('aurora').value) > 0 ? auroraAt(aurora, lat, lon) : null;
   const auLine = au !== null ? `\naurora ${au}%` : '';
   $('ro').textContent = auLine + (!c
@@ -1685,6 +1804,9 @@ for (const id of ['mode', 'hour', 'night', 'pwr', 'ant'])
     showGain(); persist(); schedule(true); refreshOpenChart();
     if ($('chart').open) $('chgain').textContent = $('gainval').textContent;
   });
+$('ant').addEventListener('input', () => { void refreshPattern(); });
+for (const id of ['anth', 'anto'])
+  $(id).addEventListener('input', () => { persist(); void refreshPattern(); });
 for (const id of ['detail', 'span'])
   $(id).addEventListener('change', () => { persist(); updateGoLabel(); });
 $('theme').addEventListener('change', () => { applyTheme(); persist(); });
@@ -1712,6 +1834,7 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
     const legacy = s.pwr == null && s.station != null ? LEGACY[Number(s.station)] : null;
     for (const [id, v] of [['detail', s.detail], ['span', s.span],
                            ['pwr', s.pwr ?? legacy?.[0]], ['ant', s.ant ?? legacy?.[1]],
+                           ['anth', s.anth], ['anto', s.anto],
                            ['mode', s.mode], ['hour', s.hour], ['night', s.night],
                            ['aurora', s.aurora],
                            ['theme', s.theme]])
@@ -1744,6 +1867,10 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
   }
 
   showGain();
+  // A restored session may name a modelled antenna, so its tables have to be
+  // rebuilt before the first draw. Not awaited: the map is useful immediately
+  // with the fixed offset, and refreshPattern redraws when it lands.
+  if (usingPattern()) void refreshPattern();
   if (Number($('aurora').value) > 0) {
     $('aurora').dispatchEvent(new Event('input', { bubbles: true }));
   }
