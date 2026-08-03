@@ -33,7 +33,9 @@ a{color:var(--hf-accent-interactive)}
 .ctl label{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
   color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
 .ctl .val{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
-  color:var(--hf-text-secondary);font-variant-numeric:tabular-nums}
+  color:var(--hf-text-secondary);font-variant-numeric:tabular-nums;
+  /* The label is uppercased; the value must not be, or λ becomes Λ. */
+  text-transform:none}
 .ctl .help{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
 select,input[type=number],input[type=text]{width:100%;
   background:var(--hf-surface-sunken);color:var(--hf-text-primary);
@@ -192,6 +194,8 @@ footer strong{color:var(--hf-text-secondary)}
 
 /* --- interactive diagram parts --- */
 .ant-diagram .hit{stroke:transparent;fill:none;stroke-width:16;pointer-events:stroke}
+/* A mast is scenery. Its grab area must not swallow the feedpoint sitting on it. */
+.ant-diagram .part-mast .hit{stroke-width:7}
 .ant-diagram circle.hit{fill:transparent;stroke:none;pointer-events:fill}
 .ant-diagram .wire-end{fill:var(--hf-status-poor-fill);stroke:var(--hf-surface-raised);
   stroke-width:1.5}
@@ -211,6 +215,49 @@ footer strong{color:var(--hf-text-secondary)}
 .partinfo p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
 .partinfo.idle{border-left-color:var(--hf-border-default);color:var(--hf-text-muted)}
 
+/* --- the answer, which is what the page is for --- */
+.answer{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-left:4px solid var(--hf-accent-interactive);border-radius:var(--hf-radius-md);
+  padding:var(--hf-spacing-5)}
+.answer .cut{display:grid;gap:var(--hf-spacing-4);
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.answer .item .k{font-size:var(--hf-font-size-xs);text-transform:uppercase;
+  letter-spacing:.06em;color:var(--hf-text-muted)}
+.answer .item .v{font-family:var(--hf-font-family-mono);
+  font-size:clamp(20px,3.4vw,30px);font-variant-numeric:tabular-nums;line-height:1.15}
+.answer .item .alt{font-family:var(--hf-font-family-mono);
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.answer .cap{margin-top:var(--hf-spacing-3)}
+.reach{margin-top:var(--hf-spacing-5);padding-top:var(--hf-spacing-4);
+  border-top:1px solid var(--hf-border-subtle);
+  display:grid;gap:var(--hf-spacing-4);align-items:start}
+@media(min-width:760px){.reach{grid-template-columns:minmax(200px,280px) 1fr}}
+.reach .said{font-size:var(--hf-font-size-lg);text-wrap:balance}
+.reach .said b{font-weight:var(--hf-font-weight-semibold)}
+.reach .why{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm);
+  margin-top:4px;text-wrap:balance}
+.reach .nums{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:1px 9px;border-radius:var(--hf-radius-full);
+  font-size:var(--hf-font-size-xs);font-weight:var(--hf-font-weight-semibold);
+  vertical-align:2px;margin-right:6px}
+
+/* --- jargon, glossed rather than removed --- */
+.gloss{border-bottom:1px dotted var(--hf-text-muted);cursor:help}
+
+/* --- everything a newcomer does not need, folded away --- */
+details.more{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3) var(--hf-spacing-4)}
+details.more+details.more{margin-top:var(--hf-spacing-3)}
+details.more>summary{cursor:pointer;font-size:var(--hf-font-size-sm);
+  font-weight:var(--hf-font-weight-semibold);color:var(--hf-text-secondary);
+  list-style-position:outside}
+details.more>summary::marker{color:var(--hf-text-muted)}
+details.more[open]>summary{margin-bottom:var(--hf-spacing-4)}
+details.more .fine{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm);
+  display:flex;flex-direction:column;gap:var(--hf-spacing-3);max-width:80ch}
+details.more .fine b{color:var(--hf-text-secondary)}
+
 </style>
 </head>
 <body>
@@ -228,7 +275,6 @@ footer strong{color:var(--hf-text-secondary)}
         <button type="button" data-unit="m">metres</button>
       </div>
     </div>
-    <p class="modehint" id="modehint"></p>
   </header>
 
   <div class="controls" id="freqbox" hidden>
@@ -241,8 +287,7 @@ footer strong{color:var(--hf-text-secondary)}
         <button type="button" id="addbtn">Add</button>
         <span class="help" id="freqerr"></span>
       </div>
-      <div class="help">Enter MHz (5.357) or kHz (5357). Click one to show it below;
-        the whole list is checked against your target.</div>
+      <div class="help">MHz (5.357) or kHz (5357). Click one to show it.</div>
     </div>
   </div>
 
@@ -250,86 +295,85 @@ footer strong{color:var(--hf-text-secondary)}
 
   <div id="cautions"></div>
 
-  <div class="panel" id="cutbox" hidden>
-    <h2>Cut these lengths</h2>
+  <!-- The answer. Everything above this is how you ask the question; everything
+       below is the evidence. A newcomer should be able to stop reading here. -->
+  <div class="answer">
     <div class="cut" id="cutlist"></div>
     <p class="cap" id="cutcap"></p>
+
+    <div class="reach">
+      <div class="ctl">
+        <label for="dist">Reach a station <span class="val" id="distval"></span></label>
+        <input type="range" id="dist" min="200" max="12000" step="100" value="2000">
+        <div class="help" id="reachhead"></div>
+      </div>
+      <div>
+        <div id="verdict"></div>
+        <div id="freqverdicts" hidden style="margin-top:var(--hf-spacing-3)"></div>
+      </div>
+    </div>
   </div>
 
   <div class="panels">
     <div class="panel">
-      <h2>Construction</h2>
-      <p class="blurb" id="blurb"></p>
+      <h2>What it looks like</h2>
       <div id="diagram"></div>
-      <p class="cap">Side view, to scale. Lengths are along the wire, so a sloping
-        leg is longer than the ground it covers.</p>
       <div class="partinfo idle" id="partinfo">
-        <p id="parttext">Select any part of the diagram to see what it does.</p>
-      </div>
-      <div class="scroll" style="margin-top:var(--hf-spacing-4)">
-        <table id="dims"></table>
+        <p id="parttext">Tap any part of the drawing to see what it does.</p>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Radiation pattern</h2>
+      <h2>Where the signal goes</h2>
       <div id="elev"></div>
       <p class="cap" id="elevcap"></p>
-      <div class="stats" id="stats"></div>
     </div>
   </div>
 
-  <div class="panels">
-    <div class="panel">
-      <h2 id="reachhead">Will it reach?</h2>
-      <div class="ctl" style="margin-bottom:var(--hf-spacing-4)">
-        <label for="dist">Path length <span class="val" id="distval"></span></label>
-        <input type="range" id="dist" min="200" max="12000" step="100" value="2000">
-      </div>
-      <div id="verdict"></div>
-      <div id="freqverdicts" hidden style="margin-top:var(--hf-spacing-4)"></div>
-      <p class="cap" id="hopcap"></p>
+  <details class="more" id="moredetail">
+    <summary>Show the numbers</summary>
+    <div class="stats" id="stats" style="margin-top:0"></div>
+    <div class="scroll" style="margin-top:var(--hf-spacing-4)">
+      <table id="dims"></table>
     </div>
+    <p class="cap" id="hopcap"></p>
+  </details>
 
-    <div class="panel">
-      <h2>Looking down from above</h2>
-      <div id="azim"></div>
-      <p class="cap" id="azimcap"></p>
-    </div>
-  </div>
+  <details class="more" id="moreazim">
+    <summary>Which directions it favours</summary>
+    <div id="azim" style="max-width:380px"></div>
+    <p class="cap" id="azimcap"></p>
+  </details>
 
-  <div class="panel">
-    <h2>Building it</h2>
+  <details class="more" id="morebuild">
+    <summary>How to build it</summary>
+    <p class="blurb" id="blurb"></p>
     <ul class="notes" id="notes"></ul>
-  </div>
+  </details>
 
-  <footer>
-    <div><strong>This is not NEC.</strong> The pattern is computed from the classical
-      thin-wire model with an assumed sinusoidal current and a <em>perfectly
-      conducting</em> ground. That is good for the shape of the pattern and for the
-      angles the lobes sit at, and it is why the numbers agree with the textbook to
-      a tenth of a dB where the textbook has an answer. It says nothing about
-      feedpoint impedance, SWR or bandwidth, so this page does not show them.</div>
-    <div><strong>Gain figures are an upper bound you will not reach.</strong> They are
-      directivity: no conductor loss, no matching loss, no ground loss. Real ground
-      fills in the deep nulls and takes 1&ndash;2&nbsp;dB off a horizontal antenna, and
-      considerably more off a ground-mounted vertical or any electrically short whip.
-      Where that matters most, the page says so above the plot rather than leaving you
-      to know it.</div>
-    <div><strong>This page does not say whether the frequency will work.</strong> It
-      says whether your antenna points where the path needs it. Whether the ionosphere
-      will bend that frequency back down to your target at that hour is a separate
-      question with a separate answer &mdash; use the
-      <a href="./planner.html">path planner</a> or the <a href="./reach.html">reach
-      map</a>, which run the real propagation model. A green verdict here means the
-      antenna is not your problem, not that the link will close.</div>
-    <div><strong>Take-off angles assume a mirror-flat reflecting layer</strong> at
-      300&nbsp;km over a spherical earth. Real hops tilt, split and take more than one
-      path at once. Use the angle as the target to aim at, not as a prediction.</div>
-    <div><strong>Nothing here is a substitute for measuring.</strong> Cut wire long,
-      trim it in place, and trust an antenna analyser over any model &mdash; including
-      this one. Where an issued antenna exists, its manual governs.</div>
-  </footer>
+  <details class="more" id="morelimits">
+    <summary>What these numbers can and cannot tell you</summary>
+    <div class="fine">
+      <div><b>Gain figures are a best case.</b> They assume perfect ground and no
+        losses of any kind. Real ground costs 1&ndash;2&nbsp;dB for a wire antenna and
+        a lot more for a ground-mounted vertical or a short whip. Where that matters,
+        the page says so above.</div>
+      <div><b>It does not say whether the frequency will work.</b> It says whether
+        your antenna points where the path needs it. Whether the ionosphere will bend
+        that frequency back down to your target is a separate question &mdash; use the
+        <a href="./planner.html">path planner</a> or <a href="./reach.html">reach
+        map</a>. A green answer here means the antenna is not your problem, not that
+        the contact will happen.</div>
+      <div><b>It is not NEC.</b> The pattern comes from the classical thin-wire model
+        over perfect ground. That is reliable for the shape of the pattern and the
+        angles it favours &mdash; it matches the textbook to a tenth of a dB where the
+        textbook has an answer &mdash; and it says nothing about feedpoint impedance,
+        SWR or bandwidth, so neither does this page.</div>
+      <div><b>Cut long and trim.</b> Wire stretches, insulators add length, and
+        anything nearby shifts the tuning. Trust an antenna analyser over any model,
+        including this one. Where an issued antenna exists, its manual governs.</div>
+    </div>
+  </details>
 </div>
 
 <script type="module">
@@ -340,6 +384,7 @@ import {
 } from './vendor/antenna-model.mjs';
 import { constructionSvg, elevationSvg, azimuthSvg } from './lib/antenna-plot.mjs';
 import { mountNav } from './lib/nav.mjs';
+import { elevationsForDistance } from './lib/antenna-gain.mjs';
 
 mountNav(document.querySelector('.wrap'), 'antenna.html');
 document.documentElement.setAttribute('data-theme',
@@ -408,8 +453,39 @@ function fmtAlt(metres) {
 // measurements you cut with a tape; ground distance comes off a map, and every
 // military map grid in use is metric. Coupling the two would put "75 mi" in
 // front of someone whose target is gridded at 120 km.
+// Ground distance stays metric-first: map grids are metric everywhere this tool
+// would be used in anger, and the unit switch is about tape measures.
+// Ground distance stays metric-first whatever the tape-measure switch says: map
+// grids are metric everywhere this would be used in anger.
 const fmtDistance = (km) => `${Math.round(km).toLocaleString()} km`;
 const fmtDistanceAlt = (km) => `${Math.round(km * 0.621371).toLocaleString()} mi`;
+const fmtBoth = (km) => `${fmtDistance(km)} / ${fmtDistanceAlt(km)}`;
+
+/**
+ * The span of distances this antenna actually serves, within 3 dB of its best.
+ *
+ * The answer-first version of the question the slider used to make you hunt
+ * for. Nobody arrives wanting to drag a control until a verdict turns green;
+ * they arrive wanting to know how far the thing reaches.
+ */
+function usefulRange(pattern) {
+  const az = pattern.peak.azimuthDeg;
+  const at = (km) => {
+    let best = -99;
+    for (const e of elevationsForDistance(km)) best = Math.max(best, pattern.gainAt(e, az));
+    return best;
+  };
+  const steps = [];
+  for (let km = 100; km <= 14000; km += 100) steps.push([km, at(km)]);
+  let peak = -99, peakKm = 100;
+  for (const [km, g] of steps) if (g > peak) { peak = g; peakKm = km; }
+  const has = new Set(steps.filter(([, g]) => g >= peak - 3).map(([km]) => km));
+  // Contiguous run through the peak, so a stray far-out lobe cannot widen it.
+  let lo = peakKm, hi = peakKm;
+  while (lo > 100 && has.has(lo - 100)) lo -= 100;
+  while (hi < 14000 && has.has(hi + 100)) hi += 100;
+  return { lo, hi, peakKm, peakDbi: peak };
+}
 
 // --- frequency entry -------------------------------------------------------
 
@@ -761,19 +837,18 @@ function render() {
       + `${isField() ? mhzText(op) : label(state.operatingBand)}: the wire is `
       + `${halfWaves.toFixed(2)} half waves long here. `
       + (isField() || a.group === 'Multiband compromises'
-        ? 'That is the intended use of this antenna, and the pattern below is what '
-        + 'it really does on this frequency.'
-        : 'That is off its design band — it will need a tuner, and the pattern below '
-        + 'assumes you have matched it somehow.')));
+        ? 'That is what this antenna is for; the pattern below is what it really does.'
+        : 'Off its design band — it will need a tuner.')));
   }
   $('cautions').replaceChildren(...cautions);
 
   // --- construction ---
-  const svg = constructionSvg(built, { width: 640, height: 300, interactive: true, fmt });
+  const svg = constructionSvg(built, { width: 640, height: 250, interactive: true, fmt });
   $('diagram').replaceChildren(svg);
   wireParts(svg, built);
   renderDims(built);
-  renderCutBlock(built, op);
+  renderAnswer(built);
+  renderRange(pattern);
 
   // --- pattern ---
   const dist = distanceKm();
@@ -788,10 +863,8 @@ function render() {
       : [],
   }));
   $('elevcap').textContent =
-    `Elevation cut through ${bearingText(az)} and back, the antenna's strongest bearing. `
-    + 'Rings are 6 dB apart and labelled in dBi. The dotted line is the best gain '
-    + 'available at each elevation over all bearings — where it sits above the solid '
-    + 'trace, the antenna has that gain, just not in this direction.';
+    `Side view. Further from the centre means stronger. The dashed line is the angle `
+    + `your ${fmtDistance(distanceKm())} path needs.`;
 
   const hp = halfPowerElevation(pattern.peakCut, pattern.peak.gainDbi);
   const low = pattern.lowestLobe;
@@ -816,17 +889,16 @@ function render() {
   const lobes = countLobes(cut, { wrap: true });
   const spread = Math.max(...cut) - Math.min(...cut);
   $('azimcap').textContent =
-    `Bearing coverage at ${azElev.toFixed(0)}° elevation — `
-    + `${lobes === 1 ? 'one continuous lobe' : `${lobes} lobes`}, `
-    + `${spread < 1 ? 'essentially omnidirectional'
-      : `${spread.toFixed(0)} dB between the best and worst bearing`}. `
+    `Seen from above, north up, at ${azElev.toFixed(0)}° elevation. `
     + (azElev > 70
-      ? 'At this angle you are firing almost straight up, so bearing is not a '
-      + 'planning factor — that is the point of NVIS.'
+      ? 'Firing almost straight up, so direction barely matters — that is the point of NVIS.'
       : lobes > 2
-        ? 'A wire this long electrically no longer favours broadside; the strong '
-        + 'directions have moved and there are nulls between them.'
-        : 'North is up.');
+        ? `${lobes} lobes: this wire no longer favours broadside, and there are dead `
+          + 'directions between the strong ones.'
+        : lobes === 2
+          ? 'A figure of eight — strongest broadside to the wire, weakest off its ends, '
+            + `${spread.toFixed(0)} dB apart.`
+          : 'Even in every direction.');
 
   // --- notes ---
   $('notes').replaceChildren(...built.notes.map((n) => {
@@ -846,104 +918,131 @@ function render() {
   }
 }
 
-/** The big answer in field mode: what to cut, in the units you asked for. */
-function renderCutBlock(built, op) {
-  $('cutbox').hidden = !isField();
-  if (!isField()) return;
-  const lengths = built.dims.filter((d) => d.metres !== undefined).slice(0, 6);
+/**
+ * What to cut, and how far it reaches. Shown in both modes now.
+ *
+ * The old page hid cut lengths behind a field-mode flag and buried the reach
+ * verdict three panels down, so the two things everybody comes for were never
+ * on screen together.
+ */
+function renderAnswer(built) {
+  const lengths = built.dims.filter((d) => d.metres !== undefined).slice(0, 4);
   $('cutlist').replaceChildren(...lengths.map((d) => {
     const box = document.createElement('div');
     box.className = 'item';
-    const k = document.createElement('div'); k.className = 'k'; k.textContent = d.label;
-    const v = document.createElement('div'); v.className = 'v'; v.textContent = fmt(d.metres);
-    const alt = document.createElement('div'); alt.className = 'alt';
-    alt.textContent = fmtAlt(d.metres);
-    box.append(k, v, alt);
-    if (d.note) {
-      const n = document.createElement('div'); n.className = 'note'; n.textContent = d.note;
-      box.append(n);
+    for (const [cls, txt] of [['k', d.label], ['v', fmt(d.metres)], ['alt', fmtAlt(d.metres)]]) {
+      const e = document.createElement('div');
+      e.className = cls;
+      e.textContent = txt;
+      box.append(e);
     }
     return box;
   }));
-  const a = built.antenna;
-  $('cutcap').textContent = lengthDependsOnDesign(a, built.params, op)
-    ? `Cut for ${mhzText(cutMHz())}. Cut every wire 2–3 % long and trim it in place — `
-      + 'wire stretches, end loops and insulators add length, and anything nearby lowers '
-      + 'the resonant frequency. You can always shorten.'
-    : dependsOnDesign(a, built.params, op)
-      ? `Nothing here is cut to frequency — the length is whatever you set it to. What `
-        + `follows ${mhzText(cutMHz())} is the height, which is set as a fraction of a `
-        + 'wavelength.'
-      : 'This antenna is a fixed length — there is nothing to cut for a frequency. '
-        + 'What changes with frequency is how well it works, which is what the panels '
-        + 'below are for.';
+  const cutAt = isField() ? mhzText(cutMHz()) : label(state.designBand);
+  const op = showMHz();
+  $('cutcap').textContent = !lengths.length ? ''
+    : lengthDependsOnDesign(built.antenna, built.params, op)
+      ? `Cut for ${cutAt}. Cut every wire 2–3 % long and trim it in place.`
+      : 'This antenna is a fixed length — nothing here is cut to a frequency.';
+}
+
+/** How far it reaches, stated rather than hunted for. */
+function renderRange(pattern) {
+  const r = usefulRange(pattern);
+  const el = $('reachhead');
+  el.replaceChildren();
+  const b = document.createElement('b');
+  b.textContent = `Best from ${fmtDistance(r.lo)} to ${fmtDistance(r.hi)}`;
+  el.append(b, document.createTextNode(
+    ` — ${fmtDistanceAlt(r.lo)} to ${fmtDistanceAlt(r.hi)}.`));
+}
+
+/** A term with its plain-English explanation attached, rather than assumed. */
+function gloss(text, explain) {
+  const a = document.createElement('abbr');
+  a.className = 'gloss';
+  a.title = explain;
+  a.textContent = text;
+  return a;
 }
 
 function renderVerdict(pattern, { dist, hops, need, az }) {
   const v = $('verdict');
-  $('distval').textContent = `${fmtDistance(dist)} · ${fmtDistanceAlt(dist)}`;
-  $('reachhead').textContent = isField()
-    ? `Will it reach ${fmtDistance(dist)}?` : 'Will it reach?';
+  $('distval').textContent = fmtBoth(dist);
 
   if (need <= 0) {
-    v.replaceChildren(Object.assign(document.createElement('div'), {
-      className: 'verdict closed',
-      textContent: 'That path cannot be reached in this many hops off a 300 km layer.',
-    }));
+    const box = document.createElement('div');
+    box.className = 'verdict closed';
+    const said = document.createElement('div');
+    said.className = 'said';
+    said.textContent = 'Further than the ionosphere can bridge in this many hops.';
+    box.append(said);
+    v.replaceChildren(box);
+    $('hopcap').textContent = '';
     return;
   }
 
   const gain = pattern.gainAt(need, az);
   const down = pattern.peak.gainDbi - gain;
   const tier = down < 1 ? 'good' : down < 3 ? 'fair' : down < 8 ? 'poor' : 'closed';
-  const verdictText = down < 1
-    ? 'This antenna is pointing almost exactly where the path needs it.'
-    : down < 3
-      ? 'Close enough — a fraction of an S-unit off the best this antenna can do.'
-      : down < 8
-        ? 'Usable, but you are working well down the side of the lobe.'
-        : 'The energy is going somewhere else. This is the wrong antenna, or the '
-          + 'wrong height, for this path.';
+  const word = down < 1 ? 'Good' : down < 3 ? 'Workable' : down < 8 ? 'Weak' : 'Poor';
 
   const box = document.createElement('div');
   box.className = `verdict ${tier}`;
-  box.append(document.createTextNode(
-    `${need.toFixed(0)}° needed${isField() ? ` — ${modeOfPath(need)}` : ''} · `
-    + `${gain.toFixed(1)} dBi there · ${down.toFixed(1)} dB below this antenna's best. `
-    + verdictText));
-  const sub = document.createElement('span');
-  sub.className = 'sub';
-  sub.textContent = advice(pattern, need, down);
-  box.append(sub);
+
+  const said = document.createElement('div');
+  said.className = 'said';
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.style.background = `var(--hf-status-${tier}-fill)`;
+  tag.style.color = `var(--hf-status-${tier}-on)`;
+  tag.textContent = word;
+  said.append(tag, document.createTextNode(`at ${fmtBoth(dist)}`));
+  box.append(said);
+
+  const why = document.createElement('div');
+  why.className = 'why';
+  why.textContent = advice(pattern, need, down);
+  box.append(why);
+
+  // The exact figures stay, on one muted line. An expert can read them; a
+  // newcomer can ignore them without scrolling past a paragraph.
+  const nums = document.createElement('div');
+  nums.className = 'nums';
+  const kind = need >= 70 ? 'NVIS, straight up' : need >= 40 ? 'high angle'
+    : need >= 20 ? 'medium angle' : 'low angle, long haul';
+  nums.append(gloss(`${need.toFixed(0)}° take-off — ${kind}`,
+    'How steep the signal must leave to bounce off the ionosphere and land there. '
+    + 'Short paths need steep angles, long ones shallow.'));
+  nums.append(document.createTextNode(`  ·  ${gain.toFixed(1)} `));
+  nums.append(gloss('dBi',
+    'Strength compared with an antenna radiating equally in all directions. '
+    + 'Higher is stronger in that direction.'));
+  nums.append(document.createTextNode(
+    `  ·  ${down.toFixed(1)} dB below this antenna's best  ·  `
+    + `${hops} hop${hops > 1 ? 's' : ''}`));
+  box.append(nums);
   v.replaceChildren(box);
 
   $('hopcap').textContent =
-    `${hops} hop${hops > 1 ? 's' : ''} off a 300 km F2 layer, `
-    + `${fmtDistance(dist / hops)} each. A single hop off that height runs out at about `
-    + `${fmtDistance(maxHopDistanceKm(300))}. Layer height moves with the hour and the `
-    + 'state of the sun — this is the geometry, not a forecast, and it says nothing '
-    + 'about whether the frequency will propagate.';
+    `${hops} hop${hops > 1 ? 's' : ''} off a 300 km F2 layer, ${fmtDistance(dist / hops)} each. `
+    + `One hop runs out near ${fmtDistance(maxHopDistanceKm(300))}. Geometry, not a `
+    + 'forecast — it says nothing about whether the frequency will propagate.';
 }
 
-const modeOfPath = (need) => (need >= 70 ? 'NVIS, straight up'
-  : need >= 40 ? 'high angle, short skip'
-    : need >= 20 ? 'medium angle' : 'low angle, long haul');
-
-/** The actionable half: what to change, and roughly what it buys. */
+/** What to change, in one sentence. */
 function advice(pattern, need, down) {
-  if (down < 1) return 'Nothing to fix here.';
+  if (down < 1) return 'Your antenna points almost exactly where this path needs it.';
   const peakE = pattern.peak.elevationDeg;
   if (need > peakE + 2) {
-    return 'The path needs a steeper angle than this antenna favours. For short range '
-      + 'that means getting the wire lower — between a tenth and a quarter of a '
-      + 'wavelength up — or using an NVIS antenna instead of a vertical.';
+    return 'This path needs a steeper angle than the antenna favours. Getting the wire '
+      + 'lower would help.';
   }
   if (need < peakE - 2) {
-    return 'The path needs a lower angle than this antenna favours. For a horizontal '
-      + 'antenna the fix is height, since the lobe angle is set almost entirely by how '
-      + 'many wavelengths up it is. For a vertical, the fix is a better ground system.';
+    return 'This path needs a shallower angle than the antenna favours. Height is the '
+      + 'fix for a wire; a better ground system is the fix for a vertical.';
   }
-  return 'The angle is right; the loss is off to the side of the lobe.';
+  return 'The angle is right; the loss is off to the side of the strongest direction.';
 }
 
 /** Every frequency in the list, against the same target. The field payload. */
@@ -987,10 +1086,8 @@ function renderFreqVerdicts(a, params, need) {
   const head = document.createElement('div');
   head.className = 'cap';
   head.style.marginBottom = '4px';
-  head.textContent = `Every frequency in your list against ${fmtDistance(distanceKm())}, `
-    + `with the antenna cut for ${mhzText(design)}. Antenna only — whether the `
-    + 'ionosphere supports each frequency at the hour you transmit is a separate '
-    + 'question.';
+  head.textContent = `Your other frequencies at ${fmtDistance(distanceKm())}. Antenna `
+    + 'only — whether each will propagate is a separate question.';
   box.prepend(head);
 }
 
@@ -1081,19 +1178,10 @@ function wireLength(built) {
 // --- mode and units --------------------------------------------------------
 
 const LEDE = {
-  amateur: 'Pick an antenna and a band. This shows what to cut, what the resulting '
-    + 'pattern looks like, and — the part that usually gets left out — whether that '
-    + 'pattern points where your path actually needs it to.',
-  field: 'Enter the frequencies you have been assigned and pick what you can actually '
-    + 'put up. This gives you the lengths to cut and tells you whether the antenna '
-    + 'points where your traffic has to go.',
-};
-const HINT = {
-  amateur: 'Thinking in frequencies instead of bands? Switch to Frequencies for a '
-    + 'shorter list of field-expedient antennas and per-frequency answers.',
-  field: 'Enter frequencies in MHz or kHz. Heights are set as a fraction of a '
-    + 'wavelength, because that is the only form of the NVIS rule that survives a '
-    + 'change of frequency.',
+  amateur: 'Pick an antenna and a band. This tells you what to cut and how far it '
+    + 'will reach.',
+  field: 'Enter your frequencies and pick what you can put up. This tells you what '
+    + 'to cut and how far it will reach.',
 };
 
 function applyMode() {
@@ -1104,7 +1192,6 @@ function applyMode() {
     b.setAttribute('aria-pressed', String(b.dataset.unit === units()));
   }
   $('lede').textContent = LEDE[state.mode];
-  $('modehint').textContent = HINT[state.mode];
   $('freqbox').hidden = !isField();
   $('dist').min = isField() ? 20 : 200;
   $('dist').max = isField() ? 4000 : 12000;

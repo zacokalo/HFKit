@@ -57,7 +57,7 @@ export default async function run(browser, origin) {
       `${amateurCount} -> ${fieldCount}`);
     t.check(await page.$('#cut') === null && await page.$('#op') === null,
       'the band selectors are gone entirely');
-    t.check((await page.textContent('#lede')).includes('frequencies you have been assigned'),
+    t.check((await page.textContent('#lede')).includes('Enter your frequencies'),
       'and the page describes itself in field terms');
   }
 
@@ -143,8 +143,9 @@ export default async function run(browser, origin) {
     const label = await page.textContent('#distval');
     t.check(label.startsWith('120 km'), 'path length leads in km even in imperial mode', label);
     t.check(label.includes('75 mi'), 'with miles as the secondary figure');
-    t.check((await page.textContent('#reachhead')).includes('120 km'),
-      'and the heading names the target');
+    t.check(/Best from [\d,]+ km to [\d,]+ km/.test(await page.textContent('#reachhead')),
+      'and the useful range is stated rather than left to be hunted for',
+      await page.textContent('#reachhead'));
     t.check(/300 km F2 layer/.test(await page.textContent('#hopcap')),
       'the hop note stays metric too');
   }
@@ -154,9 +155,9 @@ export default async function run(browser, origin) {
     await page.selectOption('#ant', 'nvis-inverted-v');
     await page.waitForTimeout(600);
     const verdict = await page.textContent('#verdict');
-    t.check(/78°\s*needed/.test(verdict), 'a 120 km path needs 78°', verdict.slice(0, 60));
+    t.check(/78° take-off/.test(verdict), 'a 120 km path needs 78°', verdict.slice(0, 90));
     t.check(/NVIS, straight up/.test(verdict),
-      'and is named as NVIS rather than left as a number');
+      'and is named as NVIS rather than left as a bare number');
     const cls = await page.getAttribute('#verdict .verdict', 'class');
     t.check(/good/.test(cls), 'an NVIS antenna is judged good for it', cls);
 
@@ -167,7 +168,7 @@ export default async function run(browser, origin) {
     t.check(rows.every((r) => /dB down/.test(r)), 'each with a number, not a tick');
     t.check(rows.some((r) => /cut for this one/.test(r)),
       'and the one it was cut for is marked');
-    t.check(/separate\s+question/.test(await page.textContent('#freqverdicts')),
+    t.check(/separate question/.test(await page.textContent('#freqverdicts')),
       'with the propagation boundary stated');
   }
 
@@ -222,17 +223,19 @@ export default async function run(browser, origin) {
     for (const want of ['feed', 'element', 'ground', 'end']) {
       t.check(parts.includes(want), `the diagram exposes its ${want}`, parts.join(','));
     }
-    t.check((await page.textContent('#partinfo')).includes('Select any part'),
+    t.check((await page.textContent('#partinfo')).includes('Tap any part'),
       'and starts with an invitation rather than a wall of text');
 
-    await page.click('#diagram .part-feed');
+    await page.click('#diagram .part-feed circle.feed');
     await page.waitForTimeout(200);
     const feed = await page.textContent('#partinfo');
     t.check(/Feedpoint/.test(feed) && /current maximum/.test(feed),
       'clicking the feed explains it', feed.slice(0, 70));
     t.check(await page.$('#diagram .part-feed.sel') !== null, 'and highlights it');
 
-    await page.click('#diagram .part-ground');
+    // Off to one side: the ground line spans the whole drawing, so its centre
+    // sits under the mast and the mast quite correctly wins that click.
+    await page.click('#diagram .part-ground', { position: { x: 60, y: 3 } });
     await page.waitForTimeout(200);
     const ground = await page.textContent('#partinfo');
     t.check(/perfect mirror/.test(ground) && /upper bound/.test(ground),
@@ -244,7 +247,7 @@ export default async function run(browser, origin) {
     // share a paragraph.
     await page.selectOption('#ant', 'field-longwire');
     await page.waitForTimeout(500);
-    await page.click('#diagram .part-feed');
+    await page.click('#diagram .part-feed circle.feed');
     await page.waitForTimeout(200);
     t.check(/voltage maximum/.test(await page.textContent('#partinfo')),
       'an end-fed wire gets the end-fed explanation');
