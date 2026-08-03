@@ -99,21 +99,36 @@ footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing
   display:flex;flex-direction:column;gap:6px;max-width:80ch}
 footer strong{color:var(--hf-text-secondary)}
 .loading{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm)}
+
+/* --- headline answer --- */
+.summary{font-size:var(--hf-font-size-xl);line-height:1.4}
+
+/* --- everything a casual reader does not need, folded away --- */
+details.more{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3) var(--hf-spacing-4);
+  margin-top:var(--hf-spacing-4)}
+details.more>summary{cursor:pointer;font-size:var(--hf-font-size-sm);
+  font-weight:var(--hf-font-weight-semibold);color:var(--hf-text-secondary)}
+details.more>summary::marker{color:var(--hf-text-muted)}
+details.more[open]>summary{margin-bottom:var(--hf-spacing-4)}
+footer .fine{display:flex;flex-direction:column;gap:var(--hf-spacing-3);max-width:80ch}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>Space weather</h1>
-    <p class="lede">What the sun and the geomagnetic field are doing right now, and what
-      that usually means for the bands. Fetched by our own service once an hour, so your
-      browser never contacts NOAA or KC2G.</p>
+    <p class="lede">What the sun and the geomagnetic field are doing, and what that
+      usually means for the bands.</p>
   </header>
 
   <div class="loading" id="loading">Loading space weather&hellip;</div>
 
   <div id="content" hidden>
     <div class="summary" id="summary"></div>
+    <div id="bundleline" style="margin-top:var(--hf-spacing-2);
+      font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+      color:var(--hf-text-muted)"></div>
 
     <div style="margin-top:var(--hf-spacing-6)">
       <h2>Right now</h2>
@@ -146,30 +161,33 @@ footer strong{color:var(--hf-text-secondary)}
       <div class="alerts" id="alerts"></div>
     </div>
 
-    <div style="margin-top:var(--hf-spacing-6)">
-      <h2>Where this came from</h2>
+    <details class="more">
+      <summary>Where these figures came from</summary>
       <div class="scroll"><table id="prov"></table></div>
-    </div>
+    </details>
   </div>
 
   <footer>
-    <div><strong>These figures do not change the predictions on this site.</strong>
-      Only the effective sunspot number is fed to the propagation engine &mdash; it is the
-      one input ITU-R P.533 takes. Kp, solar flux and alerts are shown here for your own
-      judgement. Every prediction on the reach map and path planner assumes
-      <em>quiet</em> geomagnetic conditions, so during a storm they read optimistic.</div>
-    <div><strong>The interpretations are rules of thumb</strong>, not predictions. They
-      describe what an index usually means for the bands. For an actual circuit at an
-      actual time, use the <a href="./planner.html">path planner</a> or the
-      <a href="./reach.html">reach map</a>, which run the real model.</div>
-    <div><strong>Solar flux appears twice</strong> because two organisations estimate it
-      differently: NOAA measures the 10.7&nbsp;cm flux at Penticton, while KC2G derives an
-      equivalent figure from its ionosonde fit. They usually agree closely; when they do
-      not, that disagreement is itself information.</div>
-    <div>Sources: NOAA Space Weather Prediction Center (US Government work, public domain)
-      and <a href="https://prop.kc2g.com">prop.kc2g.com</a> by Andrew Rodland, KC2G
-      (attribution required). Alert text is reproduced verbatim &mdash; paraphrasing a space
-      weather bulletin is not our job.</div>
+    <details class="more">
+      <summary>What these numbers do and do not affect</summary>
+      <div class="fine">
+        <div><strong>These figures do not change the predictions on this site.</strong>
+          Only the effective sunspot number reaches the propagation engine &mdash; it is
+          the one input ITU-R P.533 takes. Every prediction here assumes <em>quiet</em>
+          geomagnetic conditions, so during a storm they read optimistic.</div>
+        <div><strong>The interpretations are rules of thumb</strong>, not predictions.
+          For an actual circuit at an actual time, use the
+          <a href="./planner.html">path planner</a> or the
+          <a href="./reach.html">reach map</a>.</div>
+        <div><strong>Solar flux appears twice</strong> because NOAA measures it at
+          Penticton and KC2G derives it from ionosondes. When they disagree, that
+          disagreement is itself information.</div>
+        <div>Fetched by our own service once an hour, so your browser never contacts
+          NOAA or KC2G. Sources: NOAA SWPC (public domain) and
+          <a href="https://prop.kc2g.com">prop.kc2g.com</a> by Andrew Rodland, KC2G.
+          Alert text is reproduced verbatim.</div>
+      </div>
+    </details>
   </footer>
 </div>
 
@@ -269,25 +287,40 @@ function render(sw) {
   }
 
   // --- alerts, verbatim ---
+  // Only the three most recent are shown. NOAA keeps issuing routine bulletins,
+  // and eight stacked headlines read as a wall of alarm when most of them are
+  // hours old and already resolved. The rest stay one click away, and nothing
+  // is paraphrased either way.
   const al = sw.alerts ?? [];
-  $('alertnote').textContent = al.length
-    ? `— ${al.length} most recent, newest first`
-    : '';
-  $('alerts').replaceChildren(...(al.length ? al.map((a) => {
+  const SHOW = 3;
+  const alertBlock = (a) => {
     const d = document.createElement('details');
-    const s = document.createElement('summary');
-    s.textContent = a.headline || a.id || 'Alert';
-    const w = document.createElement('span'); w.className = 'when';
+    const su = document.createElement('summary');
+    su.textContent = a.headline || a.id || 'Alert';
+    const w = document.createElement('span');
+    w.className = 'when';
     w.textContent = `  ${a.issuedAt.slice(0, 16).replace('T', ' ')}Z · ${ageOf(a.issuedAt)}`;
-    s.append(w);
+    su.append(w);
     const pre = document.createElement('pre');
     pre.textContent = a.message;
-    d.append(s, pre);
+    d.append(su, pre);
     return d;
-  }) : [Object.assign(document.createElement('p'), {
-    className: 'loading',
-    textContent: 'No recent alerts — which is itself good news.',
-  })]));
+  };
+
+  $('alertnote').textContent = al.length ? `— ${Math.min(SHOW, al.length)} most recent` : '';
+  const shown = al.slice(0, SHOW).map(alertBlock);
+  if (al.length > SHOW) {
+    const rest = document.createElement('details');
+    rest.className = 'more';
+    const su = document.createElement('summary');
+    su.textContent = `${al.length - SHOW} older alert${al.length - SHOW > 1 ? 's' : ''}`;
+    rest.append(su, ...al.slice(SHOW).map(alertBlock));
+    shown.push(rest);
+  }
+  $('alerts').replaceChildren(...(shown.length ? shown : [Object.assign(
+    document.createElement('p'),
+    { className: 'loading', textContent: 'No recent alerts — which is itself good news.' },
+  )]));
 
   // --- provenance ---
   const t = $('prov');
@@ -324,12 +357,13 @@ const sw = await loadSpaceWeather({ timeoutMs: 6000 });
 render(sw);
 
 // Freshness of the bundle itself, distinct from the age of each observation.
-const tier = document.createElement('div');
-tier.style.cssText = 'margin-top:var(--hf-spacing-4);font-family:var(--hf-font-family-mono);'
-  + 'font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)';
-tier.textContent = `Bundle: ${sw.tierLabel}, ${describeAge(sw.ageSeconds)}`
-  + (sw.degraded ? ' — some sources missing or stale, see the table above.' : '.');
-$('content').append(tier);
+// Sits under the headline rather than at the foot of the page: it qualifies
+// every figure above, and it used to point at a provenance table that is now
+// behind a disclosure.
+$('bundleline').textContent = `Bundle: ${sw.tierLabel}, ${describeAge(sw.ageSeconds)}`
+  + (sw.degraded
+    ? ' — some sources missing or stale; open “Where these figures came from”.'
+    : '.');
 </script>
 </body>
 </html>
