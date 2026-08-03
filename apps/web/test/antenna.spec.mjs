@@ -93,11 +93,11 @@ export default async function run(browser, origin) {
     await setRange(page, 'dist', 2000);           // needs 11.8 degrees
 
     const verdict = await page.textContent('#verdict');
-    t.check(/12°\s*needed/.test(verdict), 'a 2000 km path is reported as needing 12°', verdict);
+    t.check(/12° take-off/.test(verdict), 'a 2000 km path is reported as needing 12°', verdict);
     t.check(/dB below/.test(verdict), 'and says how far down the antenna is there');
     const cls = await page.getAttribute('#verdict .verdict', 'class');
     t.check(/poor|closed/.test(cls), 'a half-wave-high dipole is judged poor for 2000 km', cls);
-    t.check(/needs a lower angle/.test(verdict),
+    t.check(/needs a shallower angle/.test(verdict),
       'and the advice names height as the fix', verdict.slice(-160));
 
     // Raising it must actually improve the verdict — the causal claim the page
@@ -151,7 +151,7 @@ export default async function run(browser, origin) {
     await page.selectOption('#ant', 'dipole');
     await page.selectOption('#cut', '40m');
     await page.selectOption('#op', '20m');
-    t.check(/off its design band/.test(await page.textContent('#cautions')),
+    t.check(/ff its design band/.test(await page.textContent('#cautions')),
       'a dipole used off its band says so');
 
     // A doublet's length comes from a slider, not from a band, so it is not
@@ -161,7 +161,7 @@ export default async function run(browser, origin) {
     await page.waitForTimeout(300);
     t.check(await page.$('#cut') === null,
       'a doublet has no "cut for" — its length is a slider');
-    t.check(!/off its design band/.test(await page.textContent('#cautions')),
+    t.check(!/ff its design band/.test(await page.textContent('#cautions')),
       'and so is never accused of being off it');
     t.check(await page.$('#op') !== null,
       'while "operating on" still selects the band it is used on');
@@ -173,7 +173,7 @@ export default async function run(browser, origin) {
     await page.selectOption('#op', '80m');       // no "cut for": its length is a slider
     await setRange(page, 'p_length', 40);
     const low = await page.textContent('#azimcap');
-    t.check(/2 lobes/.test(low), 'a doublet is a figure of eight on its own band', low.slice(0, 80));
+    t.check(/figure of eight/.test(low), 'a doublet is a figure of eight on its own band', low.slice(0, 80));
 
     await page.selectOption('#op', '10m');
     const high = await page.textContent('#azimcap');
@@ -187,7 +187,7 @@ export default async function run(browser, origin) {
     t.check(await page.$('#cut') === null,
       'a fan dipole hides "cut for" — it is cut for whichever band you are on');
     const fan = await page.textContent('#azimcap');
-    t.check(/2 lobes/.test(fan), 'and stays a plain dipole on 10 m', fan.slice(0, 80));
+    t.check(/figure of eight/.test(fan), 'and stays a plain dipole on 10 m', fan.slice(0, 80));
     const eighty = await dimRow(page, '80 m element');
     t.check(eighty !== null && /39\.\d\d m/.test(eighty[1]),
       'while still listing every element you would have to build', eighty?.[1]);
