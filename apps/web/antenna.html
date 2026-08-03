@@ -211,6 +211,21 @@ footer strong{color:var(--hf-text-secondary)}
 .partinfo p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
 .partinfo.idle{border-left-color:var(--hf-border-default);color:var(--hf-text-muted)}
 
+/* --- coverage footprint --- */
+.covwrap{position:relative;display:flex;justify-content:center}
+#cov{width:100%;max-width:520px;height:auto;aspect-ratio:1;display:block;
+  border-radius:var(--hf-radius-md)}
+.covbar{display:flex;gap:var(--hf-spacing-4);flex-wrap:wrap;align-items:flex-end;
+  margin-bottom:var(--hf-spacing-3)}
+.covbar .ctl{flex:1 1 170px}
+.covscale{display:flex;align-items:center;gap:8px;margin-top:var(--hf-spacing-3);
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.covscale .bar{flex:1;height:10px;border-radius:var(--hf-radius-full);
+  border:1px solid var(--hf-border-subtle)}
+.covsite{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);
+  margin-top:var(--hf-spacing-2)}
+.covsite a{cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -279,6 +294,29 @@ footer strong{color:var(--hf-text-secondary)}
     </div>
   </div>
 
+  <div class="panel">
+    <h2>Coverage footprint</h2>
+    <div class="covbar">
+      <div class="ctl">
+        <label for="covrange">Range shown <span class="val" id="covrangeval"></span></label>
+        <input type="range" id="covrange" min="200" max="20000" step="200" value="4000">
+      </div>
+      <div class="ctl" id="covorow">
+        <label for="covorient">Wire runs <span class="val" id="covorientval"></span></label>
+        <input type="range" id="covorient" min="0" max="170" step="10" value="90">
+      </div>
+    </div>
+    <div class="covwrap"><canvas id="cov" width="520" height="520"
+      aria-label="Antenna coverage footprint centred on your station"></canvas></div>
+    <div class="covscale">
+      <span id="covlo"></span>
+      <span class="bar" id="covbar"></span>
+      <span id="covhi"></span>
+    </div>
+    <p class="cap" id="covcap"></p>
+    <p class="covsite" id="covsite"></p>
+  </div>
+
   <div class="panels">
     <div class="panel">
       <h2 id="reachhead">Will it reach?</h2>
@@ -339,6 +377,9 @@ import {
   maxHopDistanceKm, metresToFeet, minimumHops, takeoffAngle, wavelength,
 } from './vendor/antenna-model.mjs';
 import { constructionSvg, elevationSvg, azimuthSvg } from './lib/antenna-plot.mjs';
+import { drawCoverage, gainSampler, ringsFor } from './lib/antenna-coverage.mjs';
+import { elevationsForDistance } from './lib/antenna-gain.mjs';
+import { loadSession } from './lib/gridcache.mjs';
 import { mountNav } from './lib/nav.mjs';
 
 mountNav(document.querySelector('.wrap'), 'antenna.html');
@@ -366,6 +407,9 @@ const state = {
   showIndex: 1,
   distanceKm: 2000,
   fieldDistanceKm: 120,
+  covRangeKm: 4000,
+  fieldCovRangeKm: 600,
+  orientationDeg: 90,
   params: {},
 };
 
@@ -828,6 +872,8 @@ function render() {
         + 'directions have moved and there are nulls between them.'
         : 'North is up.');
 
+  renderCoverage(pattern);
+
   // --- notes ---
   $('notes').replaceChildren(...built.notes.map((n) => {
     const li = document.createElement('li');
@@ -994,6 +1040,123 @@ function renderFreqVerdicts(a, params, need) {
   box.prepend(head);
 }
 
+// --- coverage footprint ----------------------------------------------------
+
+// Where the station is, if we can find out without asking. The reach map keeps
+// a transmitter in the same origin's storage, so someone who has used that page
+// gets geography here for free. Nothing is fetched and nothing is sent.
+let site = null;
+try {
+  const s = loadSession();
+  if (s?.tx && Number.isFinite(s.tx.lat) && Number.isFinite(s.tx.lon)) site = s.tx;
+} catch { /* storage disabled — the map simply has no coastline */ }
+
+let coastline = null;
+fetch('./data/geo/coastline.geojson')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((gj) => {
+    if (!gj?.features) return;
+    coastline = gj.features.flatMap((f) => {
+      const g = f.geometry;
+      if (!g) return [];
+      return g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+    });
+    render();
+  })
+  .catch(() => { /* a missing coastline costs the geography, not the plot */ });
+
+const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const hex2rgb = (h) => {
+  const v = h.replace('#', '');
+  const n = v.length === 3 ? v.split('').map((c) => c + c).join('') : v;
+  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+};
+const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+function rampColour(t) {
+  const stops = Array.from({ length: 8 }, (_, i) => hex2rgb(cssv(`--hf-sequential-${i}`)));
+  const x = Math.max(0, Math.min(1, t)) * (stops.length - 1);
+  const i = Math.floor(x);
+  return lerp(stops[i], stops[Math.min(i + 1, stops.length - 1)], x - i);
+}
+
+const covRangeKm = () => (isField() ? state.fieldCovRangeKm : state.covRangeKm);
+
+function renderCoverage(pattern) {
+  const cv = $('cov');
+  const ctx = cv.getContext('2d');
+  const maxKm = covRangeKm();
+  const directional = !!antenna().params && patternIsDirectional(pattern);
+  $('covorow').hidden = !directional;
+  $('covrangeval').textContent = `${maxKm.toLocaleString()} km`;
+  $('covorientval').textContent = `${String(state.orientationDeg).padStart(3, '0')}°–`
+    + `${String((state.orientationDeg + 180) % 360).padStart(3, '0')}°`;
+
+  const sampler = gainSampler(pattern, directional ? state.orientationDeg : 90);
+  const colours = (t) => rampColour(t);
+  colours.grid = cssv('--hf-border-subtle');
+  colours.edge = cssv('--hf-border-strong');
+  colours.label = cssv('--hf-text-muted');
+  colours.compass = cssv('--hf-text-secondary');
+  colours.coast = cssv('--hf-map-boundary') || cssv('--hf-text-muted');
+  colours.station = cssv('--hf-status-good-fill');
+  colours.target = cssv('--hf-status-fair-fill');
+
+  drawCoverage(ctx, {
+    size: cv.width,
+    maxRangeKm: maxKm,
+    gainTable: sampler,
+    // Same two-hop rule the reach map uses, so the two pages cannot disagree
+    // about what angle a given distance needs.
+    elevationFor: (km) => {
+      const es = elevationsForDistance(km);
+      return es[0];
+    },
+    colours,
+    peakDbi: pattern.peak.gainDbi,
+    centre: site,
+    coastline,
+    targetKm: distanceKm(),
+    fmtRing: (km) => `${km.toLocaleString()} km`,
+  });
+
+  const lo = (pattern.peak.gainDbi - 20).toFixed(0);
+  $('covlo').textContent = `${lo} dBi`;
+  $('covhi').textContent = `${pattern.peak.gainDbi.toFixed(1)} dBi`;
+  $('covbar').style.background = `linear-gradient(90deg, ${
+    Array.from({ length: 8 }, (_, i) => cssv(`--hf-sequential-${i}`)).join(',')})`;
+
+  $('covcap').textContent =
+    'Looking down from above your station, with distance measured true from the '
+    + `centre. The dashed ring is the ${fmtDistance(distanceKm())} you set above. `
+    + (directional
+      ? 'Turn the wire and the pattern turns with it. '
+      : 'This antenna is omnidirectional, so the footprint is a disc. ')
+    + 'Colour is antenna gain only — where the antenna sends energy, not where '
+    + 'the ionosphere will put it down.';
+
+  $('covsite').textContent = site
+    ? `Coastline centred on your reach-map transmitter (${site.lat.toFixed(1)}°, `
+      + `${site.lon.toFixed(1)}°). It is read from this browser and never sent anywhere.`
+    : 'Set a transmitter on the reach map and the coastline will appear here, centred '
+      + 'on it. Without one this is still the correct footprint — just without geography.';
+}
+
+/**
+ * Does the pattern vary with bearing enough for an orientation control to matter?
+ *
+ * Sampled at several working elevations rather than at the peak. A low dipole
+ * peaks at the zenith, where every bearing is the same direction by definition —
+ * so testing the peak reports the most directional antenna on the page as
+ * omnidirectional and hides the control that turns it.
+ */
+function patternIsDirectional(pattern) {
+  for (const e of [10, 25, 45]) {
+    const cut = pattern.azCut(e, 73);
+    if (Math.max(...cut) - Math.min(...cut) > 1.5) return true;
+  }
+  return false;
+}
+
 // --- small builders --------------------------------------------------------
 
 function caution(severity, textContent) {
@@ -1110,6 +1273,13 @@ function applyMode() {
   $('dist').max = isField() ? 4000 : 12000;
   $('dist').step = isField() ? 10 : 100;
   $('dist').value = distanceKm();
+  // Field work is a few hundred kilometres; band work is intercontinental. The
+  // default range follows the mode so the first view is never all one colour.
+  $('covrange').min = isField() ? 100 : 500;
+  $('covrange').max = isField() ? 3000 : 20000;
+  $('covrange').step = isField() ? 50 : 500;
+  $('covrange').value = covRangeKm();
+  $('covorient').value = state.orientationDeg;
 }
 
 $('mode').addEventListener('click', (e) => {
@@ -1131,6 +1301,16 @@ $('units').addEventListener('click', (e) => {
 $('addbtn').addEventListener('click', addFreq);
 $('addfreq').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addFreq(); }
+});
+
+$('covrange').addEventListener('input', () => {
+  const v = Number($('covrange').value);
+  if (isField()) state.fieldCovRangeKm = v; else state.covRangeKm = v;
+  save(); render();
+});
+$('covorient').addEventListener('input', () => {
+  state.orientationDeg = Number($('covorient').value);
+  save(); render();
 });
 
 $('dist').addEventListener('input', () => {

@@ -13,6 +13,27 @@ const settled = (page) => page.waitForFunction(
   () => !document.getElementById('gainval').textContent.includes('computing'),
   null, { timeout: 40000 });
 
+/**
+ * Wait until the map has actually been repainted, rather than for a fixed
+ * interval and a hope.
+ *
+ * Rebuilding the pattern tables is async and the redraw after it is scheduled
+ * on a frame, so a sleep long enough on an idle machine is not long enough on a
+ * loaded one — this check failed exactly once, during a run with two browser
+ * suites competing for the CPU. Polling the canvas removes the race instead of
+ * papering over it with a bigger number.
+ */
+async function waitForRepaint(page, before, timeout = 20000) {
+  const started = Date.now();
+  let last = 0;
+  while (Date.now() - started < timeout) {
+    last = coverage(await sample(page), before);
+    if (last > 0.01) return last;
+    await page.waitForTimeout(150);
+  }
+  return last;
+}
+
 export default async function run(browser, origin) {
   const t = reporter('pattern gain');
   const ctx = await browser.newContext({
@@ -89,9 +110,9 @@ export default async function run(browser, origin) {
       e.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await settled(page);
-    await page.waitForTimeout(600);
-    t.check(coverage(await sample(page), base) > 0.01,
-      'raising the antenna redraws the coverage');
+    const afterHeight = await waitForRepaint(page, base);
+    t.check(afterHeight > 0.01, 'raising the antenna redraws the coverage',
+      `${(afterHeight * 100).toFixed(1)}% changed`);
 
     const raised = await sample(page);
     await page.evaluate(() => {
@@ -100,9 +121,9 @@ export default async function run(browser, origin) {
       e.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await settled(page);
-    await page.waitForTimeout(600);
-    t.check(coverage(await sample(page), raised) > 0.01,
-      'and so does turning the wire through 90°');
+    const afterTurn = await waitForRepaint(page, raised);
+    t.check(afterTurn > 0.01, 'and so does turning the wire through 90°',
+      `${(afterTurn * 100).toFixed(1)}% changed`);
     t.check((await page.textContent('#antoval')).includes('000°–180°'),
       'with the bearing pair spelled out', await page.textContent('#antoval'));
   }
