@@ -12,7 +12,13 @@
 // "multiband compromises" group. Entries with `cutPerBand` ignore designMHz —
 // a fan dipole has an element for whichever band you are on.
 
-import { currentMaximum, halfWave, quarterWave, wavelength, VELOCITY_FACTOR } from './physics.mjs';
+import {
+  currentMaximum, halfWave, quarterWave, shortMonopole, wavelength, VELOCITY_FACTOR,
+} from './physics.mjs';
+import { FIELD_ANTENNAS, FIELD_GROUPS } from './field.mjs';
+import { clampDroop, m, rad, t } from './shared.mjs';
+
+export { FIELD_ANTENNAS, FIELD_GROUPS };
 
 export const BANDS = [
   { id: '160m', label: '160 m', mhz: 1.900 },
@@ -30,19 +36,6 @@ export const BANDS = [
 
 export const GROUPS = ['Wire basics', 'Verticals', 'Multiband compromises'];
 
-const MIN_END_HEIGHT = 0.5;      // wire ends people can walk into are a hazard
-const rad = (d) => (d * Math.PI) / 180;
-
-/** Largest droop that keeps a wire end off the ground, in degrees. */
-function clampDroop(apexHeight, legLength, wantDeg) {
-  const usable = Math.max(0, apexHeight - MIN_END_HEIGHT);
-  const maxSin = Math.min(1, usable / legLength);
-  const maxDeg = (Math.asin(maxSin) * 180) / Math.PI;
-  return Math.min(wantDeg, maxDeg);
-}
-
-const m = (label, metres, note) => ({ label, metres, note });
-const t = (label, text, note) => ({ label, text, note });
 
 // --- wire basics -----------------------------------------------------------
 
@@ -679,11 +672,21 @@ const efhwMulti = {
   },
 };
 
-export const ANTENNAS = [
+/** The band-oriented catalogue, for someone exploring rather than deploying. */
+export const AMATEUR_ANTENNAS = [
   dipole, invertedV, efhw, sloper,
   verticalGround, groundPlane, halfWaveVertical, fiveEighths,
   fanTrapLinked, g5rv, doublet, ocf, efhwMulti,
 ];
+
+/** Everything, so byId() resolves an antenna whichever mode named it. */
+export const ANTENNAS = [...AMATEUR_ANTENNAS, ...FIELD_ANTENNAS];
+
+/** The catalogue for a given mode. Field mode is deliberately a short list. */
+export const antennasFor = (mode) =>
+  (mode === 'field' ? FIELD_ANTENNAS : AMATEUR_ANTENNAS);
+
+export const groupsFor = (mode) => (mode === 'field' ? FIELD_GROUPS : GROUPS);
 
 export const byId = (id) => ANTENNAS.find((a) => a.id === id) ?? null;
 
@@ -727,7 +730,21 @@ export function cautions(built) {
   const lam = wavelength(built.operatingMHz);
   const buried = built.radials?.onGround;
 
-  if (!cm.vertical && cm.heightWavelengths < 0.2) {
+  // A low horizontal antenna is either a mistake or the entire design intent,
+  // and the same sentence cannot serve both. Telling an NVIS operator their
+  // antenna is too low — when 0.18 λ is exactly where it belongs — would get a
+  // correctly built antenna raised into uselessness.
+  if (!cm.vertical && cm.heightWavelengths < 0.2 && built.antenna.nvis) {
+    out.push({
+      severity: 'info',
+      text: `${cm.heightWavelengths.toFixed(2)} wavelengths up `
+        + `(${cm.heightM.toFixed(1)} m against a ${lam.toFixed(1)} m wavelength) is `
+        + 'the right height for NVIS — this is the design, not a compromise. Real '
+        + 'ground under it still costs you 1–3 dB that this perfect-ground model '
+        + 'does not charge for. Accept that; do not raise the antenna to avoid it, '
+        + 'because height is what breaks the overhead pattern you are here for.',
+    });
+  } else if (!cm.vertical && cm.heightWavelengths < 0.2) {
     out.push({
       severity: cm.heightWavelengths < 0.1 ? 'high' : 'moderate',
       text: `The current maximum is ${cm.heightWavelengths.toFixed(2)} wavelengths up `
@@ -748,7 +765,7 @@ export function cautions(built) {
         + '10° rather than holding all the way to the horizon.',
     });
   }
-  if (cm.vertical && !buried && cm.heightWavelengths < 0.05) {
+  if (cm.vertical && !buried && cm.heightWavelengths < 0.05 && !built.antenna.nvis) {
     out.push({
       severity: 'moderate',
       text: 'A vertical this close to the ground still needs a return path. '
@@ -756,5 +773,52 @@ export function cautions(built) {
         + 'can find a way back — usually the coax shield and the soil.',
     });
   }
+
+  // The one that matters most in the field. Directivity is nearly blind to
+  // electrical length — a 3 m whip on 5 MHz reports about the same dBi as a
+  // full quarter wave, because the *shape* of a short monopole's pattern is
+  // barely different. What collapses is how much power reaches that shape.
+  const wireM = wireLength(built.paths);
+  const short = shortMonopole(wireM, built.operatingMHz);
+  if (short && cm.vertical) {
+    const [best, worst] = short.lossDb;
+    out.push({
+      severity: short.heightWavelengths < 0.08 ? 'high' : 'moderate',
+      text: `Electrically short: ${wireM.toFixed(1)} m is `
+        + `${short.heightWavelengths.toFixed(3)} wavelengths here, giving a radiation `
+        + `resistance of about ${short.radiationResistanceOhms.toFixed(1)} Ω. Against the `
+        + `${short.lossOhms[0]}–${short.lossOhms[1]} Ω of coupler, matching and ground-return `
+        + 'loss a field installation really presents, that radiates roughly '
+        + `${(short.efficiency[0] * 100).toFixed(0)}–${(short.efficiency[1] * 100).toFixed(0)} % `
+        + `of your output — a loss of ${(-best).toFixed(1)} to ${(-worst).toFixed(1)} dB `
+        + 'on top of the figure shown. The pattern is right; the power is not '
+        + 'reaching it. A better counterpoise is the cheapest fix.',
+    });
+  }
+
+  if (built.antenna.terminated) {
+    out.push({
+      severity: 'high',
+      text: 'The terminating resistor absorbs the power that would otherwise be '
+        + 'reflected — that is what keeps the match flat across the whole range, '
+        + 'and that power is gone. Expect to lose a third to two-thirds of your '
+        + 'output, roughly 3–6 dB, worst at the low-frequency end. The pattern '
+        + 'here is approximated from an unterminated wire of the same size; a '
+        + 'real terminated antenna has a smoother one with shallower nulls.',
+    });
+  }
   return out;
+}
+
+/** Total length of the driven wire, following every bend. */
+function wireLength(paths) {
+  let total = 0;
+  for (const p of paths) {
+    if (p.role === 'radial') continue;
+    for (let i = 1; i < p.points.length; i++) {
+      const [ax, ay, az] = p.points[i - 1], [bx, by, bz] = p.points[i];
+      total += Math.hypot(bx - ax, by - ay, bz - az);
+    }
+  }
+  return total;
 }

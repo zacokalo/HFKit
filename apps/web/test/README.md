@@ -47,6 +47,7 @@ npm i -D playwright
 | `spacewx.spec.mjs` | Every fallback tier · live beats snapshot · HTML-with-200 falls through · SSN reaches the engine via the cache key · aurora overlay lazy-loads, paints, and draws nothing in the tropics |
 | `space.spec.mjs` | Headline figures carry provenance · storm copy leads with the storm · alerts verbatim · missing source stated not blanked |
 | `station.spec.mjs` | Power/antenna arithmetic to 0.1 dB · non-preset wattages · bad input falls back · 10× power is exactly +10 dB · never triggers a recompute · restore on reload · pre-split sessions migrate |
+| `field.spec.mjs` | Mode switch shortens the antenna list · frequency entry in MHz, kHz and with suffixes · duplicate and out-of-band rejection · cut lengths in either unit · distance stays metric · NVIS verdict and per-frequency rows · whip efficiency caution · low NVIS height reported as design not fault · interactive diagram parts |
 | `antenna.spec.mjs` | Dimensions match the handbook · lobe angle tracks height · take-off verdict and its advice · ground-loss cautions attach to the antennas that earn them · multiband lobing · every antenna on every band · no hardcoded colour, all three themes · per-antenna parameter memory |
 
 ## Five bugs these caught

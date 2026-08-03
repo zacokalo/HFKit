@@ -153,16 +153,24 @@ export default async function run(browser, origin) {
     await page.selectOption('#op', '20m');
     t.check(/off its design band/.test(await page.textContent('#cautions')),
       'a dipole used off its band says so');
+
+    // A doublet's length comes from a slider, not from a band, so it is not
+    // "cut for" anything and must not be told it has strayed off a design it
+    // never had. The control disappears with the claim.
     await page.selectOption('#ant', 'doublet');
-    t.check(/intended use/.test(await page.textContent('#cautions')),
-      'but a doublet on the same pair of bands is doing its job');
+    await page.waitForTimeout(300);
+    t.check(await page.$('#cut') === null,
+      'a doublet has no "cut for" — its length is a slider');
+    t.check(!/off its design band/.test(await page.textContent('#cautions')),
+      'and so is never accused of being off it');
+    t.check(await page.$('#op') !== null,
+      'while "operating on" still selects the band it is used on');
   }
 
   // --- the multiband lesson ---
   {
     await page.selectOption('#ant', 'doublet');
-    await page.selectOption('#cut', '80m');
-    await page.selectOption('#op', '80m');
+    await page.selectOption('#op', '80m');       // no "cut for": its length is a slider
     await setRange(page, 'p_length', 40);
     const low = await page.textContent('#azimcap');
     t.check(/2 lobes/.test(low), 'a doublet is a figure of eight on its own band', low.slice(0, 80));
