@@ -65,6 +65,46 @@ export function feetInches(metres) {
   return `${ft} ft ${inch} in`;
 }
 
+// --- electrically short antennas -------------------------------------------
+
+/**
+ * Radiation resistance of a short monopole, and what that implies for
+ * efficiency.
+ *
+ * This exists because directivity is actively misleading for a whip. A 3 m
+ * manpack whip on 5 MHz computes to about 5 dBi here — the same as a full
+ * quarter wave — because directivity describes the *shape* of the pattern and
+ * a short monopole's shape is barely different. What differs is how much power
+ * gets into that shape at all.
+ *
+ * For a short monopole with the triangular current distribution a whip really
+ * has, R_rad = 40 pi^2 (h/lambda)^2. At 0.05 wavelengths that is about one ohm.
+ * Put one ohm in series with the five to twenty-five ohms of ground, coil and
+ * matching-network loss that a field installation actually presents, and most
+ * of the transmitter output warms the hardware instead of leaving.
+ *
+ * R_rad is exact. R_loss is not knowable without measuring the specific
+ * installation, so a plausible range is taken and the answer is returned as a
+ * range too — never as a single confident number.
+ *
+ * Valid below about 0.15 wavelengths; above that the short-antenna
+ * approximation stops holding and a real quarter wave is 36.5 ohms.
+ */
+export function shortMonopole(heightM, fMHz, { lossOhms = [5, 25] } = {}) {
+  const ratio = heightM / wavelength(fMHz);
+  if (ratio >= 0.15) return null;
+  const rRad = 40 * Math.PI * Math.PI * ratio * ratio;
+  const eff = lossOhms.map((rl) => rRad / (rRad + rl));
+  return {
+    heightWavelengths: ratio,
+    radiationResistanceOhms: rRad,
+    // Best case first: the smaller loss resistance gives the better efficiency.
+    efficiency: [Math.max(...eff), Math.min(...eff)],
+    lossDb: [Math.max(...eff), Math.min(...eff)].map((e) => 10 * Math.log10(e)),
+    lossOhms,
+  };
+}
+
 // --- geometry of a hop -----------------------------------------------------
 
 /**

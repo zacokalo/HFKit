@@ -6,7 +6,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  ANTENNAS, BANDS, GROUPS, buildAntenna, byId, defaultParams,
+  ANTENNAS, BANDS, FIELD_GROUPS, GROUPS, buildAntenna, byId, defaultParams,
 } from '../catalogue.mjs';
 import { analyse, countLobes, halfWave, wavelength } from '../physics.mjs';
 
@@ -15,11 +15,15 @@ const at = (id, band, params = {}, design = band) => buildAntenna(byId(id), {
 });
 
 describe('the catalogue itself', () => {
-  test('ids are unique and every antenna lands in a known group', () => {
+  test('ids are unique across both catalogues, so byId cannot be ambiguous', () => {
     const ids = ANTENNAS.map((a) => a.id);
     assert.equal(new Set(ids).size, ids.length, 'duplicate id');
+  });
+
+  test('every antenna lands in a group its own mode offers', () => {
     for (const a of ANTENNAS) {
-      assert.ok(GROUPS.includes(a.group), `${a.id} has group "${a.group}"`);
+      const groups = a.audience === 'field' ? FIELD_GROUPS : GROUPS;
+      assert.ok(groups.includes(a.group), `${a.id} has group "${a.group}"`);
       assert.ok(a.name && a.blurb, `${a.id} needs a name and a blurb`);
       assert.ok(a.params.length > 0, `${a.id} has no parameters`);
     }

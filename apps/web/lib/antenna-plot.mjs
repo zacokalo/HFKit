@@ -31,7 +31,23 @@ const round = (n, p = 1) => Number(n.toFixed(p));
  * alternately left and right — which is how they get drawn on paper too, and
  * reads correctly as "four radials at 45 degrees" rather than as two.
  */
-export function constructionSvg(built, { width = 640, height = 300 } = {}) {
+export function constructionSvg(built, {
+  width = 640, height = 300, interactive = false, fmt = (m) => `${m.toFixed(2)} m`,
+} = {}) {
+  // In interactive mode each feature is wrapped in a focusable group carrying a
+  // data-part, plus a fat transparent hit target over it. Antenna diagrams are
+  // thin lines and small dots; without the hit target you are asking someone to
+  // click a two-pixel stroke, which on a touch screen in the field is not a
+  // thing that happens.
+  const part = (kind, label, ...kids) => {
+    if (!interactive) return kids;
+    const g = el('g', {
+      class: `part part-${kind}`, 'data-part': kind, tabindex: 0,
+      role: 'button', 'aria-label': label,
+    }, ...kids);
+    return [g];
+  };
+  const hit = (attrs, tag = 'line') => (interactive ? [el(tag, { ...attrs, class: 'hit' })] : []);
   const projected = [];
   let radialIndex = 0;
   for (const p of built.paths) {
@@ -69,38 +85,51 @@ export function constructionSvg(built, { width = 640, height = 300 } = {}) {
   });
 
   // ground
-  svg.append(el('line', { x1: 0, y1: groundY, x2: width, y2: groundY, class: 'gnd' }));
+  const hatch = [];
   for (let x = 6; x < width; x += 14) {
-    svg.append(el('line', { x1: x, y1: groundY, x2: x - 6, y2: groundY + 6, class: 'gnd-hatch' }));
+    hatch.push(el('line', { x1: x, y1: groundY, x2: x - 6, y2: groundY + 6, class: 'gnd-hatch' }));
   }
+  svg.append(...part('ground', 'Ground',
+    el('line', { x1: 0, y1: groundY, x2: width, y2: groundY, class: 'gnd' }),
+    ...hatch,
+    ...hit({ x1: 0, y1: groundY, x2: width, y2: groundY })));
 
   // buried radials, which are real hardware even though the model ignores them
   if (buried) {
-    for (const dir of [-1, 1]) {
-      svg.append(el('line', {
-        x1: X(0), y1: groundY + 2, x2: X(dir * buried), y2: groundY + 5, class: 'radial buried',
-      }));
-    }
-    svg.append(text(X(0), groundY + 20,
-      `${built.radials.count} radials · ${built.radials.length.toFixed(1)} m`,
-      'lbl muted', { 'text-anchor': 'middle' }));
+    const wires = [-1, 1].map((dir) => el('line', {
+      x1: X(0), y1: groundY + 2, x2: X(dir * buried), y2: groundY + 5, class: 'radial buried',
+    }));
+    svg.append(...part('counterpoise', 'Radials', ...wires,
+      text(X(0), groundY + 20,
+        `${built.radials.count} radials · ${fmt(built.radials.length)}`,
+        'lbl muted', { 'text-anchor': 'middle' }),
+      ...hit({ x1: X(-buried), y1: groundY + 4, x2: X(buried), y2: groundY + 4 })));
   }
 
   // supports: a mast under each local high point that is not the feed
+  const masts = [];
   for (const p of projected) {
     if (p.role === 'radial') continue;
     for (const [r, z] of p.pts) {
       if (z > 0.5 && Math.abs(z - maxZ) < 1e-6) {
-        svg.append(el('line', { x1: X(r), y1: Y(z), x2: X(r), y2: groundY, class: 'mast' }));
+        masts.push(el('line', { x1: X(r), y1: Y(z), x2: X(r), y2: groundY, class: 'mast' }),
+          ...hit({ x1: X(r), y1: Y(z), x2: X(r), y2: groundY }));
       }
     }
   }
+  if (masts.length) svg.append(...part('mast', 'Support', ...masts));
 
   projected.forEach((p, pi) => {
-    svg.append(el('polyline', {
+    const line = el('polyline', {
       points: p.pts.map(([r, z]) => `${round(X(r))},${round(Y(z))}`).join(' '),
       class: `wire ${p.role}`,
-    }));
+    });
+    const fat = interactive ? [el('polyline', {
+      points: p.pts.map(([r, z]) => `${round(X(r))},${round(Y(z))}`).join(' '),
+      class: 'hit',
+    })] : [];
+    const kind = p.role === 'radial' ? 'counterpoise' : 'element';
+    svg.append(...part(kind, kind === 'radial' ? 'Radial' : 'Radiating element', line, ...fat));
     // Segment lengths go on the wire itself. They come from the true 3-D
     // points, not the projected ones — a sloping wire is longer than the span
     // it covers, and that difference is exactly what catches people out.
@@ -111,7 +140,7 @@ export function constructionSvg(built, { width = 640, height = 300 } = {}) {
       const len = Math.hypot(bx - ax, by - ay, bz - az);
       const mx = (X(p.pts[i - 1][0]) + X(p.pts[i][0])) / 2;
       const my = (Y(p.pts[i - 1][1]) + Y(p.pts[i][1])) / 2;
-      svg.append(text(mx, my - 7, `${len.toFixed(2)} m`, 'lbl', { 'text-anchor': 'middle' }));
+      svg.append(text(mx, my - 7, fmt(len), 'lbl', { 'text-anchor': 'middle' }));
     }
   });
 
@@ -119,12 +148,28 @@ export function constructionSvg(built, { width = 640, height = 300 } = {}) {
   const feedPath = built.paths.find((p) => p.role !== 'radial') ?? built.paths[0];
   const feed = feedPoint(feedPath);
   const fr = feed[0], fz = feed[2];
-  svg.append(el('circle', { cx: X(fr), cy: Y(fz), r: 5, class: 'feed' }));
   // Below the dot, because the wire's own length label sits above it. A
   // base-fed vertical has no room below, so that one goes up and to the side.
   const groundFed = fz < 0.3;
-  svg.append(text(X(fr) + (groundFed ? 10 : 0), Y(fz) + (groundFed ? -12 : 16), 'feed',
-    'lbl feed-lbl', { 'text-anchor': groundFed ? 'start' : 'middle' }));
+  svg.append(...part('feed', 'Feedpoint',
+    el('circle', { cx: X(fr), cy: Y(fz), r: 5, class: 'feed' }),
+    text(X(fr) + (groundFed ? 10 : 0), Y(fz) + (groundFed ? -12 : 16), 'feed',
+      'lbl feed-lbl', { 'text-anchor': groundFed ? 'start' : 'middle' }),
+    ...hit({ cx: X(fr), cy: Y(fz), r: 13 }, 'circle')));
+
+  // Free ends: a voltage maximum, and the part most likely to hurt someone.
+  const ends = [];
+  projected.forEach((p) => {
+    if (p.role === 'radial') return;
+    for (const [r, z] of [p.pts[0], p.pts.at(-1)]) {
+      // The fed end of an end-fed wire is not a free end. Detected by position
+      // rather than by arc length, which covers a feed at either end.
+      if (Math.abs(X(r) - X(fr)) < 6 && Math.abs(Y(z) - Y(fz)) < 6) continue;
+      ends.push(el('circle', { cx: X(r), cy: Y(z), r: 3.5, class: 'wire-end' }),
+        ...hit({ cx: X(r), cy: Y(z), r: 11 }, 'circle'));
+    }
+  });
+  if (ends.length) svg.append(...part('end', 'Wire end', ...ends));
 
   // height dimension, from the ground to whatever is highest
   const topZ = maxZ;
@@ -132,7 +177,7 @@ export function constructionSvg(built, { width = 640, height = 300 } = {}) {
   svg.append(el('line', { x1: dimX, y1: Y(topZ), x2: dimX, y2: groundY, class: 'dim' }));
   svg.append(el('line', { x1: dimX - 4, y1: Y(topZ), x2: dimX + 4, y2: Y(topZ), class: 'dim' }));
   svg.append(el('line', { x1: dimX - 4, y1: groundY, x2: dimX + 4, y2: groundY, class: 'dim' }));
-  svg.append(text(dimX + 6, (Y(topZ) + groundY) / 2, `${topZ.toFixed(1)} m`, 'lbl',
+  svg.append(text(dimX + 6, (Y(topZ) + groundY) / 2, fmt(topZ), 'lbl',
     { 'dominant-baseline': 'middle' }));
 
   return svg;

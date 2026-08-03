@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HFKit — antenna visualiser</title>
-<meta name="description" content="Antenna dimensions for any HF band, the radiation pattern that results, and the take-off angle your path actually needs. Wire antennas, verticals and multiband compromises.">
+<meta name="description" content="HF antenna dimensions by band or by frequency, the radiation pattern that results, and the take-off angle your path actually needs. Amateur wire antennas, verticals, multiband compromises, and field-expedient NVIS, whip and long-wire options.">
 <meta name="hfkit-spacewx" content="">
 <link rel="stylesheet" href="./vendor/tokens.css">
 <link rel="stylesheet" href="./lib/nav.css">
@@ -120,6 +120,7 @@ td .note{display:block;font-size:var(--hf-font-size-xs);color:var(--hf-text-mute
   border-radius:var(--hf-radius-sm);padding:var(--hf-spacing-3) var(--hf-spacing-4);
   font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
 .caution.high{border-left-color:var(--hf-status-closed-fill)}
+.caution.info{border-left-color:var(--hf-accent-interactive)}
 .caution+.caution{margin-top:var(--hf-spacing-2)}
 .notes{display:flex;flex-direction:column;gap:var(--hf-spacing-3);max-width:78ch}
 .notes li{color:var(--hf-text-secondary)}
@@ -131,20 +132,129 @@ footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing
   display:flex;flex-direction:column;gap:8px;max-width:82ch}
 footer strong{color:var(--hf-text-secondary)}
 .loading{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm)}
+
+/* --- mode + unit switches --- */
+.switches{display:flex;gap:var(--hf-spacing-4);flex-wrap:wrap;align-items:center;
+  justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-md);overflow:hidden}
+.seg button{appearance:none;border:0;cursor:pointer;font:inherit;
+  font-size:var(--hf-font-size-sm);padding:6px 14px;
+  background:var(--hf-surface-raised);color:var(--hf-text-secondary)}
+.seg button+button{border-left:1px solid var(--hf-border-default)}
+.seg button[aria-pressed=true]{background:var(--hf-accent-interactive);
+  color:var(--hf-accent-on-accent);font-weight:var(--hf-font-weight-semibold)}
+.seg.small button{padding:3px 10px;font-size:var(--hf-font-size-xs)}
+.modehint{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);max-width:60ch}
+
+/* --- frequency chips --- */
+.freqs{display:flex;gap:var(--hf-spacing-2);flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;
+  border-radius:var(--hf-radius-full);border:1px solid var(--hf-border-default);
+  background:var(--hf-surface-sunken);font-family:var(--hf-font-family-mono);
+  font-size:var(--hf-font-size-sm);font-variant-numeric:tabular-nums}
+.chip[aria-current=true]{border-color:var(--hf-accent-interactive);
+  background:var(--hf-accent-interactive);color:var(--hf-accent-on-accent)}
+.chip .pick{appearance:none;background:none;border:0;color:inherit;font:inherit;cursor:pointer;
+  padding:0}
+.chip .x{appearance:none;background:none;border:0;color:inherit;cursor:pointer;
+  font-size:15px;line-height:1;opacity:.65;padding:0 2px}
+.chip .x:hover{opacity:1}
+.addfreq{display:inline-flex;gap:4px;align-items:center}
+.addfreq input{width:8ch;font-family:var(--hf-font-family-mono)}
+.addfreq button{appearance:none;cursor:pointer;font:inherit;
+  font-size:var(--hf-font-size-sm);padding:6px 10px;
+  background:var(--hf-button-background);color:var(--hf-button-foreground);
+  border:1px solid var(--hf-button-border);border-radius:var(--hf-radius-sm)}
+
+/* --- the field answer block --- */
+.cut{display:grid;gap:var(--hf-spacing-3);
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.cut .item{background:var(--hf-surface-sunken);border-radius:var(--hf-radius-sm);
+  padding:var(--hf-spacing-3)}
+.cut .k{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--hf-text-muted)}
+.cut .v{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xl);
+  font-variant-numeric:tabular-nums;line-height:1.15;margin-top:2px}
+.cut .alt{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-secondary)}
+.cut .note{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);margin-top:4px}
+
+/* --- per-frequency verdict rows --- */
+.freqrow{display:flex;gap:var(--hf-spacing-3);align-items:baseline;
+  padding:8px 0;border-bottom:1px solid var(--hf-border-subtle)}
+.freqrow:last-child{border-bottom:0}
+.freqrow .f{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-md);
+  font-variant-numeric:tabular-nums;min-width:8ch}
+.freqrow .tag{font-size:var(--hf-font-size-xs);font-weight:var(--hf-font-weight-semibold);
+  padding:1px 8px;border-radius:var(--hf-radius-full)}
+.freqrow .say{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+
+/* --- interactive diagram parts --- */
+.ant-diagram .hit{stroke:transparent;fill:none;stroke-width:16;pointer-events:stroke}
+.ant-diagram circle.hit{fill:transparent;stroke:none;pointer-events:fill}
+.ant-diagram .wire-end{fill:var(--hf-status-poor-fill);stroke:var(--hf-surface-raised);
+  stroke-width:1.5}
+.ant-diagram .part{cursor:pointer;outline:none}
+.ant-diagram .part:hover .wire,.ant-diagram .part:focus-visible .wire,
+.ant-diagram .part.sel .wire{stroke:var(--hf-status-fair-fill);stroke-width:4}
+.ant-diagram .part:hover .gnd,.ant-diagram .part.sel .gnd,
+.ant-diagram .part:hover .mast,.ant-diagram .part.sel .mast{stroke:var(--hf-status-fair-fill)}
+.ant-diagram .part:hover circle,.ant-diagram .part.sel circle{stroke:var(--hf-status-fair-fill);
+  stroke-width:3}
+.ant-diagram .part:focus-visible{outline:var(--hf-focus-ring-width) solid
+  var(--hf-focus-ring-color)}
+.partinfo{margin-top:var(--hf-spacing-3);background:var(--hf-surface-sunken);
+  border-left:3px solid var(--hf-accent-interactive);border-radius:var(--hf-radius-sm);
+  padding:var(--hf-spacing-3) var(--hf-spacing-4)}
+.partinfo h4{margin:0 0 4px;font-size:var(--hf-font-size-sm)}
+.partinfo p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+.partinfo.idle{border-left-color:var(--hf-border-default);color:var(--hf-text-muted)}
+
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>Antenna visualiser</h1>
-    <p class="lede">Pick an antenna and a band. This shows what to cut, what the
-      resulting pattern looks like, and — the part that usually gets left out —
-      whether that pattern points where your path actually needs it to.</p>
+    <p class="lede" id="lede"></p>
+    <div class="switches">
+      <div class="seg" id="mode" role="group" aria-label="Mode">
+        <button type="button" data-mode="amateur">Bands</button>
+        <button type="button" data-mode="field">Frequencies</button>
+      </div>
+      <div class="seg small" id="units" role="group" aria-label="Units">
+        <button type="button" data-unit="ft">ft / in</button>
+        <button type="button" data-unit="m">metres</button>
+      </div>
+    </div>
+    <p class="modehint" id="modehint"></p>
   </header>
+
+  <div class="controls" id="freqbox" hidden>
+    <div class="ctl" style="grid-column:1/-1">
+      <label for="addfreq">Frequencies in use</label>
+      <div class="freqs" id="freqs"></div>
+      <div class="addfreq" style="margin-top:6px">
+        <input type="text" id="addfreq" inputmode="decimal" placeholder="5357"
+               aria-label="Add a frequency in MHz or kHz">
+        <button type="button" id="addbtn">Add</button>
+        <span class="help" id="freqerr"></span>
+      </div>
+      <div class="help">Enter MHz (5.357) or kHz (5357). Click one to show it below;
+        the whole list is checked against your target.</div>
+    </div>
+  </div>
 
   <div class="controls" id="controls"></div>
 
   <div id="cautions"></div>
+
+  <div class="panel" id="cutbox" hidden>
+    <h2>Cut these lengths</h2>
+    <div class="cut" id="cutlist"></div>
+    <p class="cap" id="cutcap"></p>
+  </div>
 
   <div class="panels">
     <div class="panel">
@@ -153,6 +263,9 @@ footer strong{color:var(--hf-text-secondary)}
       <div id="diagram"></div>
       <p class="cap">Side view, to scale. Lengths are along the wire, so a sloping
         leg is longer than the ground it covers.</p>
+      <div class="partinfo idle" id="partinfo">
+        <p id="parttext">Select any part of the diagram to see what it does.</p>
+      </div>
       <div class="scroll" style="margin-top:var(--hf-spacing-4)">
         <table id="dims"></table>
       </div>
@@ -168,12 +281,13 @@ footer strong{color:var(--hf-text-secondary)}
 
   <div class="panels">
     <div class="panel">
-      <h2>Will it reach?</h2>
+      <h2 id="reachhead">Will it reach?</h2>
       <div class="ctl" style="margin-bottom:var(--hf-spacing-4)">
         <label for="dist">Path length <span class="val" id="distval"></span></label>
         <input type="range" id="dist" min="200" max="12000" step="100" value="2000">
       </div>
       <div id="verdict"></div>
+      <div id="freqverdicts" hidden style="margin-top:var(--hf-spacing-4)"></div>
       <p class="cap" id="hopcap"></p>
     </div>
 
@@ -199,25 +313,30 @@ footer strong{color:var(--hf-text-secondary)}
     <div><strong>Gain figures are an upper bound you will not reach.</strong> They are
       directivity: no conductor loss, no matching loss, no ground loss. Real ground
       fills in the deep nulls and takes 1&ndash;2&nbsp;dB off a horizontal antenna, and
-      considerably more off a ground-mounted vertical. Where that matters most, the
-      page says so above the plot rather than leaving you to know it.</div>
-    <div><strong>Take-off angles assume a mirror-flat reflecting layer</strong> at the
-      height you choose, over a spherical earth. Real hops tilt, split and take more
-      than one path at once. Use the angle as the target to aim at, not as a
-      prediction &mdash; for an actual circuit at an actual time, the
-      <a href="./planner.html">path planner</a> and <a href="./reach.html">reach map</a>
-      run the real propagation model.</div>
+      considerably more off a ground-mounted vertical or any electrically short whip.
+      Where that matters most, the page says so above the plot rather than leaving you
+      to know it.</div>
+    <div><strong>This page does not say whether the frequency will work.</strong> It
+      says whether your antenna points where the path needs it. Whether the ionosphere
+      will bend that frequency back down to your target at that hour is a separate
+      question with a separate answer &mdash; use the
+      <a href="./planner.html">path planner</a> or the <a href="./reach.html">reach
+      map</a>, which run the real propagation model. A green verdict here means the
+      antenna is not your problem, not that the link will close.</div>
+    <div><strong>Take-off angles assume a mirror-flat reflecting layer</strong> at
+      300&nbsp;km over a spherical earth. Real hops tilt, split and take more than one
+      path at once. Use the angle as the target to aim at, not as a prediction.</div>
     <div><strong>Nothing here is a substitute for measuring.</strong> Cut wire long,
       trim it in place, and trust an antenna analyser over any model &mdash; including
-      this one.</div>
+      this one. Where an issued antenna exists, its manual governs.</div>
   </footer>
 </div>
 
 <script type="module">
 import {
-  ANTENNAS, BANDS, GROUPS, analyse, buildAntenna, byId, countLobes, defaultParams,
-  feetInches, halfPowerElevation, maxHopDistanceKm, metresToFeet, minimumHops,
-  takeoffAngle, wavelength,
+  AMATEUR_ANTENNAS, BANDS, FIELD_GROUPS, GROUPS, analyse, antennasFor, buildAntenna,
+  byId, countLobes, defaultParams, feetInches, groupsFor, halfPowerElevation,
+  maxHopDistanceKm, metresToFeet, minimumHops, takeoffAngle, wavelength,
 } from './vendor/antenna.mjs';
 import { constructionSvg, elevationSvg, azimuthSvg } from './lib/antenna-plot.mjs';
 import { mountNav } from './lib/nav.mjs';
@@ -228,37 +347,143 @@ document.documentElement.setAttribute('data-theme',
 
 const $ = (i) => document.getElementById(i);
 const LAYER_KM = 300;
-const STORE = 'hfkit.antenna.v1';
+const STORE = 'hfkit.antenna.v2';
 
 // --- state -----------------------------------------------------------------
 
 const state = {
+  mode: 'amateur',
+  // null means "not chosen": metres for the band-oriented page, feet for the
+  // field page, since that is what each audience's tape measure reads. The
+  // moment someone touches the switch it becomes explicit and applies to both.
+  units: null,
   antennaId: 'dipole',
+  fieldAntennaId: 'nvis-inverted-v',
   designBand: '20m',
   operatingBand: '20m',
+  freqs: [3.1, 5.357, 7.85],
+  cutIndex: 0,
+  showIndex: 1,
   distanceKm: 2000,
+  fieldDistanceKm: 120,
   params: {},
 };
 
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) ?? 'null');
-  if (saved && byId(saved.antennaId)) Object.assign(state, saved);
+  if (saved) Object.assign(state, saved);
 } catch { /* a corrupt preference is not worth a broken page */ }
+if (!byId(state.antennaId)) state.antennaId = 'dipole';
+if (!byId(state.fieldAntennaId)) state.fieldAntennaId = 'nvis-inverted-v';
 
 const save = () => {
   try { localStorage.setItem(STORE, JSON.stringify(state)); } catch { /* private mode */ }
 };
 
+const isField = () => state.mode === 'field';
+const antenna = () => byId(isField() ? state.fieldAntennaId : state.antennaId) ?? AMATEUR_ANTENNAS[0];
 const bandMhz = (id) => (BANDS.find((b) => b.id === id) ?? BANDS[5]).mhz;
-const antenna = () => byId(state.antennaId) ?? ANTENNAS[0];
+const clampIndex = (i) => Math.max(0, Math.min(state.freqs.length - 1, i));
 
-// Parameters are per-antenna: switching from a dipole to a vertical must not
-// carry "apex height" across into something that has no apex.
-function paramsFor(a) {
-  const store = state.params[a.id] ?? {};
-  const out = defaultParams(a);
-  for (const p of a.params) if (store[p.id] !== undefined) out[p.id] = store[p.id];
-  return out;
+/** What the wire is cut for, and what we are drawing the pattern at. */
+const cutMHz = () => (isField()
+  ? state.freqs[clampIndex(state.cutIndex)]
+  : bandMhz(state.designBand));
+const showMHz = () => (isField()
+  ? state.freqs[clampIndex(state.showIndex)]
+  : bandMhz(state.operatingBand));
+const distanceKm = () => (isField() ? state.fieldDistanceKm : state.distanceKm);
+
+// --- units -----------------------------------------------------------------
+
+/** The one place a length becomes text. Everything else stays in metres. */
+const units = () => state.units ?? (isField() ? 'ft' : 'm');
+function fmt(metres) {
+  return units() === 'ft' ? feetInches(metres) : `${metres.toFixed(2)} m`;
+}
+function fmtAlt(metres) {
+  return units() === 'ft' ? `${metres.toFixed(2)} m` : feetInches(metres);
+}
+// Distance stays metric whatever the unit switch says. The switch is about
+// measurements you cut with a tape; ground distance comes off a map, and every
+// military map grid in use is metric. Coupling the two would put "75 mi" in
+// front of someone whose target is gridded at 120 km.
+const fmtDistance = (km) => `${Math.round(km).toLocaleString()} km`;
+const fmtDistanceAlt = (km) => `${Math.round(km * 0.621371).toLocaleString()} mi`;
+
+// --- frequency entry -------------------------------------------------------
+
+/**
+ * Accepts what an operator would actually type off an assignment sheet: MHz,
+ * kHz, with or without a unit suffix. 5357, 5357 kHz and 5.357 all mean the
+ * same thing, and refusing two of those three would be an own goal.
+ */
+export function parseFreq(raw) {
+  const s = String(raw).trim().toLowerCase().replace(/,/g, '');
+  if (!s) return { error: 'Enter a frequency' };
+  const num = Number.parseFloat(s);
+  if (!Number.isFinite(num) || num <= 0) return { error: 'Not a number' };
+  let mhz;
+  if (/k/.test(s)) mhz = num / 1000;
+  else if (/m/.test(s)) mhz = num;
+  else mhz = num > 100 ? num / 1000 : num;      // bare 5357 is kHz, bare 5.357 is MHz
+  mhz = Math.round(mhz * 1000) / 1000;
+  if (mhz < 1.5 || mhz > 30) return { error: `${mhz} MHz is outside HF (1.5–30)` };
+  return { mhz };
+}
+globalThis.__hfkitParseFreq = parseFreq;
+
+function addFreq() {
+  const { mhz, error } = parseFreq($('addfreq').value);
+  if (error) { $('freqerr').textContent = error; return; }
+  if (state.freqs.some((f) => Math.abs(f - mhz) < 0.0005)) {
+    $('freqerr').textContent = 'Already in the list';
+    return;
+  }
+  if (state.freqs.length >= 8) { $('freqerr').textContent = 'Eight is plenty'; return; }
+  state.freqs = [...state.freqs, mhz].sort((a, b) => a - b);
+  state.showIndex = state.freqs.indexOf(mhz);
+  $('addfreq').value = '';
+  $('freqerr').textContent = '';
+  save(); renderFreqs(); renderControls(); render();
+}
+
+function removeFreq(i) {
+  if (state.freqs.length <= 1) { $('freqerr').textContent = 'Keep at least one'; return; }
+  const wasCut = state.freqs[state.cutIndex];
+  const wasShow = state.freqs[state.showIndex];
+  state.freqs = state.freqs.filter((_, n) => n !== i);
+  state.cutIndex = clampIndex(Math.max(0, state.freqs.indexOf(wasCut)));
+  state.showIndex = clampIndex(Math.max(0, state.freqs.indexOf(wasShow)));
+  $('freqerr').textContent = '';
+  save(); renderFreqs(); renderControls(); render();
+}
+
+const mhzText = (f) => `${f.toFixed(3)} MHz`;
+
+function renderFreqs() {
+  const box = $('freqs');
+  box.replaceChildren(...state.freqs.map((f, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.setAttribute('aria-current', String(i === clampIndex(state.showIndex)));
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'pick';
+    pick.textContent = mhzText(f);
+    pick.title = `Show ${mhzText(f)}`;
+    pick.addEventListener('click', () => {
+      state.showIndex = i; save(); renderFreqs(); renderControls(); render();
+    });
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'x';
+    x.textContent = '×';
+    x.setAttribute('aria-label', `Remove ${mhzText(f)}`);
+    x.addEventListener('click', () => removeFreq(i));
+    chip.append(pick, x);
+    return chip;
+  }));
 }
 
 // --- controls --------------------------------------------------------------
@@ -307,32 +532,45 @@ function renderControls() {
   const a = antenna();
   const box = $('controls');
   box.replaceChildren();
+  const list = antennasFor(state.mode);
+  const groups = groupsFor(state.mode);
 
   box.append(ctl('Antenna', select('ant',
-    GROUPS.map((g) => ({
+    groups.map((g) => ({
       group: g,
-      items: ANTENNAS.filter((x) => x.group === g).map((x) => ({ label: x.name, value: x.id })),
+      items: list.filter((x) => x.group === g).map((x) => ({ label: x.name, value: x.id })),
     })),
     a.id,
-    (v) => { state.antennaId = v; save(); renderControls(); render(); })));
+    (v) => {
+      if (isField()) state.fieldAntennaId = v; else state.antennaId = v;
+      save(); renderControls(); render();
+    })));
 
-  // A single-band antenna has one frequency; a multiband wire has two, and the
-  // gap between them is the entire subject. Showing "cut for" on an antenna
-  // that is always cut for the band you are on would be a lie.
-  if (!a.cutPerBand) {
-    box.append(ctl('Cut for', select('cut',
-      BANDS.map((b) => ({ label: b.label, value: b.id })), state.designBand,
-      (v) => {
-        state.designBand = v;
-        if (!isMultiband(a)) state.operatingBand = v;
-        save(); renderControls(); render();
-      }), { help: 'The band the wire is cut to resonate on' }));
+  if (isField()) {
+    if (dependsOnDesign(a, paramsFor(a), showMHz()) && state.freqs.length > 1) {
+      box.append(ctl('Cut for', select('cutf',
+        state.freqs.map((f, i) => ({ label: mhzText(f), value: String(i) })),
+        String(clampIndex(state.cutIndex)),
+        (v) => { state.cutIndex = Number(v); save(); render(); }),
+      { help: 'Usually your lowest frequency' }));
+    }
+  } else {
+    // A single-band antenna has one frequency; a multiband wire has two, and
+    // the gap between them is the entire subject.
+    if (dependsOnDesign(a, paramsFor(a), showMHz())) {
+      box.append(ctl('Cut for', select('cut',
+        BANDS.map((b) => ({ label: b.label, value: b.id })), state.designBand,
+        (v) => {
+          state.designBand = v;
+          if (a.group !== 'Multiband compromises') state.operatingBand = v;
+          save(); renderControls(); render();
+        }), { help: 'The band the wire is cut to resonate on' }));
+    }
+    box.append(ctl('Operating on', select('op',
+      BANDS.map((b) => ({ label: b.label, value: b.id })), state.operatingBand,
+      (v) => { state.operatingBand = v; save(); renderControls(); render(); }),
+    { help: a.cutPerBand ? 'Dimensions follow the band you are on' : null }));
   }
-
-  box.append(ctl('Operating on', select('op',
-    BANDS.map((b) => ({ label: b.label, value: b.id })), state.operatingBand,
-    (v) => { state.operatingBand = v; save(); renderControls(); render(); }),
-  { help: a.cutPerBand ? 'Dimensions follow the band you are on' : null }));
 
   const p = paramsFor(a);
   for (const spec of a.params) {
@@ -352,36 +590,157 @@ function renderControls() {
   }
 }
 
+/**
+ * Does the design frequency actually change this antenna's geometry?
+ *
+ * A whip is 3 m of metal whatever frequency you point it at, so asking what it
+ * is "cut for" is meaningless and warning that it is off its design frequency
+ * is worse than meaningless. Rather than tag each entry by hand and have the
+ * tag drift, build the thing twice at very different design frequencies and
+ * look. Cheap — no pattern analysis involved — and it cannot go stale.
+ */
+function dependsOnDesign(a, params, op) {
+  if (a.cutPerBand) return false;
+  const shape = (f) => JSON.stringify(
+    buildAntenna(a, { designMHz: f, operatingMHz: op, params }).paths
+      .map((p) => p.points.map((pt) => pt.map((n) => Math.round(n * 1000)))));
+  try {
+    return shape(3.5) !== shape(21);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Narrower question: does the *wire length* follow the design frequency?
+ *
+ * A terminated folded dipole is a fixed length hung at a height that scales, so
+ * it answers yes to dependsOnDesign and no to this. Telling someone to trim a
+ * broadband antenna to resonance would undo the one thing it is for.
+ */
+function lengthDependsOnDesign(a, params, op) {
+  if (a.cutPerBand) return false;
+  const len = (f) => wireLength(buildAntenna(a, { designMHz: f, operatingMHz: op, params }));
+  try {
+    return Math.abs(len(3.5) - len(21)) > 0.01;
+  } catch {
+    return true;
+  }
+}
+
+// Parameters are per-antenna: switching from a dipole to a vertical must not
+// carry "apex height" across into something that has no apex.
+function paramsFor(a) {
+  const store = state.params[a.id] ?? {};
+  const out = defaultParams(a);
+  for (const spec of a.params) if (store[spec.id] !== undefined) out[spec.id] = store[spec.id];
+  return out;
+}
+
 function setParam(a, id, value) {
   state.params[a.id] = { ...paramsFor(a), [id]: value };
   save();
   render();
 }
 
-function paramValueText(spec, value) {
-  if (spec.type === 'length') return `${value.toFixed(1)} m · ${feetInches(value)}`;
+function paramValueText(spec, value, designMHz) {
+  if (spec.type === 'length') return `${fmt(value)} · ${fmtAlt(value)}`;
+  if (spec.type === 'wavelengths') {
+    return `${value.toFixed(2)} λ · ${fmt(value * wavelength(designMHz))}`;
+  }
   if (spec.type === 'angle') return `${value}°`;
   if (spec.type === 'fraction') return `${(value * 100).toFixed(0)} %`;
   return String(value);
 }
 
+// --- what each part of the diagram is --------------------------------------
+
+function partInfo(kind, built) {
+  const endFed = (built.paths[0]?.feedAt ?? 1) <= 1e-6;
+  switch (kind) {
+    case 'feed':
+      return ['Feedpoint', endFed
+        ? 'The wire is fed at its end, which sits on a voltage maximum — a very high '
+          + 'impedance. That is why an end-fed antenna needs a transformer or a coupler '
+          + 'rather than direct coax, and why the matching hardware gets warm.'
+        : 'Fed in the middle, which is a current maximum. Most of the radiation comes '
+          + 'from here, so this is the part to keep high and in the clear. Use a choke '
+          + 'or current balun — without one the feedline radiates and the pattern '
+          + 'drawn here is not the one you get.'];
+    case 'element':
+      return ['Radiating element', 'The wire itself. Its length sets the resonant '
+        + 'frequency and its height above ground sets the take-off angle — those are '
+        + 'two separate jobs, and getting the length right does nothing for the angle.'];
+    case 'end':
+      return ['Wire end', 'A voltage maximum: kilovolts at power, even from a small '
+        + 'transmitter. Insulate it, keep it out of reach, and keep it clear of foliage '
+        + 'and anything conductive. Detuning here also shifts the whole antenna.'];
+    case 'mast':
+      return ['Support', 'Holds the wire up and does nothing else — provided it is not '
+        + 'conductive. A metal mast bonded to the antenna becomes part of it, and the '
+        + 'pattern shown here no longer applies.'];
+    case 'counterpoise':
+      return ['Counterpoise / radials', 'The return path. Current that leaves the '
+        + 'antenna has to come back through something, and if you do not provide this, '
+        + 'it returns through the soil, the feedline shield and the equipment case — '
+        + 'as loss. Improving it is usually the cheapest gain available.'];
+    case 'ground':
+      return ['Ground', 'The model treats this as a perfect mirror, which is why the '
+        + 'gain figures are an upper bound. Real soil absorbs, and it absorbs most from '
+        + 'antennas that are low or vertical. Wet ground and salt water are much better '
+        + 'reflectors than dry sand or rock.'];
+    default:
+      return ['Select any part of the diagram to see what it does.', ''];
+  }
+}
+
+function wireParts(svg, built) {
+  const info = $('partinfo'), body = $('parttext');
+  const show = (kind, el) => {
+    for (const g of svg.querySelectorAll('.part')) g.classList.toggle('sel', g === el);
+    const [title, text] = partInfo(kind, built);
+    info.classList.toggle('idle', !text);
+    body.replaceChildren();
+    if (text) {
+      const h = document.createElement('h4');
+      h.textContent = title;
+      const p = document.createElement('p');
+      p.textContent = text;
+      body.append(h, p);
+    } else {
+      body.textContent = title;
+    }
+  };
+  for (const g of svg.querySelectorAll('.part')) {
+    const kind = g.dataset.part;
+    g.addEventListener('click', () => show(kind, g));
+    g.addEventListener('focus', () => show(kind, g));
+    g.addEventListener('mouseenter', () => show(kind, g));
+    g.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(kind, g); }
+    });
+  }
+}
+
 // --- rendering -------------------------------------------------------------
+
+let verdictTimer = null;
 
 function render() {
   const a = antenna();
-  const designMHz = a.cutPerBand ? bandMhz(state.operatingBand) : bandMhz(state.designBand);
-  const operatingMHz = bandMhz(state.operatingBand);
+  const design = a.cutPerBand ? showMHz() : cutMHz();
+  const op = showMHz();
   const params = paramsFor(a);
 
   for (const spec of a.params) {
     const v = $(`v_${spec.id}`);
-    if (v) v.textContent = paramValueText(spec, params[spec.id]);
+    if (v) v.textContent = paramValueText(spec, params[spec.id], design);
   }
 
-  const built = buildAntenna(a, { designMHz, operatingMHz, params });
+  const built = buildAntenna(a, { designMHz: design, operatingMHz: op, params });
   let pattern;
   try {
-    pattern = analyse(built.paths, operatingMHz, { perWavelength: 28 });
+    pattern = analyse(built.paths, op, { perWavelength: 28 });
   } catch (e) {
     $('cautions').replaceChildren(caution('high',
       `This geometry cannot be modelled: ${e.message}`));
@@ -395,30 +754,31 @@ function render() {
     ...built.warnings.map((w) => caution('moderate', w)),
     ...built.cautions.map((c) => caution(c.severity, c.text)),
   ];
-  if (!a.cutPerBand && state.designBand !== state.operatingBand) {
-    // Measured off the geometry, not derived from the two wavelengths — a
-    // doublet's length is whatever the slider says, and has no fixed relation
-    // to the band it was nominally cut for.
-    const halfWaves = wireLength(built) / (0.95 * wavelength(operatingMHz) / 2);
+  if (Math.abs(design - op) > 1e-9 && dependsOnDesign(a, params, op)) {
+    const halfWaves = wireLength(built) / (0.95 * wavelength(op) / 2);
     cautions.unshift(caution('moderate',
-      `Cut for ${label(state.designBand)} and used on ${label(state.operatingBand)}: `
-      + `the wire is ${halfWaves.toFixed(2)} half waves long on this band. `
-      + (isMultiband(a)
+      `Cut for ${isField() ? mhzText(design) : label(state.designBand)} and used on `
+      + `${isField() ? mhzText(op) : label(state.operatingBand)}: the wire is `
+      + `${halfWaves.toFixed(2)} half waves long here. `
+      + (isField() || a.group === 'Multiband compromises'
         ? 'That is the intended use of this antenna, and the pattern below is what '
-        + 'it really does on this band.'
+        + 'it really does on this frequency.'
         : 'That is off its design band — it will need a tuner, and the pattern below '
         + 'assumes you have matched it somehow.')));
   }
   $('cautions').replaceChildren(...cautions);
 
   // --- construction ---
-  $('diagram').replaceChildren(constructionSvg(built, { width: 640, height: 300 }));
-  renderDims(built, operatingMHz);
+  const svg = constructionSvg(built, { width: 640, height: 300, interactive: true, fmt });
+  $('diagram').replaceChildren(svg);
+  wireParts(svg, built);
+  renderDims(built);
+  renderCutBlock(built, op);
 
   // --- pattern ---
-  const distance = state.distanceKm;
-  const hops = minimumHops(distance, LAYER_KM);
-  const need = takeoffAngle(distance, { layerHeightKm: LAYER_KM, hops });
+  const dist = distanceKm();
+  const hops = minimumHops(dist, LAYER_KM);
+  const need = takeoffAngle(dist, { layerHeightKm: LAYER_KM, hops });
   const az = pattern.peak.azimuthDeg;
 
   $('elev').replaceChildren(elevationSvg(pattern, {
@@ -443,29 +803,30 @@ function render() {
         : 'half-power points off the chart'),
     stat('Lowest lobe', low ? `${low.elevationDeg.toFixed(0)}°` : '—',
       low ? `${low.belowPeakDb.toFixed(1)} dB below peak` : 'no distinct low lobe'),
-    stat('Height', `${(currentHeight(built) / wavelength(operatingMHz)).toFixed(2)} λ`,
-      `${wavelength(operatingMHz).toFixed(1)} m wavelength`),
+    stat('Height', `${(topHeight(built) / wavelength(op)).toFixed(2)} λ`,
+      `${wavelength(op).toFixed(1)} m wavelength`),
   );
 
-  // --- the verdict ---
-  renderVerdict(pattern, { distance, hops, need, az });
+  renderVerdict(pattern, { dist, hops, need, az });
 
   // --- azimuth ---
   const azElev = need > 0 && need <= 90 ? need : pattern.peak.elevationDeg;
   $('azim').replaceChildren(azimuthSvg(pattern, { elevationDeg: azElev }));
-  const lobes = countLobes(pattern.azCut(azElev), { wrap: true });
   const cut = pattern.azCut(azElev);
+  const lobes = countLobes(cut, { wrap: true });
   const spread = Math.max(...cut) - Math.min(...cut);
   $('azimcap').textContent =
-    `Bearing coverage at ${azElev.toFixed(0)}° elevation — ${lobes === 1
-      ? 'one continuous lobe'
-      : `${lobes} lobes`}, `
+    `Bearing coverage at ${azElev.toFixed(0)}° elevation — `
+    + `${lobes === 1 ? 'one continuous lobe' : `${lobes} lobes`}, `
     + `${spread < 1 ? 'essentially omnidirectional'
       : `${spread.toFixed(0)} dB between the best and worst bearing`}. `
-    + (lobes > 2
-      ? 'A wire this long electrically no longer favours broadside; the strong '
-      + 'directions have moved and there are nulls between them.'
-      : 'North is up.');
+    + (azElev > 70
+      ? 'At this angle you are firing almost straight up, so bearing is not a '
+      + 'planning factor — that is the point of NVIS.'
+      : lobes > 2
+        ? 'A wire this long electrically no longer favours broadside; the strong '
+        + 'directions have moved and there are nulls between them.'
+        : 'North is up.');
 
   // --- notes ---
   $('notes').replaceChildren(...built.notes.map((n) => {
@@ -473,12 +834,56 @@ function render() {
     li.textContent = n;
     return li;
   }));
+
+  // The per-frequency table needs one analysis per frequency, which is too slow
+  // to run while a slider is moving. Defer it and let the main plot stay live.
+  clearTimeout(verdictTimer);
+  if (isField()) {
+    $('freqverdicts').hidden = false;
+    verdictTimer = setTimeout(() => renderFreqVerdicts(a, params, need), 120);
+  } else {
+    $('freqverdicts').hidden = true;
+  }
 }
 
-function renderVerdict(pattern, { distance, hops, need, az }) {
+/** The big answer in field mode: what to cut, in the units you asked for. */
+function renderCutBlock(built, op) {
+  $('cutbox').hidden = !isField();
+  if (!isField()) return;
+  const lengths = built.dims.filter((d) => d.metres !== undefined).slice(0, 6);
+  $('cutlist').replaceChildren(...lengths.map((d) => {
+    const box = document.createElement('div');
+    box.className = 'item';
+    const k = document.createElement('div'); k.className = 'k'; k.textContent = d.label;
+    const v = document.createElement('div'); v.className = 'v'; v.textContent = fmt(d.metres);
+    const alt = document.createElement('div'); alt.className = 'alt';
+    alt.textContent = fmtAlt(d.metres);
+    box.append(k, v, alt);
+    if (d.note) {
+      const n = document.createElement('div'); n.className = 'note'; n.textContent = d.note;
+      box.append(n);
+    }
+    return box;
+  }));
+  const a = built.antenna;
+  $('cutcap').textContent = lengthDependsOnDesign(a, built.params, op)
+    ? `Cut for ${mhzText(cutMHz())}. Cut every wire 2–3 % long and trim it in place — `
+      + 'wire stretches, end loops and insulators add length, and anything nearby lowers '
+      + 'the resonant frequency. You can always shorten.'
+    : dependsOnDesign(a, built.params, op)
+      ? `Nothing here is cut to frequency — the length is whatever you set it to. What `
+        + `follows ${mhzText(cutMHz())} is the height, which is set as a fraction of a `
+        + 'wavelength.'
+      : 'This antenna is a fixed length — there is nothing to cut for a frequency. '
+        + 'What changes with frequency is how well it works, which is what the panels '
+        + 'below are for.';
+}
+
+function renderVerdict(pattern, { dist, hops, need, az }) {
   const v = $('verdict');
-  $('distval').textContent = `${distance.toLocaleString()} km · `
-    + `${Math.round(distance * 0.621371).toLocaleString()} mi`;
+  $('distval').textContent = `${fmtDistance(dist)} · ${fmtDistanceAlt(dist)}`;
+  $('reachhead').textContent = isField()
+    ? `Will it reach ${fmtDistance(dist)}?` : 'Will it reach?';
 
   if (need <= 0) {
     v.replaceChildren(Object.assign(document.createElement('div'), {
@@ -503,36 +908,90 @@ function renderVerdict(pattern, { distance, hops, need, az }) {
   const box = document.createElement('div');
   box.className = `verdict ${tier}`;
   box.append(document.createTextNode(
-    `${need.toFixed(0)}° needed · ${gain.toFixed(1)} dBi there · `
-    + `${down.toFixed(1)} dB below this antenna's best. ${verdictText}`));
+    `${need.toFixed(0)}° needed${isField() ? ` — ${modeOfPath(need)}` : ''} · `
+    + `${gain.toFixed(1)} dBi there · ${down.toFixed(1)} dB below this antenna's best. `
+    + verdictText));
   const sub = document.createElement('span');
   sub.className = 'sub';
-  sub.textContent = advice(pattern, need, az, down);
+  sub.textContent = advice(pattern, need, down);
   box.append(sub);
   v.replaceChildren(box);
 
   $('hopcap').textContent =
     `${hops} hop${hops > 1 ? 's' : ''} off a 300 km F2 layer, `
-    + `${(distance / hops).toFixed(0)} km each. A single hop off that height runs out `
-    + `at about ${maxHopDistanceKm(300).toFixed(0)} km. Ionospheric height varies with `
-    + 'the time of day and the state of the sun — this is the geometry, not a forecast.';
+    + `${fmtDistance(dist / hops)} each. A single hop off that height runs out at about `
+    + `${fmtDistance(maxHopDistanceKm(300))}. Layer height moves with the hour and the `
+    + 'state of the sun — this is the geometry, not a forecast, and it says nothing '
+    + 'about whether the frequency will propagate.';
 }
 
+const modeOfPath = (need) => (need >= 70 ? 'NVIS, straight up'
+  : need >= 40 ? 'high angle, short skip'
+    : need >= 20 ? 'medium angle' : 'low angle, long haul');
+
 /** The actionable half: what to change, and roughly what it buys. */
-function advice(pattern, need, az, down) {
+function advice(pattern, need, down) {
   if (down < 1) return 'Nothing to fix here.';
   const peakE = pattern.peak.elevationDeg;
+  if (need > peakE + 2) {
+    return 'The path needs a steeper angle than this antenna favours. For short range '
+      + 'that means getting the wire lower — between a tenth and a quarter of a '
+      + 'wavelength up — or using an NVIS antenna instead of a vertical.';
+  }
   if (need < peakE - 2) {
     return 'The path needs a lower angle than this antenna favours. For a horizontal '
-      + 'antenna the fix is height — the lobe angle is set almost entirely by how many '
-      + 'wavelengths up it is. For a vertical, the fix is a better ground system.';
-  }
-  if (need > peakE + 2) {
-    return 'The path needs a steeper angle than this antenna favours, which is the '
-      + 'unusual direction to be wrong in. A lower horizontal antenna, or an inverted '
-      + 'V, would put more energy where this path wants it.';
+      + 'antenna the fix is height, since the lobe angle is set almost entirely by how '
+      + 'many wavelengths up it is. For a vertical, the fix is a better ground system.';
   }
   return 'The angle is right; the loss is off to the side of the lobe.';
+}
+
+/** Every frequency in the list, against the same target. The field payload. */
+function renderFreqVerdicts(a, params, need) {
+  const box = $('freqverdicts');
+  const design = cutMHz();
+  const rows = [];
+  for (const f of state.freqs) {
+    let p;
+    try {
+      const b = buildAntenna(a, {
+        designMHz: a.cutPerBand ? f : design, operatingMHz: f, params,
+      });
+      p = analyse(b.paths, f, { perWavelength: 20 });
+    } catch { continue; }
+    const gain = need > 0 && need <= 90 ? p.gainAt(need, p.peak.azimuthDeg) : -99;
+    rows.push({ f, down: p.peak.gainDbi - gain, gain });
+  }
+  const best = Math.min(...rows.map((r) => r.down));
+  box.replaceChildren(...rows.map(({ f, down, gain }) => {
+    const row = document.createElement('div');
+    row.className = 'freqrow';
+    const fe = document.createElement('span');
+    fe.className = 'f';
+    fe.textContent = mhzText(f);
+    const tag = document.createElement('span');
+    const tier = down < 2 ? 'good' : down < 5 ? 'fair' : down < 10 ? 'poor' : 'closed';
+    tag.className = 'tag';
+    tag.style.background = `var(--hf-status-${tier}-fill)`;
+    tag.style.color = `var(--hf-status-${tier}-on)`;
+    tag.textContent = down < 2 ? 'good' : down < 5 ? 'usable' : down < 10 ? 'marginal' : 'poor';
+    const say = document.createElement('span');
+    say.className = 'say';
+    say.textContent = `${gain.toFixed(1)} dBi at ${need.toFixed(0)}°, `
+      + `${down.toFixed(1)} dB down`
+      + (Math.abs(down - best) < 0.05 && rows.length > 1 ? ' — best of your list' : '')
+      + (Math.abs(f - design) < 1e-9 ? ' · cut for this one' : '');
+    row.append(fe, tag, say);
+    return row;
+  }));
+  const head = document.createElement('div');
+  head.className = 'cap';
+  head.style.marginBottom = '4px';
+  head.textContent = `Every frequency in your list against ${fmtDistance(distanceKm())}, `
+    + `with the antenna cut for ${mhzText(design)}. Antenna only — whether the `
+    + 'ionosphere supports each frequency at the hour you transmit is a separate '
+    + 'question.';
+  box.prepend(head);
 }
 
 // --- small builders --------------------------------------------------------
@@ -547,20 +1006,21 @@ function caution(severity, textContent) {
 function stat(k, value, unit) {
   const d = document.createElement('div');
   d.className = 'stat';
-  for (const [cls, t] of [['k', k], ['v', value], ['u', unit]]) {
+  for (const [cls, txt] of [['k', k], ['v', value], ['u', unit]]) {
     const s = document.createElement('div');
     s.className = cls;
-    s.textContent = t;
+    s.textContent = txt;
     d.append(s);
   }
   return d;
 }
 
-function renderDims(built, operatingMHz) {
+function renderDims(built) {
   const t = $('dims');
   t.replaceChildren();
   const head = t.createTHead().insertRow();
-  for (const h of ['Dimension', 'Metric', 'Imperial']) {
+  for (const h of ['Dimension', units() === 'ft' ? 'Imperial' : 'Metric',
+    units() === 'ft' ? 'Metric' : 'Imperial']) {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = h;
@@ -580,10 +1040,10 @@ function renderDims(built, operatingMHz) {
     if (d.metres !== undefined) {
       const c1 = tr.insertCell();
       c1.className = 'num';
-      c1.textContent = `${d.metres.toFixed(2)} m`;
+      c1.textContent = fmt(d.metres);
       const c2 = tr.insertCell();
       c2.className = 'num';
-      c2.textContent = feetInches(d.metres);
+      c2.textContent = fmtAlt(d.metres);
     } else {
       const c1 = tr.insertCell();
       c1.colSpan = 2;
@@ -593,15 +1053,13 @@ function renderDims(built, operatingMHz) {
 }
 
 const label = (bandId) => BANDS.find((b) => b.id === bandId)?.label ?? bandId;
-const isMultiband = (a) => a.group === 'Multiband compromises';
 const bearingText = (deg) => {
   const names = ['north', 'north-east', 'east', 'south-east', 'south',
     'south-west', 'west', 'north-west'];
   return names[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 };
 
-/** Height of the highest point, used only for the "how many wavelengths up" stat. */
-function currentHeight(built) {
+function topHeight(built) {
   let z = 0;
   for (const p of built.paths) for (const pt of p.points) z = Math.max(z, pt[2]);
   return z;
@@ -620,18 +1078,76 @@ function wireLength(built) {
   return total;
 }
 
-// --- go --------------------------------------------------------------------
+// --- mode and units --------------------------------------------------------
 
-$('dist').value = state.distanceKm;
+const LEDE = {
+  amateur: 'Pick an antenna and a band. This shows what to cut, what the resulting '
+    + 'pattern looks like, and — the part that usually gets left out — whether that '
+    + 'pattern points where your path actually needs it to.',
+  field: 'Enter the frequencies you have been assigned and pick what you can actually '
+    + 'put up. This gives you the lengths to cut and tells you whether the antenna '
+    + 'points where your traffic has to go.',
+};
+const HINT = {
+  amateur: 'Thinking in frequencies instead of bands? Switch to Frequencies for a '
+    + 'shorter list of field-expedient antennas and per-frequency answers.',
+  field: 'Enter frequencies in MHz or kHz. Heights are set as a fraction of a '
+    + 'wavelength, because that is the only form of the NVIS rule that survives a '
+    + 'change of frequency.',
+};
+
+function applyMode() {
+  for (const b of $('mode').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
+  }
+  for (const b of $('units').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.unit === units()));
+  }
+  $('lede').textContent = LEDE[state.mode];
+  $('modehint').textContent = HINT[state.mode];
+  $('freqbox').hidden = !isField();
+  $('dist').min = isField() ? 20 : 200;
+  $('dist').max = isField() ? 4000 : 12000;
+  $('dist').step = isField() ? 10 : 100;
+  $('dist').value = distanceKm();
+}
+
+$('mode').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-mode]');
+  if (!b || b.dataset.mode === state.mode) return;
+  state.mode = b.dataset.mode;
+  save();
+  applyMode(); renderFreqs(); renderControls(); render();
+});
+
+$('units').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-unit]');
+  if (!b || b.dataset.unit === units()) return;
+  state.units = b.dataset.unit;
+  save();
+  applyMode(); render();
+});
+
+$('addbtn').addEventListener('click', addFreq);
+$('addfreq').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addFreq(); }
+});
+
 $('dist').addEventListener('input', () => {
-  state.distanceKm = Number($('dist').value);
+  const v = Number($('dist').value);
+  if (isField()) state.fieldDistanceKm = v; else state.distanceKm = v;
   save();
   render();
 });
 
+// --- go --------------------------------------------------------------------
+
+applyMode();
+renderFreqs();
 renderControls();
 render();
 document.body.dataset.ready = 'true';
 </script>
+
 </body>
 </html>
