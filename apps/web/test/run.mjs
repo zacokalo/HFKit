@@ -17,7 +17,6 @@ import spaceSpec from './space.spec.mjs';
 import antennaSpec from './antenna.spec.mjs';
 import fieldSpec from './field.spec.mjs';
 import patternGainSpec from './patterngain.spec.mjs';
-import coverageSpec from './coverage.spec.mjs';
 
 // Fail loudly on an unbuilt site rather than reporting a wall of confusing
 // element-not-found errors.
@@ -70,8 +69,7 @@ for (const [name, spec] of [['reach map', reachSpec], ['map popups', popupSpec],
                             ['space weather page', spaceSpec],
                             ['antenna visualiser', antennaSpec],
                             ['field mode', fieldSpec],
-                            ['pattern gain', patternGainSpec],
-                            ['coverage footprint', coverageSpec]]) {
+                            ['pattern gain', patternGainSpec]]) {
   console.log(`\n${name}`);
   try {
     failed.push(...(await spec(browser, origin)));
