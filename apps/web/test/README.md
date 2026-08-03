@@ -47,8 +47,9 @@ npm i -D playwright
 | `spacewx.spec.mjs` | Every fallback tier · live beats snapshot · HTML-with-200 falls through · SSN reaches the engine via the cache key · aurora overlay lazy-loads, paints, and draws nothing in the tropics |
 | `space.spec.mjs` | Headline figures carry provenance · storm copy leads with the storm · alerts verbatim · missing source stated not blanked |
 | `station.spec.mjs` | Power/antenna arithmetic to 0.1 dB · non-preset wattages · bad input falls back · 10× power is exactly +10 dB · never triggers a recompute · restore on reload · pre-split sessions migrate |
+| `antenna.spec.mjs` | Dimensions match the handbook · lobe angle tracks height · take-off verdict and its advice · ground-loss cautions attach to the antennas that earn them · multiband lobing · every antenna on every band · no hardcoded colour, all three themes · per-antenna parameter memory |
 
-## Four bugs these caught
+## Five bugs these caught
 
 Worth keeping in mind — none of these were visible in the code:
 
@@ -68,9 +69,15 @@ Worth keeping in mind — none of these were visible in the code:
    transmitter from a map click re-showed the full overlay to say "press
    Generate" — covering the map the user had just been working with. It is a
    non-blocking banner now.
+5. **`watchErrors` let every favicon 404 through as a page error.** The response
+   handler filtered them by URL, but the console handler filtered on the message
+   text — and Chromium's text for one is the generic "Failed to load resource",
+   with the URL only in `location()`. It also meant a *real* resource failure
+   was reported as that same unattributed string. Both fixed together.
 
-All four were found by asserting on pixels, or by looking at a render. A test
-that only checked "the element exists" would have passed every one of them.
+All of them were found by asserting on pixels, by looking at a render, or by
+chasing down an error the suite itself was reporting. A test that only checked
+"the element exists" would have passed every one.
 
 ## Writing more
 
