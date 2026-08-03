@@ -20,7 +20,7 @@
 
 import {
   analyse, buildAntenna, byId, defaultParams, minimumHops, takeoffAngle,
-} from '../vendor/antenna.mjs';
+} from '../vendor/antenna-model.mjs';
 
 const LAYER_KM = 300;
 const ELEV_STEPS = 91;      // 0…90° in 1° steps

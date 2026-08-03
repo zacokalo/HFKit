@@ -1,15 +1,29 @@
 # Cloudflare Pages headers.
 #
-# The engine and ITU data are immutable published artifacts — a given month's
-# file never changes once published — so they are cached hard. That is what
-# keeps a repeat visit free of the ~11 MB download, and keeps bandwidth cheap.
+# The ITU coefficient files are the only genuinely immutable artifacts on this
+# site: a given month's data never changes once published, and they are ~11 MB,
+# so they are cached for a year. That is what keeps a repeat visit free of the
+# download and keeps bandwidth cheap.
+#
+# Everything under vendor/ is BUILD OUTPUT and must revalidate.
+#
+# It did not, and that shipped a real bug. vendor/ looked immutable when it held
+# only the compiled engine, so it carried a one-year `immutable` rule. Then the
+# antenna model was added under vendor/ — and that changes on every deploy. A
+# returning visitor's browser pinned a year-old copy while the HTML importing it
+# updated around them, so the page loaded new markup against a stale module and
+# quietly lost half its features. `immutable` means the browser does not even
+# ask, so it does not heal on an ordinary reload.
+#
+# The rule now matches reality: without content-hashed filenames, build output
+# revalidates. All of vendor/ is 640 KB, so the conditional requests that costs
+# are a rounding error beside the 11 MB still cached hard.
 
 /vendor/*.wasm
   Content-Type: application/wasm
-  Cache-Control: public, max-age=31536000, immutable
 
 /vendor/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=0, must-revalidate
 
 /data/itu/*
   Cache-Control: public, max-age=31536000, immutable
