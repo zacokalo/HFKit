@@ -49,6 +49,7 @@ npm i -D playwright
 | `station.spec.mjs` | Power/antenna arithmetic to 0.1 dB · non-preset wattages · bad input falls back · 10× power is exactly +10 dB · never triggers a recompute · restore on reload · pre-split sessions migrate |
 | `field.spec.mjs` | Mode switch shortens the antenna list · frequency entry in MHz, kHz and with suffixes · duplicate and out-of-band rejection · cut lengths in either unit · distance stays metric · NVIS verdict and per-frequency rows · whip efficiency caution · low NVIS height reported as design not fault · interactive diagram parts |
 | `patterngain.spec.mjs` | Fixed-gain path unchanged · modelled antennas change coverage without re-running P.533 · height and orientation both redraw · vertical hides the controls it has no use for · popup names the take-off angle and the gain there · selection survives a reload |
+| `coverage.spec.mjs` | Footprint paints · a vertical has a hole in the middle and a low dipole fills it · orientation turns the pattern · omnidirectional antennas hide the control · target ring tracks the distance slider · works with and without a saved station · field mode opens on a short range |
 | `antenna.spec.mjs` | Dimensions match the handbook · lobe angle tracks height · take-off verdict and its advice · ground-loss cautions attach to the antennas that earn them · multiband lobing · every antenna on every band · no hardcoded colour, all three themes · per-antenna parameter memory |
 
 ## Five bugs these caught
@@ -94,6 +95,14 @@ chasing down an error the suite itself was reporting. A test that only checked
 - `page.waitForFunction(fn, arg, options)` — the timeout goes in the **third**
   argument. Passing `{ timeout }` second makes it an argument to `fn` and leaves
   the default 30 s in force, which silently truncates a long run.
+- Poll for a repaint, do not sleep for one. Pattern rebuilds are async and the
+  redraw after them is scheduled on a frame, so a wait long enough on an idle
+  machine is not long enough on a loaded one. `patterngain.spec.mjs` has a
+  `waitForRepaint` helper that samples the canvas until it changes.
+- Do not assert wall-clock timings. `catalogue.test.mjs` used to fail a 700 ms
+  budget at ~780 ms on a slower sandbox, which said nothing about the code. It
+  measures the worst case as a multiple of the simplest one now, which catches a
+  superlinear regression on any machine.
 - `dismissHint()` only works on a *first* visit. A reload that restores a
   session with a transmitter never shows the first-visit card, so waiting for it
   hangs for the full timeout. Wait for something the restored state implies
