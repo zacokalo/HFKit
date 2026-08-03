@@ -10,6 +10,7 @@ const PAGES = [
   ['./index.html', 'Home'],
   ['./reach.html', 'Reach map'],
   ['./planner.html', 'Path planner'],
+  ['./antenna.html', 'Antennas'],
   ['./space.html', 'Space weather'],
   ['./styleguide.html', 'Style guide'],
 ];

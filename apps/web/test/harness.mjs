@@ -75,8 +75,14 @@ export function watchErrors(page) {
   const errs = [];
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   page.on('console', (m) => {
-    // A missing favicon is the browser asking, not the page failing.
-    if (m.type() === 'error' && !m.text().includes('favicon')) errs.push('console: ' + m.text());
+    if (m.type() !== 'error') return;
+    // A missing favicon is the browser asking, not the page failing — and the
+    // console text for one is the generic "Failed to load resource", with the
+    // URL only in the location. Filtering on the text alone lets it through,
+    // and reporting the text alone makes a real failure undiagnosable.
+    const where = m.location()?.url ?? '';
+    if (m.text().includes('favicon') || where.includes('favicon')) return;
+    errs.push(`console: ${m.text()}${where ? ` (${where})` : ''}`);
   });
   page.on('response', (r) => {
     if (r.status() >= 400 && !r.url().includes('favicon')) errs.push(`${r.status()} ${r.url()}`);
