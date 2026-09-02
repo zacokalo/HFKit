@@ -22,11 +22,15 @@ on:
         required: false
         default: 'manual rebuild'
 
-# A scheduled workflow runs on the default branch, but the deployed branch may
-# not be it. DEPLOY_BRANCH (a repository variable) says which branch the host
-# builds from.
+# A scheduled workflow runs on the *default* branch, which is not necessarily
+# the branch the host deploys. Defaulting to github.ref_name assumed they were
+# the same; on 2026-09-01 they were not, so the rebuild commit landed on a
+# working branch, this job went green, and production served August's ITU data
+# until the canary caught it the next morning. Name the deployed branch instead.
+# DEPLOY_BRANCH (a repository variable) overrides it if that ever changes.
 env:
-  DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH || github.ref_name }}
+  DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH || 'main' }}
+  SITE_URL: ${{ vars.SITE_URL || 'https://hfkit.caldwell.tech' }}
 
 permissions:
   contents: write
@@ -60,3 +64,27 @@ jobs:
 
           Triggered by .github/workflows/monthly-rebuild.yml."
           git push origin "HEAD:${{ env.DEPLOY_BRANCH }}"
+
+      # Pushing is not deploying. Without this the job reports success for
+      # having made a commit, which is the failure mode that let September
+      # break: green here, dead in production. The host builds asynchronously,
+      # so poll the live origin until it can actually serve this month's data.
+      #
+      # The full check downloads the 11 MB file each attempt. That is our own
+      # origin, not a volunteer service, and this runs once a month.
+      - name: Verify the live site really picked it up
+        run: |
+          MONTH="${{ steps.check.outputs.month }}"
+          sleep 120                       # no build finishes faster than this
+          for attempt in $(seq 1 12); do
+            if ./scripts/check-live.sh "$SITE_URL" "$MONTH"; then
+              exit 0
+            fi
+            echo "--- attempt $attempt: not deployed yet, waiting 90s ---"
+            sleep 90
+          done
+          echo
+          echo "The commit was pushed to ${{ env.DEPLOY_BRANCH }} but $SITE_URL"
+          echo "never started serving month $MONTH. Check that the host builds"
+          echo "that branch, and that its last build succeeded."
+          exit 1
