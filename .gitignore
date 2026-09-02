@@ -57,3 +57,6 @@ apps/web/vendor/
 apps/web/data/space-weather.json
 apps/web/data/aurora.json
 # explorer.html is generated from packages/theme tokens + precomputed engine output
+
+# wrangler dev's local state (miniflare caches, asset manifests).
+.wrangler/

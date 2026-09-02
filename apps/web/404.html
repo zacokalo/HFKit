@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-theme="field-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — not found</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/vendor/tokens.css">
+<style>
+  /* This page is why a missing file fails loudly.
+     wrangler.jsonc sets not_found_handling: "404-page", which needs a 404.html
+     at the root of the assets directory. Without one the host answers an
+     unknown path with the landing page and HTTP 200 — so a missing 11 MB ITU
+     coefficient file looked, to a browser and to any status-code check, exactly
+     like a present one. Deleting this file restores that silence. */
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
+    font-family:var(--hf-font-family-sans);line-height:1.55;-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .wrap{max-width:52ch;padding:clamp(20px,5vw,56px);
+    display:flex;flex-direction:column;gap:var(--hf-spacing-4)}
+  .kicker{margin:0;font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+    text-transform:uppercase;letter-spacing:.1em;color:var(--hf-text-muted)}
+  h1{margin:0;font-size:clamp(24px,5vw,34px);letter-spacing:-.02em}
+  p{margin:0;color:var(--hf-text-secondary)}
+  ul{margin:0;padding-left:1.1em;color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
+  li{margin-bottom:4px}
+  a{color:var(--hf-accent-interactive)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">404</p>
+  <h1>That path isn&rsquo;t here</h1>
+  <p>Nothing is served at this address. If you followed a link from inside HFKit,
+    that&rsquo;s a bug worth reporting.</p>
+  <ul>
+    <li><a href="/">Start here</a></li>
+    <li><a href="/reach.html">Reach map</a></li>
+    <li><a href="/planner.html">Planner</a></li>
+    <li><a href="/antenna.html">Antennas</a></li>
+    <li><a href="/space.html">Space weather</a></li>
+  </ul>
+</div>
+</body>
+</html>
