@@ -18,6 +18,20 @@
 # The rule now matches reality: without content-hashed filenames, build output
 # revalidates. All of vendor/ is 640 KB, so the conditional requests that costs
 # are a rounding error beside the 11 MB still cached hard.
+#
+# The same rule bit a second time, from an angle worth writing down: these
+# patterns match the REQUEST PATH, not a file. While ionos09.bin was missing in
+# September 2026 the host answered /data/itu/ionos09.bin with a 200 and the
+# landing page — and this section stamped that HTML `immutable`, so every edge
+# that was asked for the file while it was absent pinned an HTML page under a
+# data URL for a year. Publishing the real file did not dislodge it; only a
+# cache purge did. The checks that were meant to catch the outage were the
+# requests that spread it.
+#
+# apps/web/404.html is what closes that: a missing path is now a 404, which
+# Cloudflare returns `no-store` and does not cache at all. Keep it. Any future
+# long-lived rule here should assume it will eventually be applied to a
+# response for a file that is not there.
 
 /vendor/*.wasm
   Content-Type: application/wasm
