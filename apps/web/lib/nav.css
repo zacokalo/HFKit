@@ -1,5 +1,5 @@
-/* Site navigation. Shared so the four pages cannot drift apart, and so adding a
-   fifth is one edit rather than four.
+/* Site navigation. Shared so the pages cannot drift apart, and so adding one
+   is one edit rather than one per page.
 
    Tokens only. The current page is marked with aria-current="page" rather than a
    class, because that is what a screen reader announces. */
@@ -78,4 +78,83 @@
 
 @media (max-width: 560px) {
   .sitenav .spacer { flex-basis: 100%; height: 0 }
+}
+
+/* Beginner / Experienced. Small and quiet: it is a preference, not a feature,
+   and it sits next to the conditions readout on every page. */
+.sitenav .modesw {
+  display: inline-flex;
+  border: 1px solid var(--hf-border-default);
+  border-radius: var(--hf-radius-md);
+  overflow: hidden;
+}
+.sitenav .modesw button {
+  background: transparent;
+  color: var(--hf-text-muted);
+  border: 0;
+  border-right: 1px solid var(--hf-border-default);
+  padding: 3px 10px;
+  font: inherit;
+  font-size: var(--hf-font-size-xs);
+  cursor: pointer;
+  min-height: 28px;
+}
+.sitenav .modesw button:last-child { border-right: 0 }
+.sitenav .modesw button:hover { color: var(--hf-text-primary); background: var(--hf-surface-raised) }
+.sitenav .modesw button[aria-pressed='true'] {
+  background: var(--hf-surface-raised);
+  color: var(--hf-text-primary);
+  font-weight: var(--hf-font-weight-semibold);
+}
+.sitenav .modesw button:focus-visible {
+  outline: 2px solid var(--hf-focus-ring);
+  outline-offset: -2px;
+}
+
+/* "How to read this page": folded to one line until opened, and gone
+   entirely in experienced mode. */
+.guide {
+  background: var(--hf-surface-raised);
+  border: 1px solid var(--hf-border-subtle);
+  border-left: 3px solid var(--hf-accent-interactive);
+  border-radius: var(--hf-radius-md);
+  padding: var(--hf-spacing-2) var(--hf-spacing-4);
+  margin-bottom: var(--hf-spacing-4);
+  font-size: var(--hf-font-size-md);
+  line-height: 1.55;
+  color: var(--hf-text-secondary);
+}
+html[data-mode='experienced'] .guide { display: none }
+.guide > summary {
+  cursor: pointer;
+  color: var(--hf-text-primary);
+  font-weight: var(--hf-font-weight-semibold);
+  padding: 4px 0;
+}
+.guide > summary:focus-visible { outline: 2px solid var(--hf-focus-ring); outline-offset: 2px }
+.guide-badge {
+  font-family: var(--hf-font-family-mono);
+  font-size: var(--hf-font-size-xs);
+  font-weight: var(--hf-font-weight-regular);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--hf-text-muted);
+  border: 1px solid var(--hf-border-default);
+  border-radius: var(--hf-radius-full);
+  padding: 1px 8px;
+  margin: 0 var(--hf-spacing-2) 0 var(--hf-spacing-1);
+}
+.guide ul { margin: var(--hf-spacing-2) 0; padding-left: 1.2em; max-width: 78ch }
+.guide li { margin-bottom: 6px }
+.guide p { margin: var(--hf-spacing-2) 0; max-width: 78ch }
+.guide a { color: var(--hf-accent-interactive) }
+.guide .guide-off { font-size: var(--hf-font-size-sm); color: var(--hf-text-muted) }
+.guide .guide-off button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--hf-accent-interactive);
+  text-decoration: underline;
+  cursor: pointer;
 }

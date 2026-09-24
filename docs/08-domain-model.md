@@ -151,6 +151,26 @@ language, is part of the "plain English first, jargon on hover" principle.
 | **NVIS** | Near Vertical Incidence Skywave — deliberately straight up and back down for regional coverage out to a few hundred km. Critical for EMCOMM, poorly served by DX-oriented tools. |
 | **Reliability (REL)** | The prediction engine's probability that the signal is strong enough on a given day. |
 | **A-score** | HFKit's 0–100 estimate combining prediction, live ionosphere, disturbances, and observed activity. |
+| **HF** | High Frequency, 3–30 MHz — the shortwave range, where signals can bounce off the ionosphere and cross the world. |
+| **Frequency** | How many times a radio wave vibrates each second, counted in megahertz (MHz) — millions of times a second. |
+| **Wavelength** | The length of one wave in metres: 300 divided by the frequency in MHz. Bands are named after it — 7 MHz is the 40 m band. |
+| **Band** | A range of frequencies set aside for one use, such as the amateur 20 m band (14.00–14.35 MHz). |
+| **Propagation** | How a radio signal travels from transmitter to receiver — along the ground, or up to the ionosphere and back. |
+| **Ionosphere** | Layers of electrically charged gas 60–400 km up, made by sunlight, that can bend HF signals back to earth. |
+| **Skywave** | A signal that reaches its destination by bouncing off the ionosphere. |
+| **Ground wave** | A signal that hugs the ground. On HF it fades out within a few tens of kilometres. |
+| **Skip zone** | The gap between where the ground wave fades and where the sky wave first comes down, in which nothing is heard. |
+| **E layer** | The ionospheric layer around 110 km up. By day it can reflect lower frequencies over shorter hops. |
+| **Critical frequency** | The highest frequency a layer reflects when a signal is sent straight up at it. |
+| **Absorption** | Signal energy soaked up in the D layer — worst around noon and on the lowest frequencies. |
+| **Dipole** | The simplest wire antenna: two equal lengths of wire fed in the middle, half a wavelength long in total. |
+| **Decibel (dB)** | A way of comparing two powers. +3 dB is double the power, +10 dB is ten times, +20 dB is a hundred times. |
+| **S-meter** | A receiver's signal-strength meter, marked in S-units from S1 to S9. One S-unit is 6 dB, or four times the power. |
+| **SNR** | Signal-to-noise ratio — how far a signal stands above the background noise, in dB. It decides whether you can copy it. |
+| **Noise floor** | The background hiss and electrical interference a receiver hears when no signal is present. |
+| **DX** | Long-distance contacts, usually with other countries or continents. |
+| **Solar cycle** | The sun's roughly 11-year rise and fall in activity. Near its peak, the higher HF bands open up. |
+| **Aurora** | The glowing, disturbed upper atmosphere near the poles during geomagnetic storms. It absorbs and scatters HF signals. |
 
 **NVIS deserves explicit product support** — regional emergency nets live on it,
 it's the dominant use case for county/state EMCOMM, and mainstream DX-focused

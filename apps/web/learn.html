@@ -1,0 +1,1710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — learn HF radio</title>
+<meta name="description" content="A beginner's guide to HF radio: how signals travel, why the bands change through the day, how antennas decide where your signal goes, and what the sun has to do with it — with interactive tools to play with.">
+<meta name="hfkit-spacewx" content="">
+<link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/nav.css">
+<script>
+  // Reading preferences, applied before first paint so the page never flashes
+  // the wrong theme. Anything unexpected in storage falls back to the defaults.
+  (() => {
+    let p = {};
+    try { p = JSON.parse(localStorage.getItem('hfkit.learn.v1') || '{}') || {}; } catch { /* none */ }
+    const named = ['field-dark', 'field-light', 'night-ops'];
+    const theme = named.includes(p.theme) ? p.theme
+      : (matchMedia('(prefers-color-scheme: light)').matches ? 'field-light' : 'field-dark');
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-text', p.text === 'large' ? 'large' : 'normal');
+  })();
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+
+/* Reading size. Everything a person reads for meaning scales with this; the
+   instrument-like parts (plot labels, stats) stay put so the tools keep their
+   layout. */
+:root{--read:var(--hf-font-size-lg)}
+:root[data-text="large"]{--read:var(--hf-font-size-xl)}
+
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
+  font-family:var(--hf-font-family-sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:clamp(16px,4vw,44px);
+  display:flex;flex-direction:column;gap:var(--hf-spacing-8)}
+a{color:var(--hf-accent-interactive)}
+:focus-visible{outline:var(--hf-focus-ring-width) solid var(--hf-focus-ring-color);outline-offset:2px}
+b,strong{font-weight:var(--hf-font-weight-semibold)}
+
+/* --- header --- */
+.hero{display:flex;flex-direction:column;gap:var(--hf-spacing-4);
+  border-bottom:1px solid var(--hf-border-subtle);padding-bottom:var(--hf-spacing-6)}
+.kicker{margin:0;font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  text-transform:uppercase;letter-spacing:.1em;color:var(--hf-text-muted)}
+h1{margin:0;font-size:clamp(28px,5vw,42px);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+.lede{margin:0;color:var(--hf-text-secondary);font-size:var(--read);line-height:1.65;max-width:62ch}
+.prefs{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-3) var(--hf-spacing-6);align-items:center;
+  font-size:var(--hf-font-size-sm);color:var(--hf-text-muted)}
+.prefs .grp{display:flex;align-items:center;gap:var(--hf-spacing-2)}
+
+/* --- shared controls --- */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-md);overflow:hidden}
+.seg button{background:transparent;color:var(--hf-text-secondary);border:0;
+  border-right:1px solid var(--hf-border-default);padding:6px 12px;font:inherit;
+  font-size:var(--hf-font-size-sm);cursor:pointer;min-height:36px}
+.seg button:last-child{border-right:0}
+.seg button:hover{color:var(--hf-text-primary);background:var(--hf-surface-sunken)}
+.seg button[aria-pressed="true"]{background:var(--hf-accent-interactive);
+  color:var(--hf-accent-on-accent);font-weight:var(--hf-font-weight-semibold)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:var(--hf-surface-sunken);color:var(--hf-text-secondary);
+  border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-full);
+  padding:4px 12px;font:inherit;font-size:var(--hf-font-size-sm);cursor:pointer;min-height:32px}
+.chips button:hover{color:var(--hf-text-primary);border-color:var(--hf-border-strong)}
+.chips button[aria-pressed="true"]{background:var(--hf-accent-interactive);
+  border-color:var(--hf-accent-interactive);color:var(--hf-accent-on-accent);
+  font-weight:var(--hf-font-weight-semibold)}
+.btn{background:var(--hf-button-background);color:var(--hf-button-foreground);
+  border:1px solid var(--hf-button-border);border-radius:var(--hf-button-radius);
+  padding:6px 14px;font:inherit;font-size:var(--hf-font-size-sm);
+  font-weight:var(--hf-font-weight-semibold);cursor:pointer;min-height:36px}
+.btn:hover{background:var(--hf-button-background-hover)}
+.btn.quiet{background:transparent;color:var(--hf-accent-interactive)}
+.btn.quiet:hover{background:var(--hf-surface-sunken)}
+input[type=range]{width:100%;accent-color:var(--hf-accent-interactive);min-height:28px;margin:0}
+input[type=search]{width:100%;max-width:440px;background:var(--hf-surface-sunken);
+  color:var(--hf-text-primary);border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-md);padding:10px 12px;font:inherit;font-size:var(--hf-font-size-md)}
+.check{display:flex;gap:8px;align-items:center;font-size:var(--hf-font-size-sm);
+  color:var(--hf-text-secondary);cursor:pointer}
+.ctl>label.check{justify-content:flex-start;font-weight:var(--hf-font-weight-regular)}
+.check input{width:18px;height:18px;accent-color:var(--hf-accent-interactive)}
+
+/* --- table of contents --- */
+.toc-wrap{display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+.toc{list-style:none;margin:0;padding:0;display:grid;gap:var(--hf-spacing-3);
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.toc a{display:flex;gap:var(--hf-spacing-3);align-items:flex-start;text-decoration:none;
+  color:inherit;background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3) var(--hf-spacing-4);height:100%}
+.toc a:hover{border-color:var(--hf-border-strong)}
+.toc .n{font-family:var(--hf-font-family-mono);color:var(--hf-accent-interactive);
+  font-weight:var(--hf-font-weight-semibold);min-width:1.2em}
+.toc .t{display:flex;flex-direction:column;gap:2px;flex:1}
+.toc .t b{font-size:var(--hf-font-size-md)}
+.toc .t span{font-size:var(--hf-font-size-sm);color:var(--hf-text-muted)}
+.toc .done{font-size:var(--hf-font-size-sm);color:var(--hf-status-good-text);white-space:nowrap}
+.progress{display:flex;gap:var(--hf-spacing-4);align-items:center;flex-wrap:wrap;
+  font-size:var(--hf-font-size-sm);color:var(--hf-text-muted)}
+
+/* --- chapters --- */
+.chapter{display:flex;flex-direction:column;gap:var(--hf-spacing-5);scroll-margin-top:12px}
+.ch-head{display:flex;align-items:baseline;gap:var(--hf-spacing-3);flex-wrap:wrap;
+  border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-8)}
+.ch-num{font-family:var(--hf-font-family-mono);color:var(--hf-accent-interactive);
+  font-weight:var(--hf-font-weight-semibold);font-size:var(--hf-font-size-lg)}
+h2{margin:0;font-size:clamp(23px,3.4vw,30px);letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+.ch-done{margin-left:auto;font-size:var(--hf-font-size-sm);color:var(--hf-status-good-text)}
+.prose{max-width:66ch;font-size:var(--read);line-height:1.7}
+.prose p{margin:0 0 .85em}
+.prose p:last-child{margin-bottom:0}
+.prose ul{margin:0 0 .85em;padding-left:1.2em}
+.prose li{margin-bottom:.4em}
+.prose .aside{color:var(--hf-text-secondary)}
+
+/* A term with a definition behind it: dotted underline, like an abbreviation. */
+a.term{color:inherit;text-decoration:none;border-bottom:1.5px dotted var(--hf-accent-interactive);
+  cursor:help}
+a.term:hover{color:var(--hf-accent-interactive)}
+.termtip{position:absolute;z-index:30;width:max-content;max-width:min(340px,calc(100vw - 32px));
+  background:var(--hf-surface-overlay);color:var(--hf-text-primary);
+  border:1px solid var(--hf-border-strong);border-radius:var(--hf-radius-md);
+  padding:10px 12px;font-size:var(--hf-font-size-base);line-height:1.5}
+.termtip b{display:block;margin-bottom:2px}
+.termtip .note{color:var(--hf-text-muted);font-size:var(--hf-font-size-sm);margin-top:4px}
+.termtip a{display:inline-block;margin-top:6px;font-size:var(--hf-font-size-sm)}
+
+/* --- the interactive tools --- */
+.tool{margin:0;background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-lg);padding:clamp(12px,2.5vw,24px);
+  display:flex;flex-direction:column;gap:var(--hf-spacing-4);min-width:0}
+.tool-head{display:flex;justify-content:space-between;gap:var(--hf-spacing-3);
+  align-items:baseline;flex-wrap:wrap}
+.tool-title{font-weight:var(--hf-font-weight-semibold);font-size:var(--hf-font-size-lg)}
+.tag{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);text-transform:uppercase;
+  letter-spacing:.06em;color:var(--hf-text-muted);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-full);padding:2px 10px}
+.tool .intro{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-md);max-width:70ch}
+.controls{display:grid;gap:var(--hf-spacing-5);grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.ctl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ctl>label,.ctl>.name{display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+  font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);
+  font-weight:var(--hf-font-weight-semibold)}
+.ctl output{font-family:var(--hf-font-family-mono);color:var(--hf-text-primary);
+  font-variant-numeric:tabular-nums;font-weight:var(--hf-font-weight-semibold)}
+.ctl .ends{display:flex;justify-content:space-between;font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted)}
+.hint{font-size:var(--hf-font-size-sm);color:var(--hf-text-muted)}
+.row{display:flex;gap:var(--hf-spacing-3);align-items:center;flex-wrap:wrap}
+.row .name{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);
+  font-weight:var(--hf-font-weight-semibold)}
+.plot{width:100%;min-width:0;overflow:hidden}
+.plot svg{display:block;max-width:100%;height:auto}
+.plot.center svg{margin:0 auto}
+#i-plot{border:1px solid var(--hf-border-subtle);border-radius:var(--hf-radius-sm)}
+.say{font-size:var(--read);line-height:1.55;border-left:3px solid var(--hf-accent-interactive);
+  background:var(--hf-surface-sunken);padding:12px 16px;border-radius:var(--hf-radius-sm);
+  text-wrap:pretty}
+.say.good{border-left-color:var(--hf-status-good-fill)}
+.say.fair{border-left-color:var(--hf-status-fair-fill)}
+.say.poor{border-left-color:var(--hf-status-poor-fill)}
+.say.closed{border-left-color:var(--hf-status-closed-fill)}
+.say .sub{display:block;margin-top:6px;font-size:var(--hf-font-size-md);color:var(--hf-text-secondary)}
+.stats{display:grid;gap:var(--hf-spacing-3);grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:var(--hf-surface-sunken);border-radius:var(--hf-radius-sm);padding:10px 12px;
+  display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font-size:var(--hf-font-size-sm);color:var(--hf-text-muted)}
+.stat .v{font-size:var(--hf-font-size-xl);font-weight:var(--hf-font-weight-semibold);line-height:1.25}
+.stat .u{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+.tool figcaption{font-size:var(--hf-font-size-sm);color:var(--hf-text-muted);max-width:80ch}
+.try{margin:0;padding:12px 16px 12px 34px;background:var(--hf-surface-sunken);
+  border-radius:var(--hf-radius-sm);font-size:var(--hf-font-size-md);color:var(--hf-text-secondary)}
+.try li{margin-bottom:4px}
+.try li::marker{color:var(--hf-accent-interactive)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-2) var(--hf-spacing-5);
+  font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:10px;border-radius:2px}
+.sw.line{height:3px}
+.sw.ham{background:var(--hf-accent-interactive)}
+.sw.svc{background:var(--hf-text-muted)}
+.sw.muf{background:var(--hf-categorical-1)}
+.sw.luf{background:var(--hf-categorical-0)}
+.sw.win{background:var(--hf-status-good-fill);opacity:.45}
+.sw.night{background:var(--hf-surface-sunken);border:1px solid var(--hf-border-default)}
+.pair{display:grid;gap:var(--hf-spacing-5);grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.pair>div{display:flex;flex-direction:column;gap:var(--hf-spacing-3);min-width:0}
+.pair h3{margin:0;font-size:var(--hf-font-size-md)}
+.pair p{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-md)}
+
+#m-stats{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+
+/* status chips: colour AND a word, never colour alone */
+.status{display:flex;flex-wrap:wrap;gap:6px}
+.st{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-full);padding:3px 10px 3px 6px;font-size:var(--hf-font-size-sm);
+  background:var(--hf-surface-raised)}
+.st i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.st b{font-weight:var(--hf-font-weight-semibold)}
+.st.good i{background:var(--hf-status-good-fill)}
+.st.fair i{background:var(--hf-status-fair-fill)}
+.st.poor i{background:var(--hf-status-poor-fill)}
+.st.closed i{background:var(--hf-status-closed-fill)}
+.st span{color:var(--hf-text-secondary)}
+
+details.more{border:1px solid var(--hf-border-subtle);border-radius:var(--hf-radius-md);
+  padding:var(--hf-spacing-2) var(--hf-spacing-4)}
+details.more>summary{cursor:pointer;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);
+  font-weight:var(--hf-font-weight-semibold);padding:4px 0}
+details.more[open]>summary{margin-bottom:var(--hf-spacing-3)}
+.scroll{overflow-x:auto}
+table.clock{border-collapse:collapse;font-size:var(--hf-font-size-sm);
+  font-family:var(--hf-font-family-mono);font-variant-numeric:tabular-nums}
+table.clock th,table.clock td{padding:4px 7px;text-align:center;
+  border-bottom:1px solid var(--hf-border-subtle);white-space:nowrap}
+table.clock th{color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
+table.clock th[scope=row]{text-align:left;color:var(--hf-text-secondary)}
+table.clock td.good{color:var(--hf-status-good-text)}
+table.clock td.fair{color:var(--hf-status-fair-text)}
+table.clock td.closed{color:var(--hf-text-muted)}
+
+/* --- key idea and quiz --- */
+.keyidea{max-width:66ch;background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-left:4px solid var(--hf-accent-interactive);border-radius:var(--hf-radius-md);
+  padding:14px 18px;font-size:var(--read);line-height:1.6}
+.keyidea b{display:block;font-size:var(--hf-font-size-xs);text-transform:uppercase;
+  letter-spacing:.08em;color:var(--hf-text-muted);margin-bottom:4px}
+.quiz{max-width:66ch;display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+.quiz h3{margin:0;font-size:var(--hf-font-size-sm);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--hf-text-muted)}
+fieldset.q{margin:0;border:1px solid var(--hf-border-subtle);border-radius:var(--hf-radius-md);
+  padding:14px 16px;background:var(--hf-surface-raised);min-width:0}
+fieldset.q legend{float:left;width:100%;padding:0;font-size:var(--read);
+  font-weight:var(--hf-font-weight-semibold);line-height:1.45}
+.opts{clear:both;display:flex;flex-direction:column;gap:8px;padding-top:10px}
+.opts button{text-align:left;background:var(--hf-surface-sunken);border:1px solid var(--hf-border-default);
+  color:var(--hf-text-primary);border-radius:var(--hf-radius-md);padding:10px 14px;font:inherit;
+  font-size:var(--hf-font-size-md);cursor:pointer;min-height:44px}
+.opts button:hover:not(:disabled){border-color:var(--hf-border-strong)}
+.opts button:disabled{cursor:default}
+.opts button.right{border-color:var(--hf-status-good-fill);border-width:2px;
+  font-weight:var(--hf-font-weight-semibold)}
+.opts button.wrong{border-color:var(--hf-status-closed-fill);color:var(--hf-text-secondary)}
+.opts button .mark{font-weight:var(--hf-font-weight-bold);margin-right:6px}
+.opts button.right .mark{color:var(--hf-status-good-text)}
+.opts button.wrong .mark{color:var(--hf-status-closed-text)}
+.why{margin-top:10px;font-size:var(--hf-font-size-md);color:var(--hf-text-secondary);line-height:1.55}
+.why b{color:var(--hf-text-primary)}
+
+/* --- next steps, glossary, footer --- */
+.cards{display:grid;gap:var(--hf-spacing-4);grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+  background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4)}
+a.card:hover{border-color:var(--hf-border-strong)}
+a.card b{font-size:var(--hf-font-size-lg)}
+a.card span{color:var(--hf-text-secondary);font-size:var(--hf-font-size-md);line-height:1.5}
+.gloss-head{display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+dl.gloss{margin:0;display:grid;grid-template-columns:minmax(130px,210px) 1fr;gap:12px 24px;max-width:920px}
+dl.gloss dt{font-weight:var(--hf-font-weight-semibold);font-size:var(--hf-font-size-md);scroll-margin-top:16px}
+dl.gloss dd{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-md);line-height:1.55}
+dl.gloss dd .note{display:block;color:var(--hf-text-muted);font-size:var(--hf-font-size-sm);margin-top:2px}
+dl.gloss dt:target,dl.gloss dt.flash{color:var(--hf-accent-interactive)}
+@media (max-width:560px){dl.gloss{grid-template-columns:1fr;gap:2px}dl.gloss dd{margin-bottom:12px}}
+footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-4);
+  color:var(--hf-text-muted);font-size:var(--hf-font-size-sm);display:flex;flex-direction:column;gap:8px}
+footer .fine{display:flex;flex-direction:column;gap:var(--hf-spacing-3);max-width:80ch;line-height:1.6}
+footer strong{color:var(--hf-text-secondary)}
+
+/* --- drawings: every colour is a token --- */
+.lp{font-family:var(--hf-font-family-sans);overflow:visible}
+.lp .lbl{font-size:12px;fill:var(--hf-text-secondary)}
+.lp .lbl.muted{fill:var(--hf-text-muted);font-size:11px}
+.lp .lbl.strong{fill:var(--hf-text-primary);font-weight:600}
+.lp .halo{paint-order:stroke;stroke:var(--hf-surface-raised);stroke-width:4px;stroke-linejoin:round}
+.lp .tick{stroke:var(--hf-border-strong);stroke-width:1}
+.lp .axis{stroke:var(--hf-border-default);stroke-width:1}
+.lp .hit{fill:transparent;cursor:pointer}
+.lp.spectrum,.lp.window{touch-action:pan-y}
+
+.spectrum .track{fill:var(--hf-surface-sunken);stroke:var(--hf-border-subtle)}
+.spectrum .ham{fill:var(--hf-accent-interactive);fill-opacity:.45}
+.spectrum .ham.on{fill-opacity:1}
+.spectrum .svc{fill:var(--hf-text-muted);fill-opacity:.7}
+.spectrum .ptr{stroke:var(--hf-text-primary);stroke-width:2}
+.spectrum .ptr-head{fill:var(--hf-text-primary)}
+
+.wave .wave{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2;stroke-linejoin:round}
+.wave .wave.thin{stroke:var(--hf-text-muted);stroke-width:1.5}
+.wave .bracket{fill:none;stroke:var(--hf-text-primary);stroke-width:1.5}
+.wave .ico{fill:none;stroke:var(--hf-text-secondary);stroke-width:1.3}
+.wave .ico-fill{fill:var(--hf-surface-sunken)}
+.wave .ico.strong{stroke:var(--hf-text-primary);stroke-width:2}
+
+.iono .sky{fill:var(--hf-surface-sunken)}
+.iono .sky.day{fill:var(--hf-surface-overlay)}
+.iono .halo{stroke:var(--hf-surface-sunken)}
+.iono .sky.day~.halo{stroke:var(--hf-surface-overlay)}
+.iono .layer-f,.iono .layer-e{fill:var(--hf-categorical-1)}
+.iono .layer-d{fill:var(--hf-categorical-0)}
+.iono .earth{fill:var(--hf-surface-raised);stroke:var(--hf-border-strong);stroke-width:1.5}
+.iono .zone{fill:none;stroke-width:6}
+.iono .zone.gw{stroke:var(--hf-status-good-fill)}
+.iono .zone.skip{stroke:var(--hf-status-poor-fill);stroke-dasharray:6 4}
+.iono .zone-lbl{fill:var(--hf-status-poor-text);font-weight:600}
+.iono .ray{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2.5;stroke-linejoin:round}
+.iono .ray.fan{stroke-width:1.5}
+.iono .ray.lost{stroke:var(--hf-text-muted);stroke-dasharray:2 4;stroke-width:1.5}
+.iono .ray.escape{stroke:var(--hf-text-muted);stroke-dasharray:7 5;stroke-width:1.8}
+.iono .land{stroke:var(--hf-surface-raised);stroke-width:2}
+.iono .land.heard{fill:var(--hf-status-good-fill)}
+.iono .land.lost{fill:var(--hf-surface-raised);stroke:var(--hf-status-closed-fill)}
+.iono .mast{stroke:var(--hf-text-primary);stroke-width:2}
+.iono .mast-top{fill:var(--hf-text-primary)}
+.iono .sunmark{fill:var(--hf-categorical-3);stroke:var(--hf-border-strong)}
+.iono .moonmark{fill:none;stroke:var(--hf-text-secondary);stroke-width:1.5}
+.iono .layer-lbl{font-weight:600;fill:var(--hf-text-primary)}
+
+.window .night{fill:var(--hf-surface-sunken)}
+.window .grid{stroke:var(--hf-border-subtle);stroke-width:1}
+.window .bandline{stroke:var(--hf-border-default);stroke-width:1}
+.window .usable{fill:var(--hf-status-good-fill);fill-opacity:.22}
+.window .muf{fill:none;stroke:var(--hf-categorical-1);stroke-width:2.5;stroke-linejoin:round}
+.window .luf{fill:none;stroke:var(--hf-categorical-0);stroke-width:2.5;stroke-linejoin:round}
+.window .cursor{stroke:var(--hf-text-primary);stroke-width:1.5}
+.window .dot{stroke:var(--hf-surface-raised);stroke-width:2}
+.window .muf-dot{fill:var(--hf-categorical-1)}
+.window .luf-dot{fill:var(--hf-categorical-0)}
+.window .hit{cursor:crosshair;touch-action:pan-y}
+
+.antenna .gnd{stroke:var(--hf-border-strong);stroke-width:1.5}
+.antenna .lam{stroke:var(--hf-border-subtle);stroke-width:1}
+.antenna .mast{stroke:var(--hf-text-muted);stroke-width:2;stroke-dasharray:3 3}
+.antenna .dipole{stroke:var(--hf-accent-interactive);stroke-width:3;stroke-linecap:round}
+.antenna .feed{fill:var(--hf-text-primary)}
+.antenna .ring,.antenna .spoke{fill:none;stroke:var(--hf-border-subtle);stroke-width:1}
+.antenna .lobe{fill:var(--hf-accent-interactive);fill-opacity:.2;stroke:var(--hf-accent-interactive);
+  stroke-width:2.5;stroke-linejoin:round}
+.antenna .need{stroke:var(--hf-status-fair-fill);stroke-width:2;stroke-dasharray:6 4}
+.antenna .need.alt{opacity:.5}
+.antenna .need-lbl{fill:var(--hf-status-fair-text);font-weight:600}
+
+.meter .m-track{fill:none;stroke:var(--hf-surface-sunken);stroke-width:14}
+.meter .m-noise{fill:none;stroke:var(--hf-text-muted);stroke-opacity:.55;stroke-width:14}
+.meter .m-snr{fill:none;stroke:var(--hf-accent-interactive);stroke-width:3;stroke-linecap:round}
+.meter .needle{stroke:var(--hf-text-primary);stroke-width:3;stroke-linecap:round}
+.meter .pivot{fill:var(--hf-text-primary)}
+
+.sun .sunbody{fill:var(--hf-categorical-0);fill-opacity:.22;stroke:var(--hf-categorical-0);stroke-width:2}
+.sun .spot{fill:var(--hf-categorical-0)}
+.aurora .globe{fill:var(--hf-surface-sunken);stroke:var(--hf-border-default)}
+.aurora .latring{fill:none;stroke:var(--hf-border-subtle)}
+.aurora .oval{fill:var(--hf-categorical-2)}
+.aurora .pole{fill:var(--hf-text-secondary)}
+.aurora .path{fill:none;stroke-width:3;stroke-linecap:round}
+.aurora .s-good{stroke:var(--hf-status-good-fill)}
+.aurora .s-fair{stroke:var(--hf-status-fair-fill)}
+.aurora .s-poor{stroke:var(--hf-status-poor-fill)}
+.aurora .s-closed{stroke:var(--hf-status-closed-fill)}
+.aurora .end{fill:var(--hf-text-primary)}
+.aurora .halo{stroke:var(--hf-surface-sunken)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="kicker">Learn &middot; a beginner&rsquo;s guide</p>
+    <h1>How HF radio works, one idea at a time</h1>
+    <p class="lede">Six short chapters, each with something to play with. No maths and no
+      prior knowledge needed. The whole guide takes about half an hour, or you can dip into
+      whichever chapter you&rsquo;re curious about. Underlined words have a plain-English
+      definition: hover or tap them.</p>
+    <div class="prefs" aria-label="Reading options">
+      <div class="grp"><span id="lab-theme">Colours</span>
+        <div class="seg" id="pref-theme" role="group" aria-labelledby="lab-theme">
+          <button type="button" data-v="auto">Auto</button>
+          <button type="button" data-v="field-dark">Dark</button>
+          <button type="button" data-v="field-light">Light</button>
+          <button type="button" data-v="night-ops" title="Red on black, to keep your eyes adjusted to the dark">Night</button>
+        </div>
+      </div>
+      <div class="grp"><span id="lab-text">Text size</span>
+        <div class="seg" id="pref-text" role="group" aria-labelledby="lab-text">
+          <button type="button" data-v="normal">Standard</button>
+          <button type="button" data-v="large">Larger</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc-wrap" aria-label="Chapters">
+    <ol class="toc" id="toc"></ol>
+    <div class="progress"><span id="progress-line"></span>
+      <button type="button" class="btn quiet" id="reset-progress" hidden>Start over</button></div>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="waves" data-chapter="waves" aria-labelledby="h-waves">
+    <div class="ch-head"><span class="ch-num">1</span><h2 id="h-waves">Radio waves and bands</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>A radio signal is a wave of energy travelling at the speed of light. The number that
+        describes it is its <a class="term" data-term="Frequency">frequency</a>: how many times it
+        vibrates every second. <a class="term" data-term="HF">HF</a>, short for <em>high
+        frequency</em>, covers 3 to 30 million vibrations a second, written 3&ndash;30&nbsp;MHz.</p>
+      <p>Every frequency also has a <a class="term" data-term="Wavelength">wavelength</a>, the
+        distance from one wave crest to the next. The two are locked together: divide 300 by the
+        frequency in MHz and you get the wavelength in metres. That&rsquo;s why radio people name
+        <a class="term" data-term="Band">bands</a> by length. 7&nbsp;MHz waves are about 40&nbsp;m
+        long, so that&rsquo;s the &ldquo;40 metre band&rdquo;.</p>
+    </div>
+
+    <figure class="tool" id="t-waves">
+      <div class="tool-head"><span class="tool-title">Wavelength explorer</span><span class="tag">try it</span></div>
+      <p class="intro">Drag the slider or tap a band, and watch the wave stretch and squeeze.</p>
+      <div class="ctl">
+        <label for="w-f">Frequency <output id="w-fout" for="w-f"></output></label>
+        <input type="range" id="w-f" min="0" max="1000" step="1">
+        <div class="ends"><span>1.8 MHz &middot; long waves</span><span>short waves &middot; 54 MHz</span></div>
+      </div>
+      <div class="chips" id="w-bands" role="group" aria-label="Jump to an amateur band"></div>
+      <div class="plot" id="w-spectrum"></div>
+      <div class="legend"><span><i class="sw ham"></i>amateur (ham) bands</span>
+        <span><i class="sw svc"></i>broadcast stations and time signals</span></div>
+      <div class="plot" id="w-wave"></div>
+      <div class="say" id="w-say" aria-live="polite"></div>
+      <div class="stats" id="w-stats"></div>
+      <figcaption>Amateur band edges shown are for the Americas (ITU Region 2); they differ slightly elsewhere.</figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>Why care about wavelength? Because antennas are sized to it. The most basic antenna
+        is half a wavelength long, so one for the 10&nbsp;m band fits on a car roof, while one
+        for 160&nbsp;m needs a very large garden.</p>
+    </div>
+    <aside class="keyidea"><b>Key idea</b>Higher frequency means shorter waves and smaller
+      antennas. Bands are named after their wavelength.</aside>
+    <div class="quiz" data-quiz="waves"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="ionosphere" data-chapter="ionosphere" aria-labelledby="h-ionosphere">
+    <div class="ch-head"><span class="ch-num">2</span><h2 id="h-ionosphere">The ionosphere: a mirror in the sky</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>Radio waves travel in straight lines, but the Earth is round. On its own, an HF signal
+        would sail off into space past the horizon. What brings it back is the
+        <a class="term" data-term="Ionosphere">ionosphere</a>: layers of thin, electrically charged
+        gas 60&ndash;400&nbsp;km up, made by sunlight.</p>
+      <p>The layers act like a mirror, but a fussy one. Whether a signal comes back depends on its
+        frequency, how steeply it hits the layer, and how strongly the sun has charged the layer
+        that day. If the frequency is too high or the angle too steep, the signal goes straight
+        through into space.</p>
+      <ul>
+        <li>The <a class="term" data-term="D layer">D layer</a> (60&ndash;90&nbsp;km) only exists
+          in daylight. It doesn&rsquo;t reflect anything. It <em>absorbs</em>, and it absorbs low
+          frequencies hardest.</li>
+        <li>The <a class="term" data-term="E layer">E layer</a> (about 110&nbsp;km) turns back
+          lower frequencies by day.</li>
+        <li>The F layer (200&ndash;400&nbsp;km) is the one that makes long-distance HF possible.</li>
+      </ul>
+    </div>
+
+    <figure class="tool" id="t-iono">
+      <div class="tool-head"><span class="tool-title">Bounce simulator</span><span class="tag">teaching model</span></div>
+      <ol class="try">
+        <li>Turn the frequency up until the signal escapes into space. That&rsquo;s the
+          <a class="term" data-term="MUF">MUF</a> for this angle.</li>
+        <li>At 14&nbsp;MHz, tick <em>Show all angles</em>. The gap near you, where nothing lands,
+          is the <a class="term" data-term="Skip zone">skip zone</a>.</li>
+        <li>Try 3.6&nbsp;MHz at noon with a low angle, then press <em>Play a day</em> and watch
+          what happens at sunset.</li>
+      </ol>
+      <div class="plot" id="i-plot"></div>
+      <div class="say" id="i-say" aria-live="polite"></div>
+      <div class="stats" id="i-stats"></div>
+      <div class="controls">
+        <div class="ctl">
+          <label for="i-f">Frequency <output id="i-fout" for="i-f"></output></label>
+          <input type="range" id="i-f" min="0" max="1000" step="1">
+          <div class="chips" id="i-bands" role="group" aria-label="Jump to a band"></div>
+        </div>
+        <div class="ctl">
+          <label for="i-e">Take-off angle <output id="i-eout" for="i-e"></output></label>
+          <input type="range" id="i-e" min="3" max="89" step="1">
+          <div class="ends"><span>low: far away</span><span>steep: close by</span></div>
+          <label class="check"><input type="checkbox" id="i-fan"> Show all angles at once</label>
+        </div>
+        <div class="ctl">
+          <label for="i-h">Time of day <output id="i-hout" for="i-h"></output></label>
+          <input type="range" id="i-h" min="0" max="24" step="0.25">
+          <div class="row"><button type="button" class="btn" id="i-play" aria-pressed="false">&#9654; Play a day</button></div>
+        </div>
+        <div class="ctl">
+          <label for="i-s">Sun activity <output id="i-sout" for="i-s"></output></label>
+          <input type="range" id="i-s" min="0" max="200" step="5">
+          <div class="ends"><span>quiet sun</span><span>active sun</span></div>
+          <div class="hint" id="i-today"></div>
+        </div>
+      </div>
+      <div class="row"><span class="name" id="lab-zoom">View</span>
+        <div class="seg" id="i-zoom" role="group" aria-labelledby="lab-zoom"></div></div>
+      <figcaption id="i-cap"></figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>Long-distance signals travel in <a class="term" data-term="Hop">hops</a>: up to the
+        ionosphere, down to the ground, and up again. One hop covers at most 3,000&ndash;4,000&nbsp;km.
+        Every trip through the D layer costs some signal, which is why paths with many hops
+        eventually fade out.</p>
+    </div>
+    <aside class="keyidea"><b>Key idea</b>The ionosphere returns signals below a maximum
+      frequency, the MUF. Low angles travel far; steep angles come back close by, unless the
+      frequency is too high, which leaves a silent skip zone around you.</aside>
+    <div class="quiz" data-quiz="ionosphere"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="daynight" data-chapter="daynight" aria-labelledby="h-daynight">
+    <div class="ch-head"><span class="ch-num">3</span><h2 id="h-daynight">Day, night and picking a band</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>Put those ideas together and you get the most useful rule in HF: every path has a
+        <strong>usable window</strong> of frequencies. The top of the window is the
+        <a class="term" data-term="MUF">MUF</a>. Go higher and the signal escapes or skips right
+        over the other station. The bottom is the <a class="term" data-term="LUF">LUF</a>. Go
+        lower and the D layer soaks the signal up.</p>
+      <p>The window moves through the day. Midday sun raises the MUF, which is good for the high
+        bands, but it also thickens the D layer, which is bad for the low ones. At night the
+        D layer vanishes and the low bands open up. The MUF sinks too, though, so the high bands
+        close.</p>
+    </div>
+
+    <figure class="tool" id="t-window">
+      <div class="tool-head"><span class="tool-title">Band clock</span><span class="tag">teaching model</span></div>
+      <p class="intro">Pick how far away the other station is, then slide through the day, or
+        run a finger along the chart. Bands inside the shaded window are worth trying.</p>
+      <div class="controls">
+        <div class="ctl">
+          <span class="name" id="lab-dist">How far? <output id="d-dout"></output></span>
+          <div class="chips" id="d-dist" role="group" aria-labelledby="lab-dist"></div>
+          <input type="range" id="d-d" min="0" max="1000" step="1" aria-label="Distance">
+        </div>
+        <div class="ctl">
+          <label for="d-s">Sun activity <output id="d-sout" for="d-s"></output></label>
+          <input type="range" id="d-s" min="0" max="200" step="5">
+          <div class="ends"><span>quiet sun</span><span>active sun</span></div>
+          <div class="hint" id="d-today"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw line muf"></i>MUF: highest usable</span>
+        <span><i class="sw line luf"></i>LUF: lowest usable</span>
+        <span><i class="sw win"></i>usable window</span>
+        <span><i class="sw night"></i>night</span>
+      </div>
+      <div class="plot" id="d-plot"></div>
+      <div class="ctl">
+        <label for="d-h">Time of day <output id="d-hout" for="d-h"></output></label>
+        <input type="range" id="d-h" min="0" max="24" step="0.25">
+      </div>
+      <div class="say" id="d-say" aria-live="polite"></div>
+      <div class="status" id="d-status" aria-label="Band by band"></div>
+      <details class="more">
+        <summary>The same thing as a table</summary>
+        <div class="scroll"><table class="clock" id="d-table"></table></div>
+        <p class="hint">&#10003; open &middot; ~ marginal &middot; &times; closed (skips over or absorbed). Local time at the middle of the path.</p>
+      </details>
+      <figcaption>A teaching model: one ionosphere along the whole path, at mid-latitude on an
+        equinox, for a typical 100&nbsp;W voice station. Real paths cross day and night and depend
+        on season and station. The <a href="./planner.html">Path planner</a> draws this for real,
+        for any two places.</figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>A rule of thumb falls straight out of this: <em>the higher the sun, the higher the
+        band</em>. Use 20&nbsp;m and up by day, 40&nbsp;m around dawn and dusk, and 80&nbsp;m and
+        160&nbsp;m after dark. For nearby stations, stay low: 40&nbsp;m or 60&nbsp;m by day,
+        80&nbsp;m at night.</p>
+      <p class="aside">The strongest signals are often just under the MUF. That&rsquo;s the
+        <a class="term" data-term="FOT">FOT</a>, the optimum frequency. Live right at the edge,
+        though, and the path drops out whenever the ionosphere wobbles.</p>
+    </div>
+    <aside class="keyidea"><b>Key idea</b>Choose a frequency inside the window: below the MUF,
+      above the LUF. The window rises with the sun and sinks at night.</aside>
+    <div class="quiz" data-quiz="daynight"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="antennas" data-chapter="antennas" aria-labelledby="h-antennas">
+    <div class="ch-head"><span class="ch-num">4</span><h2 id="h-antennas">Antennas: where your signal goes</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>An antenna doesn&rsquo;t just &ldquo;send the signal&rdquo;. It decides <em>where</em> the
+        signal goes. On HF the direction that matters most is <em>up</em>: the
+        <a class="term" data-term="Takeoff angle">take-off angle</a>, or how steeply the energy leaves.</p>
+      <p>Low angles, under about 15&deg;, reach the ionosphere far away and come down thousands of
+        kilometres off. That&rsquo;s long distance, or <a class="term" data-term="DX">DX</a>. Steep
+        angles go nearly straight up and come back down all around you. That&rsquo;s
+        <a class="term" data-term="NVIS">NVIS</a>, perfect for regional nets within a few hundred
+        kilometres.</p>
+      <p>For the simple <a class="term" data-term="Dipole">dipole</a>, the angle is set by its
+        height above the ground, measured in wavelengths. The ground acts like a mirror, and the
+        reflected signal combines with the direct one to shape where the energy goes.</p>
+    </div>
+
+    <figure class="tool" id="t-ant">
+      <div class="tool-head"><span class="tool-title">Raise the dipole</span><span class="tag">antenna model</span></div>
+      <p class="intro">Slide the height and watch the shape change. The dashed line is the angle
+        your chosen distance needs, so try to get the shape to reach it.</p>
+      <div class="controls">
+        <div class="ctl"><span class="name" id="lab-aband">Band</span>
+          <div class="seg" id="a-band" role="group" aria-labelledby="lab-aband"></div></div>
+        <div class="ctl">
+          <label for="a-h">Height <output id="a-hout" for="a-h"></output></label>
+          <input type="range" id="a-h" min="2" max="40" step="0.5">
+          <div class="ends"><span>2 m</span><span>40 m</span></div>
+        </div>
+        <div class="ctl"><span class="name" id="lab-adist">Who do you want to reach?</span>
+          <div class="chips" id="a-dist" role="group" aria-labelledby="lab-adist"></div></div>
+      </div>
+      <div class="plot" id="a-plot"></div>
+      <div class="say" id="a-say" aria-live="polite"></div>
+      <div class="stats" id="a-stats"></div>
+      <figcaption>The same thin-wire model as the <a href="./antenna.html">Antenna visualiser</a>,
+        over perfect ground. The shape is right; real ground takes 1&ndash;3&nbsp;dB off it. The
+        drawing shows field strength on a straight scale, so the shape is easy to read.</figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>Rules of thumb: under a quarter of a wavelength high, a dipole is an NVIS antenna. At
+        half a wavelength it&rsquo;s the classic all-rounder. At a wavelength or more it favours
+        low angles and long distance, with extra lobes appearing above. So the same 10&nbsp;m-high
+        dipole is an NVIS antenna on 80&nbsp;m and a DX antenna on 10&nbsp;m.</p>
+    </div>
+    <aside class="keyidea"><b>Key idea</b>Height sets the angle, and the angle sets the
+      distance. Match the antenna to the path you want.</aside>
+    <div class="quiz" data-quiz="antennas"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="signal" data-chapter="signal" aria-labelledby="h-signal">
+    <div class="ch-head"><span class="ch-num">5</span><h2 id="h-signal">Power, decibels and noise</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>It&rsquo;s tempting to think more power is the answer. It helps less than you&rsquo;d
+        expect, because receivers, and our ears, work on a <em>logarithmic</em> scale. Radio
+        people measure it in <a class="term" data-term="Decibel (dB)">decibels (dB)</a>. Doubling
+        the power adds 3&nbsp;dB, and ten times the power adds 10&nbsp;dB.</p>
+      <p>A receiver&rsquo;s <a class="term" data-term="S-meter">S-meter</a> is marked from S1 to S9,
+        and each S-unit is 6&nbsp;dB, which is four times the power. So going from 100&nbsp;W to
+        400&nbsp;W moves the other station&rsquo;s meter by just one S-unit.</p>
+      <p>Whether you&rsquo;re heard depends less on how strong your signal is than on how far it
+        stands above the <a class="term" data-term="Noise floor">noise</a>, the hiss and buzz of
+        electrical interference. That gap is the <a class="term" data-term="SNR">SNR</a>. Cities are
+        noisy and the countryside is quiet.</p>
+    </div>
+
+    <figure class="tool" id="t-meter">
+      <div class="tool-head"><span class="tool-title">The other station&rsquo;s S-meter</span><span class="tag">try it</span></div>
+      <p class="intro">You&rsquo;re calling a friend about 1,500&nbsp;km away on 40&nbsp;m. Change
+        your station and where they live, and watch their meter.</p>
+      <div class="pair">
+        <div>
+          <div class="plot center" id="m-plot"></div>
+          <div class="stats" id="m-stats"></div>
+        </div>
+        <div>
+          <div class="ctl">
+            <label for="m-w">Your power <output id="m-wout" for="m-w"></output></label>
+            <input type="range" id="m-w" min="0" max="1000" step="1">
+            <div class="chips" id="m-wchips" role="group" aria-label="Power presets"></div>
+          </div>
+          <div class="ctl"><span class="name" id="lab-mant">Your antenna</span>
+            <div class="seg" id="m-ant" role="group" aria-labelledby="lab-mant"></div></div>
+          <div class="ctl"><span class="name" id="lab-menv">Where your friend lives</span>
+            <div class="seg" id="m-env" role="group" aria-labelledby="lab-menv"></div></div>
+          <div class="ctl"><span class="name" id="lab-mmode">How you&rsquo;re talking</span>
+            <div class="seg" id="m-mode" role="group" aria-labelledby="lab-mmode"></div></div>
+        </div>
+      </div>
+      <div class="say" id="m-say" aria-live="polite"></div>
+      <figcaption>The meter follows the standard S9&nbsp;=&nbsp;&minus;73&nbsp;dBm, 6&nbsp;dB per S-unit,
+        and noise follows ITU-R P.372 for each kind of location, in a 2.5&nbsp;kHz channel. The
+        starting signal (100&nbsp;W into a dipole arriving at S8) is an illustrative round number.
+        Real receivers&rsquo; meters are rarely this well calibrated.</figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>Notice how the mode moves the goalposts. Digital modes like FT8 can be decoded 20&nbsp;dB
+        <em>below</em> the noise, from signals you&rsquo;d never hear by ear. That&rsquo;s why
+        low-power stations love them.</p>
+    </div>
+    <aside class="keyidea"><b>Key idea</b>Every 6&nbsp;dB is one S-unit. A better antenna, or a
+      quieter place to listen, often beats a bigger amplifier.</aside>
+    <div class="quiz" data-quiz="signal"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="sun" data-chapter="sun" aria-labelledby="h-sun">
+    <div class="ch-head"><span class="ch-num">6</span><h2 id="h-sun">The sun and space weather</h2>
+      <span class="ch-done" hidden>&#10003; done</span></div>
+    <div class="prose">
+      <p>Everything in this guide runs on sunlight. The sun&rsquo;s activity rises and falls over
+        a roughly 11-year <a class="term" data-term="Solar cycle">solar cycle</a>, tracked by counting
+        sunspots (the <a class="term" data-term="SSN">SSN</a>) or measuring the sun&rsquo;s radio
+        brightness (the solar flux, <a class="term" data-term="SFI">SFI</a>). More activity charges
+        the ionosphere harder, so the MUF climbs and the higher bands open.</p>
+      <p>The sun can also cause trouble. Bursts of particles shake the Earth&rsquo;s magnetic
+        field. That&rsquo;s a geomagnetic storm, measured by the <a class="term" data-term="Kp / Ap">Kp</a>
+        index from 0 (quiet) to 9 (extreme). The Earth&rsquo;s magnetic field funnels storms
+        toward the poles, stirring up the <a class="term" data-term="Aurora">aurora</a>, so paths
+        across high latitudes suffer first and worst. Paths near the equator often carry on.
+        A big solar flare can also black out HF on the sunlit side of the Earth for minutes to
+        hours; that&rsquo;s an <a class="term" data-term="SID">SID</a>.</p>
+    </div>
+
+    <figure class="tool" id="t-sun">
+      <div class="tool-head"><span class="tool-title">Sun and storms</span><span class="tag">rules of thumb</span></div>
+      <div class="hint" id="s-live"></div>
+      <div class="pair">
+        <div>
+          <div class="plot center" id="s-sunplot"></div>
+          <div class="ctl">
+            <label for="s-sfi">Solar flux <output id="s-sfiout" for="s-sfi"></output></label>
+            <input type="range" id="s-sfi" min="60" max="250" step="1">
+            <div class="ends"><span>quiet sun</span><span>very active</span></div>
+          </div>
+          <h3 id="s-fluxhead"></h3>
+          <p id="s-fluxbody"></p>
+        </div>
+        <div>
+          <div class="plot center" id="s-aurplot"></div>
+          <div class="ctl">
+            <label for="s-kp">Geomagnetic activity (Kp) <output id="s-kpout" for="s-kp"></output></label>
+            <input type="range" id="s-kp" min="0" max="9" step="1">
+            <div class="ends"><span>quiet</span><span>extreme storm</span></div>
+          </div>
+          <div class="status" id="s-paths"></div>
+          <h3 id="s-kphead"></h3>
+          <p id="s-kpbody"></p>
+        </div>
+      </div>
+      <div class="say" id="s-say" aria-live="polite"></div>
+      <figcaption>The interpretations are the same rules of thumb as the
+        <a href="./space.html">Space weather</a> page, which shows today&rsquo;s real figures.
+        The drawings are schematic: the number of active regions and the aurora&rsquo;s reach
+        are illustrative, not measured.</figcaption>
+    </figure>
+
+    <aside class="keyidea"><b>Key idea</b>High solar flux means aim high in frequency. High Kp
+      means avoid polar paths and drop lower in frequency.</aside>
+    <div class="quiz" data-quiz="sun"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="next" aria-labelledby="h-next">
+    <div class="ch-head"><span class="ch-num">&rarr;</span><h2 id="h-next">Now try it for real</h2></div>
+    <div class="prose">
+      <p>You now know enough to read every HFKit tool. They use the ITU&rsquo;s own prediction
+        model, which runs right here in your browser, instead of the simple teaching model above.</p>
+    </div>
+    <div class="cards">
+      <a class="card" href="./planner.html"><b>Path planner</b>
+        <span>Two places, 24 hours, nine bands: the band clock from chapter 3, computed for real.
+          Each cell is the <em>SNR margin</em>, how many dB the signal clears what&rsquo;s needed.
+          Positive means worth trying.</span></a>
+      <a class="card" href="./reach.html"><b>Reach map</b>
+        <span>Everywhere you could be heard from one spot, with day and night shaded.</span></a>
+      <a class="card" href="./antenna.html"><b>Antennas</b>
+        <span>What to cut, how high to hang it, and whether its pattern points where your path
+          needs it.</span></a>
+      <a class="card" href="./space.html"><b>Space weather</b>
+        <span>Today&rsquo;s sun and geomagnetic field, with what they mean for the bands.</span></a>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <section class="chapter" id="glossary" aria-labelledby="h-glossary">
+    <div class="ch-head"><span class="ch-num">A&ndash;Z</span><h2 id="h-glossary">Glossary</h2></div>
+    <div class="gloss-head">
+      <label class="hint" for="g-q">Every term used on HFKit, in plain English.</label>
+      <input type="search" id="g-q" placeholder="Search, e.g. skip, noise, MUF" autocomplete="off">
+      <span class="hint" id="g-count" aria-live="polite"></span>
+    </div>
+    <dl class="gloss" id="g-list"></dl>
+  </section>
+
+  <footer>
+    <details class="more">
+      <summary>About the simulators on this page</summary>
+      <div class="fine">
+        <div><strong>The bounce simulator and the band clock use a teaching model, not a
+          forecast.</strong> It is the classic mirror picture: layers at fixed heights, the secant
+          law for signals meeting them at a slant, and a D layer that absorbs. It uses the
+          published CCIR formulas for the E layer and for D-layer absorption, and round
+          textbook values for the F layer. It has a single ionosphere everywhere, at mid-latitude
+          on an equinox, and knows nothing of geography, season, storms or your station. It gets
+          the <em>shapes</em> right and the numbers roughly right, and it never uses today&rsquo;s
+          conditions unless you ask it to.</div>
+        <div><strong>For a real path, use the <a href="./planner.html">Path planner</a> or the
+          <a href="./reach.html">Reach map</a></strong>, which run ITU-R P.533 with today&rsquo;s
+          sunspot number.</div>
+        <div><strong>The antenna drawing</strong> uses HFKit&rsquo;s antenna model, a thin wire
+          over perfect ground. <strong>The S-meter</strong> uses the IARU S-meter standard and
+          ITU-R P.372 noise levels. <strong>Space weather</strong> figures, when shown, come from
+          our own hourly service and say how old they are.</div>
+        <div>Your progress and reading preferences are stored only in this browser.</div>
+      </div>
+    </details>
+  </footer>
+</div>
+
+<div class="termtip" id="termtip" role="tooltip" hidden></div>
+
+<script type="module">
+import * as L from './vendor/learn-model.mjs';
+import {
+  BANDS, analyse, buildAntenna, byId, feetInches, halfWave, lowestLobe, wavelength,
+} from './vendor/antenna-model.mjs';
+import { elevationsForDistance } from './lib/antenna-gain.mjs';
+import { loadSpaceWeather, describeAge } from './lib/spacewx.mjs';
+import { describeFlux, describeKp, geomagneticScale, summarise } from './lib/spacewx-copy.mjs';
+import * as P from './lib/learn-plots.mjs';
+import { mountNav } from './lib/nav.mjs';
+
+mountNav(document.querySelector('.wrap'), 'learn.html');
+
+const $ = (id) => document.getElementById(id);
+const STORE = 'hfkit.learn.v1';
+
+// --- small helpers ---------------------------------------------------------
+
+/** Build DOM from nested arrays: h('b', {}, 'text'). Never innerHTML. */
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') e.className = v;
+    else e.setAttribute(k, v === true ? '' : String(v));
+  }
+  e.append(...kids.flat().filter((k) => k !== null && k !== undefined && k !== false));
+  return e;
+}
+// Numbers and their units are joined by a no-break space so a phone never
+// wraps "+12" onto one line and "dB" onto the next.
+const fmtMHz = (f, dp) => `${f.toFixed(dp ?? (f < 10 ? 2 : 1))} MHz`;
+const fmtKm = (k) => `${(k >= 1000 ? Math.round(k / 10) * 10 : Math.round(k)).toLocaleString('en-US')} km`;
+const fmtHour = (hr) => {
+  const t = Math.round(hr * 60) % 1440;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+const fmtDb = (d) => `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(Math.abs(d) < 9.95 ? 1 : 0)} dB`;
+const sunWord = (ssn) => (ssn < 40 ? 'quiet' : ssn < 90 ? 'moderate' : ssn < 150 ? 'active' : 'very active');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+/** A log-scaled 0–1000 range input. The exact value lives in state, not the thumb. */
+const logRange = (input, min, max) => ({
+  get: () => min * (max / min) ** (Number(input.value) / 1000),
+  set: (v) => { input.value = String(Math.round((1000 * Math.log(v / min)) / Math.log(max / min))); },
+});
+
+/** Segmented control / chip group: one pressed button, a callback on change. */
+function choices(container, items, current, onPick) {
+  container.replaceChildren(...items.map((it) => h('button', {
+    type: 'button', 'data-v': it.value, 'aria-pressed': String(it.value === current),
+  }, it.label)));
+  container.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    const v = items.find((it) => String(it.value) === b.dataset.v)?.value;
+    if (v === undefined) return;
+    press(container, v);
+    onPick(v);
+  });
+}
+const press = (container, v) => {
+  for (const b of container.querySelectorAll('button[data-v]')) {
+    b.setAttribute('aria-pressed', String(b.dataset.v === String(v)));
+  }
+};
+
+function stats(container, items) {
+  container.replaceChildren(...items.map(([k, v, u]) =>
+    h('div', { class: 'stat' }, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v),
+      u ? h('span', { class: 'u' }, u) : null)));
+}
+
+function say(container, tone, ...parts) {
+  container.className = `say${tone ? ` ${tone}` : ''}`;
+  container.replaceChildren(...parts.flat().filter(Boolean));
+}
+
+/** Redraw a plot at the width it is actually shown, and again whenever that changes. */
+const plotWidth = (id) => Math.max(280, Math.floor($(id).clientWidth));
+function watchWidth(id, render) {
+  let last = 0, queued = false;
+  new ResizeObserver(() => {
+    const w = plotWidth(id);
+    if (w === last || queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; last = plotWidth(id); render(); });
+  }).observe($(id));
+}
+
+/** Coalesce bursts of slider input into one render per frame. */
+function perFrame(fn) {
+  let queued = false;
+  return () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; fn(); });
+  };
+}
+
+// --- preferences and progress (this browser only) ---------------------------
+
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(STORE) || '{}');
+    return p && typeof p === 'object' ? p : {};
+  } catch { return {}; }
+}
+const prefs = loadPrefs();
+prefs.quiz = prefs.quiz && typeof prefs.quiz === 'object' ? prefs.quiz : {};
+function savePrefs() {
+  try { localStorage.setItem(STORE, JSON.stringify(prefs)); } catch { /* private mode */ }
+}
+
+const systemLight = matchMedia('(prefers-color-scheme: light)');
+function applyTheme() {
+  const t = ['field-dark', 'field-light', 'night-ops'].includes(prefs.theme) ? prefs.theme
+    : (systemLight.matches ? 'field-light' : 'field-dark');
+  document.documentElement.setAttribute('data-theme', t);
+}
+systemLight.addEventListener('change', applyTheme);
+press($('pref-theme'), prefs.theme ?? 'auto');
+press($('pref-text'), prefs.text === 'large' ? 'large' : 'normal');
+$('pref-theme').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-v]');
+  if (!b) return;
+  prefs.theme = b.dataset.v;
+  press($('pref-theme'), b.dataset.v);
+  applyTheme();
+  savePrefs();
+});
+$('pref-text').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-v]');
+  if (!b) return;
+  prefs.text = b.dataset.v;
+  press($('pref-text'), b.dataset.v);
+  document.documentElement.setAttribute('data-text', b.dataset.v === 'large' ? 'large' : 'normal');
+  savePrefs();
+});
+
+const MINUTES = { waves: 4, ionosphere: 7, daynight: 5, antennas: 5, signal: 5, sun: 4 };
+const chapterDone = (id) => (prefs.quiz[id] ?? []).length >= L.QUIZ[id].length;
+
+function renderProgress() {
+  $('toc').replaceChildren(...L.CHAPTERS.map((c, i) => h('li', {},
+    h('a', { href: `#${c.id}` },
+      h('span', { class: 'n' }, String(i + 1)),
+      h('span', { class: 't' }, h('b', {}, c.title), h('span', {}, `about ${MINUTES[c.id]} minutes`)),
+      chapterDone(c.id) ? h('span', { class: 'done' }, '✓ done') : null))));
+  const n = L.CHAPTERS.filter((c) => chapterDone(c.id)).length;
+  $('progress-line').textContent = n === 0
+    ? 'Answer the two questions at the end of a chapter to tick it off.'
+    : n === L.CHAPTERS.length
+      ? 'All six chapters done. Nice work. The real tools are waiting at the end.'
+      : `${n} of ${L.CHAPTERS.length} chapters done.`;
+  $('reset-progress').hidden = n === 0 && Object.keys(prefs.quiz).length === 0;
+  for (const c of L.CHAPTERS) {
+    document.querySelector(`#${c.id} .ch-done`).hidden = !chapterDone(c.id);
+  }
+}
+$('reset-progress').addEventListener('click', () => {
+  prefs.quiz = {};
+  savePrefs();
+  for (const q of document.querySelectorAll('.quiz')) renderQuiz(q);
+  renderProgress();
+});
+
+// --- quizzes ----------------------------------------------------------------
+
+function renderQuiz(box) {
+  const id = box.dataset.quiz;
+  const got = new Set(prefs.quiz[id] ?? []);
+  box.replaceChildren(h('h3', {}, 'Check yourself'), ...L.QUIZ[id].map((q, qi) => {
+    const why = h('div', { class: 'why', 'aria-live': 'polite' });
+    const buttons = q.options.map((opt, oi) => h('button', { type: 'button', 'data-o': oi },
+      h('span', { class: 'mark', 'aria-hidden': 'true' }), opt));
+    const mark = (oi, right) => {
+      const b = buttons[oi];
+      b.classList.add(right ? 'right' : 'wrong');
+      b.querySelector('.mark').textContent = right ? '✓' : '✗';
+      b.setAttribute('aria-label', `${q.options[oi]} — ${right ? 'correct' : 'not quite'}`);
+    };
+    const solve = () => {
+      mark(q.answer, true);
+      for (const b of buttons) b.disabled = true;
+      why.replaceChildren(h('b', {}, 'Right. '), q.why);
+    };
+    if (got.has(qi)) solve();
+    const opts = h('div', { class: 'opts' }, ...buttons);
+    opts.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-o]');
+      if (!b || b.disabled) return;
+      const oi = Number(b.dataset.o);
+      if (oi === q.answer) {
+        solve();
+        prefs.quiz[id] = [...new Set([...(prefs.quiz[id] ?? []), qi])];
+        savePrefs();
+        renderProgress();
+      } else {
+        mark(oi, false);
+        b.disabled = true;
+        why.replaceChildren(h('b', {}, 'Not quite. '), 'Have another go.');
+      }
+    });
+    return h('fieldset', { class: 'q' }, h('legend', {}, q.q), opts, why);
+  }));
+}
+
+// --- glossary, and definitions on hover -------------------------------------
+
+const glossary = [...L.GLOSSARY].sort((a, b) => a.term.localeCompare(b.term, 'en', { sensitivity: 'base' }));
+function renderGlossary() {
+  const q = $('g-q').value.trim().toLowerCase();
+  const shown = glossary.filter((g) => !q || g.term.toLowerCase().includes(q)
+    || g.definition.toLowerCase().includes(q));
+  $('g-list').replaceChildren(...shown.flatMap((g) => [
+    h('dt', { id: L.termId(g.term) }, g.term),
+    h('dd', {}, g.definition, g.note ? h('span', { class: 'note' }, g.note) : null),
+  ]));
+  $('g-count').textContent = q ? `${shown.length} of ${glossary.length} terms` : `${glossary.length} terms`;
+}
+$('g-q').addEventListener('input', renderGlossary);
+
+const tip = $('termtip');
+let tipFor = null, tipPinned = false;
+function showTip(a, pinned) {
+  const g = L.lookup(a.dataset.term);
+  if (!g) return;
+  tipFor = a;
+  tipPinned = pinned;
+  tip.replaceChildren(...[h('b', {}, g.term), g.definition,
+    g.note ? h('div', { class: 'note' }, g.note) : null,
+    pinned ? h('a', { href: `#${L.termId(g.term)}`, 'data-gloss': '1' }, 'In the glossary ↓') : null,
+  ].filter(Boolean));
+  a.setAttribute('aria-describedby', 'termtip');
+  tip.hidden = false;
+  const r = a.getBoundingClientRect();
+  const tw = tip.offsetWidth;
+  const left = Math.min(Math.max(8, r.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - tw - 8);
+  tip.style.left = `${left}px`;
+  tip.style.top = `${r.bottom + window.scrollY + 6}px`;
+}
+function hideTip() {
+  if (tipFor) tipFor.removeAttribute('aria-describedby');
+  tip.hidden = true;
+  tipFor = null;
+  tipPinned = false;
+}
+function wireTerms() {
+  for (const a of document.querySelectorAll('a.term[data-term]')) {
+    if (!L.lookup(a.dataset.term)) { console.warn(`no glossary entry for ${a.dataset.term}`); continue; }
+    a.href = `#${L.termId(a.dataset.term)}`;
+    a.addEventListener('mouseenter', () => { if (!tipPinned) showTip(a, false); });
+    a.addEventListener('mouseleave', () => { if (!tipPinned) hideTip(); });
+    a.addEventListener('focus', () => { if (!tipPinned) showTip(a, false); });
+    a.addEventListener('blur', (e) => { if (!tipPinned && !tip.contains(e.relatedTarget)) hideTip(); });
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (tipPinned && tipFor === a) hideTip();
+      else showTip(a, true);
+    });
+  }
+  tip.addEventListener('click', (e) => {
+    const link = e.target.closest('a[data-gloss]');
+    if (!link) return;
+    e.preventDefault();
+    const target = document.getElementById(link.getAttribute('href').slice(1));
+    hideTip();
+    $('g-q').value = '';
+    renderGlossary();
+    const dt = document.getElementById(target?.id ?? link.getAttribute('href').slice(1));
+    dt?.scrollIntoView({ block: 'center' });
+    dt?.classList.add('flash');
+    setTimeout(() => dt?.classList.remove('flash'), 1600);
+  });
+  document.addEventListener('click', (e) => {
+    if (!tip.hidden && !tip.contains(e.target) && !e.target.closest('a.term')) hideTip();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tip.hidden) hideTip(); });
+}
+
+// --- chapter 1: wavelength explorer -------------------------------------------
+
+const W = { f: 7.1 };
+const wRange = logRange($('w-f'), L.HF_MIN_MHZ, L.HF_MAX_MHZ);
+const BAND_CHIPS = BANDS.map((b) => ({ value: b.id, label: b.label, mhz: b.mhz }));
+
+function renderWaves() {
+  const f = W.f;
+  $('w-fout').textContent = fmtMHz(f, 3);
+  const here = L.whatsHere(f);
+  press($('w-bands'), BAND_CHIPS.find((b) => here.band?.id === b.value)?.value ?? '');
+
+  const { svg, scale } = P.spectrumSvg({
+    width: plotWidth('w-spectrum'), fMHz: f, min: L.HF_MIN_MHZ, max: L.HF_MAX_MHZ,
+    hamBands: L.HAM_BANDS, others: L.OTHER_SERVICES, activeId: here.band?.id,
+  });
+  const pick = (e) => {
+    const r = svg.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * svg.viewBox.baseVal.width;
+    W.f = Math.min(L.HF_MAX_MHZ, Math.max(L.HF_MIN_MHZ, scale.invert(x)));
+    wRange.set(W.f);
+    renderWaves();
+  };
+  svg.addEventListener('pointerdown', (e) => { pick(e); svg.setPointerCapture?.(e.pointerId); });
+  svg.addEventListener('pointermove', (e) => { if (e.buttons) pick(e); });
+  $('w-spectrum').replaceChildren(svg);
+
+  const lam = L.wavelengthM(f);
+  $('w-wave').replaceChildren(P.waveSvg({ width: plotWidth('w-wave'), lambdaM: lam, thing: L.comparison(lam) }));
+
+  const others = here.others.length
+    ? [' Also found near here: ', here.others.map((o) => o.label).join(', '), '.'] : [];
+  if (here.band) {
+    say($('w-say'), 'good', `${fmtMHz(f, 3)} is in the `, h('b', {}, `${here.band.label} amateur band`),
+      `. ${here.band.character}`, ...others);
+  } else {
+    const n = here.nearest;
+    say($('w-say'), null, `${fmtMHz(f, 3)} is outside the amateur bands. The nearest is `,
+      h('b', {}, n.label), ` (${n.lo}–${n.hi} MHz).`, ...others);
+  }
+  const dip = halfWave(f);
+  stats($('w-stats'), [
+    ['Wavelength', `${lam.toFixed(1)} m`, `${Math.round(lam / 0.3048).toLocaleString('en-US')} ft`],
+    ['A half-wave dipole for it', `${dip.toFixed(2)} m`, `${feetInches(dip)} end to end`],
+    ['Vibrations per second', `${(f).toLocaleString('en-US', { maximumFractionDigits: 3 })} million`, 'that’s what MHz means'],
+  ]);
+}
+choices($('w-bands'), BAND_CHIPS, null, (id) => {
+  W.f = BAND_CHIPS.find((b) => b.value === id).mhz;
+  wRange.set(W.f);
+  renderWaves();
+});
+$('w-f').addEventListener('input', perFrame(() => { W.f = wRange.get(); renderWaves(); }));
+
+// --- chapter 2: bounce simulator ----------------------------------------------
+
+const ZOOMS = [
+  { value: 1500, label: 'Nearby · 1,500 km' },
+  { value: 5000, label: 'Regional · 5,000 km' },
+  { value: 10000, label: 'Far · 10,000 km' },
+];
+const FAN = [4, 7, 10, 14, 19, 25, 32, 40, 50, 62, 75, 88];
+const I = { f: 14.2, elev: 15, hour: 12, ssn: 100, fan: false, span: 5000 };
+const iRange = logRange($('i-f'), 1.8, 30);
+
+/** Rough ground-wave reach for 100 W over average land. Illustrative only. */
+const groundWaveKm = (f) => Math.min(150, 350 / f);
+
+function rayGeometry(trace, elev, span, maxHops = Infinity) {
+  if (trace.fate === 'escapes') return [{ kind: 'escape', pts: L.legPoints(elev, 480, 32) }];
+  const up = L.legPoints(elev, trace.apexKm, 24);
+  const half = up.at(-1)[0];
+  const hop = [...up, ...up.slice(0, -1).reverse().map(([k, a]) => [2 * half - k, a])];
+  const segs = [];
+  trace.hops.forEach((hp, i) => {
+    const off = i * trace.hopKm;
+    if (off > span * 1.05 || i >= maxHops) return;
+    segs.push({ kind: hp.heard ? 'heard' : 'lost', pts: hop.map(([k, a]) => [k + off, a]) });
+  });
+  return segs;
+}
+
+/** Nearest ground range any sky wave on this frequency comes down at. */
+function nearestSkywave(f, iono) {
+  let best = Infinity;
+  for (let e = L.MIN_ELEVATION_DEG; e <= 89.5; e += 0.5) {
+    const t = L.traceRay({ fMHz: f, elevationDeg: e, iono, rangeKm: 1, maxHops: 1 });
+    if (t.fate !== 'escapes') best = Math.min(best, t.hopKm);
+  }
+  return best;
+}
+
+function renderIono() {
+  const iono = L.ionosphere({ hour: I.hour, ssn: I.ssn });
+  const isDay = iono.daylight > 0;
+  $('i-fout').textContent = fmtMHz(I.f);
+  $('i-eout').textContent = `${I.elev}°`;
+  $('i-hout').textContent = `${fmtHour(I.hour)} ${isDay ? 'day' : 'night'}`;
+  $('i-sout').textContent = `${sunWord(I.ssn)} · SSN ${I.ssn}`;
+  $('i-e').disabled = I.fan;
+  press($('i-bands'), BANDS.find((b) => Math.abs(b.mhz - I.f) < 0.01)?.id ?? '');
+
+  const gw = groundWaveKm(I.f);
+  const skip = nearestSkywave(I.f, iono);
+  const rays = [];
+  const landings = [];
+  const single = L.traceRay({ fMHz: I.f, elevationDeg: I.elev, iono, rangeKm: I.span * 1.2 });
+  if (I.fan) {
+    for (const e of FAN) {
+      const t = L.traceRay({ fMHz: I.f, elevationDeg: e, iono, rangeKm: I.span * 1.2 });
+      // One hop each: the fan is about where rays first come down.
+      rays.push({ fan: true, segments: rayGeometry(t, e, I.span, 1) });
+      if (t.hops[0]) landings.push({ km: t.hops[0].landKm, heard: t.hops[0].heard });
+    }
+  } else {
+    rays.push({ segments: rayGeometry(single, I.elev, I.span) });
+    const heard = single.hops.filter((hp) => hp.heard);
+    single.hops.forEach((hp, i) => {
+      if (hp.landKm > I.span) return;
+      const label = i === 0 || (hp === heard.at(-1) && i > 0) ? fmtKm(hp.landKm) : null;
+      landings.push({ km: hp.landKm, heard: hp.heard, label });
+    });
+  }
+  const { svg, exaggeration } = P.ionoSvg({
+    width: plotWidth('i-plot'), spanKm: I.span, iono, rays, landings,
+    groundWaveKm: gw, skipKm: Number.isFinite(skip) && skip <= gw ? null : skip,
+    clock: `${fmtHour(I.hour)} local`, isDay,
+  });
+  $('i-plot').replaceChildren(svg);
+  $('i-cap').textContent = 'Teaching model. '
+    + (exaggeration < 1.5 ? 'Heights are drawn close to true scale. '
+      : `Heights are stretched about ${Math.round(exaggeration)}× so the layers are visible, `
+        + 'which also makes every angle look steeper than it is. ')
+    + 'The lowest band is the D layer, which absorbs; the ones above reflect. Fainter means weaker. '
+    + 'Dotted rays are too weak to hear, and dashed ones escape into space. One ionosphere everywhere, '
+    + 'at mid-latitude on an equinox.';
+
+  const mufHere = L.mufAtAngleMHz(I.elev, iono);
+  if (I.fan) {
+    const lost = rays.flatMap((r) => r.segments).filter((s) => s.kind === 'lost').length;
+    const weak = lost ? ' Dotted rays make it back but are too weak to hear after the D layer.' : '';
+    if (!Number.isFinite(skip)) {
+      say($('i-say'), 'closed', `At ${fmtMHz(I.f)} every angle punches straight through into space, `
+        + 'so nothing comes back. The band is ', h('b', {}, 'closed'),
+        ' for sky wave. Try a lower frequency or a more active sun.');
+    } else if (skip <= gw) {
+      say($('i-say'), 'good', `At ${fmtMHz(I.f)} even signals sent straight up come back down, so there is `,
+        h('b', {}, 'no skip zone'), '. This is NVIS, covering everything from next door outwards.', weak);
+    } else {
+      say($('i-say'), 'fair', 'The steep rays escape and only the shallower ones come back, landing ',
+        h('b', {}, `${fmtKm(skip)} away or further`),
+        '. Between the edge of the ground wave and there lies the skip zone, where nothing is heard.', weak);
+    }
+  } else if (single.fate === 'escapes') {
+    say($('i-say'), 'closed', `At ${I.elev}° the layers can only return up to about ${fmtMHz(mufHere)}. `
+      + `${fmtMHz(I.f)} is above that, so it `, h('b', {}, 'passes through into space'),
+      '. Lower the frequency, or send it off at a lower angle.');
+  } else if (single.fate === 'absorbed') {
+    say($('i-say'), 'poor', `The ${single.layer} layer turns it back, but the D layer `,
+      h('b', {}, `soaks up ${Math.round(single.perHopDb)} dB`),
+      ' on the way, which is too much to hear.',
+      isDay ? ' Try a higher frequency, or wait until after sunset.' : '');
+  } else {
+    const heard = single.hops.filter((hp) => hp.heard);
+    const far = heard.at(-1);
+    say($('i-say'), 'good', `It bounces off the ${single.layer} layer and `,
+      h('b', {}, `lands ${fmtKm(single.hopKm)} away`), '.',
+      heard.length > 1 ? ` It keeps hopping and is still heard ${heard.length} hops out, at ${fmtKm(far.landKm)}.` : '');
+  }
+
+  if (I.fan) {
+    // The widest angle that still comes back is the edge of the skip zone.
+    let steepest = null;
+    for (let e = 89; e >= L.MIN_ELEVATION_DEG; e -= 1) {
+      if (L.reflection(I.f, e, iono)) { steepest = e; break; }
+    }
+    stats($('i-stats'), [
+      ['Highest that comes back straight up', fmtMHz(iono.foF2), 'the critical frequency'],
+      ['Nearest sky wave lands', Number.isFinite(skip) ? fmtKm(skip) : 'nowhere', 'from you'],
+      ['Skip zone', !Number.isFinite(skip) ? 'everywhere' : skip <= gw ? 'none' : `${fmtKm(gw)}–${fmtKm(skip)}`,
+        'where nothing is heard'],
+      ['Steepest angle that returns', steepest === null ? 'none' : `${steepest}°`,
+        steepest === null ? 'all escape' : 'steeper ones escape'],
+    ]);
+    return;
+  }
+  stats($('i-stats'), [
+    ['Highest that comes back straight up', fmtMHz(iono.foF2), 'the critical frequency'],
+    ['MUF at this angle', fmtMHz(mufHere), `for ${I.elev}°`],
+    ['One hop', single.fate === 'escapes' ? '—' : fmtKm(single.hopKm),
+      single.layer ? `off the ${single.layer} layer` : 'no reflection'],
+    ['Lost in the D layer', `${single.perHopDb.toFixed(single.perHopDb < 10 ? 1 : 0)} dB`,
+      isDay ? 'per hop, in daylight' : 'per hop, at night'],
+  ]);
+}
+
+const SIM_BANDS = ['160m', '80m', '40m', '30m', '20m', '15m', '10m'];
+choices($('i-bands'), BANDS.filter((b) => SIM_BANDS.includes(b.id)).map((b) => ({ value: b.id, label: b.label })),
+  null, (id) => {
+    I.f = BANDS.find((b) => b.id === id).mhz;
+    iRange.set(I.f);
+    renderIono();
+  });
+choices($('i-zoom'), ZOOMS, I.span, (v) => { I.span = v; renderIono(); });
+const renderIonoSoon = perFrame(renderIono);
+$('i-f').addEventListener('input', () => { I.f = iRange.get(); renderIonoSoon(); });
+$('i-e').addEventListener('input', () => { I.elev = Number($('i-e').value); renderIonoSoon(); });
+$('i-h').addEventListener('input', () => { I.hour = Number($('i-h').value); stopPlay(); renderIonoSoon(); });
+$('i-s').addEventListener('input', () => { I.ssn = Number($('i-s').value); renderIonoSoon(); });
+$('i-fan').addEventListener('change', () => { I.fan = $('i-fan').checked; renderIono(); });
+
+// "Play a day": a user-started animation that runs once and stops. With reduced
+// motion it steps an hour at a time instead of sweeping.
+let playing = null;
+function stopPlay() {
+  if (!playing) return;
+  if (playing.raf) cancelAnimationFrame(playing.raf);
+  if (playing.timer) clearInterval(playing.timer);
+  playing = null;
+  $('i-play').textContent = '▶ Play a day';
+  $('i-play').setAttribute('aria-pressed', 'false');
+}
+function syncHour() {
+  $('i-h').value = String(Math.round(I.hour * 4) / 4);
+  renderIono();
+}
+$('i-play').addEventListener('click', () => {
+  if (playing) { stopPlay(); return; }
+  const start = I.hour;
+  let elapsed = 0;
+  $('i-play').textContent = '■ Stop';
+  $('i-play').setAttribute('aria-pressed', 'true');
+  const finish = () => { I.hour = start; syncHour(); stopPlay(); };
+  if (reduceMotion.matches) {
+    playing = { timer: setInterval(() => {
+      elapsed += 1;
+      if (elapsed >= 24) { finish(); return; }
+      I.hour = (start + elapsed) % 24;
+      syncHour();
+    }, 700) };
+  } else {
+    let last = performance.now();
+    const tick = (now) => {
+      elapsed += ((now - last) / 1000) * 3;   // three hours a second: a day in eight
+      last = now;
+      if (elapsed >= 24) { finish(); return; }
+      I.hour = (start + elapsed) % 24;
+      syncHour();
+      playing.raf = requestAnimationFrame(tick);
+    };
+    playing = { raf: requestAnimationFrame(tick) };
+  }
+});
+
+// --- chapter 3: band clock ----------------------------------------------------
+
+const D = { d: 1000, ssn: 100, hour: 12 };
+const dRange = logRange($('d-d'), 50, 12000);
+const DISTANCES = [
+  { value: 150, label: 'Nearby · 150 km' },
+  { value: 800, label: 'Next region · 800 km' },
+  { value: 3000, label: 'Across a continent · 3,000 km' },
+  { value: 8000, label: 'Another continent · 8,000 km' },
+];
+const CLOCK_BANDS = BANDS.filter((b) => ['160m', '80m', '40m', '30m', '20m', '15m', '10m'].includes(b.id));
+const STATUS_BANDS = BANDS.filter((b) => b.mhz <= 30);
+const STATUS = {
+  open: { tone: 'good', word: 'open', sym: '✓' },
+  marginal: { tone: 'fair', word: 'marginal', sym: '~' },
+  skips: { tone: 'closed', word: 'skips over', sym: '×' },
+  absorbed: { tone: 'closed', word: 'absorbed', sym: '×' },
+};
+
+function nightSpans() {
+  const spans = [];
+  let start = null;
+  for (let hr = 0; hr <= 24; hr += 0.25) {
+    const night = L.daylight(hr) === 0;
+    if (night && start === null) start = hr;
+    if ((!night || hr === 24) && start !== null) { spans.push([start, hr]); start = null; }
+  }
+  return spans;
+}
+const NIGHTS = nightSpans();
+
+function renderWindow() {
+  $('d-dout').textContent = fmtKm(D.d);
+  $('d-sout').textContent = `${sunWord(D.ssn)} · SSN ${D.ssn}`;
+  $('d-hout').textContent = `${fmtHour(D.hour)} local`;
+  press($('d-dist'), DISTANCES.find((x) => x.value === D.d)?.value ?? '');
+
+  const curve = L.dayCurve(D.d, D.ssn, { stepHours: 0.25 });
+  const { svg, xToHour } = P.windowSvg({
+    width: plotWidth('d-plot'), curve, bands: CLOCK_BANDS, hour: D.hour, nights: NIGHTS,
+  });
+  const setFrom = (e) => {
+    const r = svg.getBoundingClientRect();
+    D.hour = Math.round(xToHour(((e.clientX - r.left) / r.width) * svg.viewBox.baseVal.width) * 4) / 4;
+    $('d-h').value = String(D.hour);
+    renderWindowSoon();
+  };
+  // The chart is redrawn on every move, so drag state is read from the event
+  // (buttons held) rather than kept on an element that is about to be replaced.
+  svg.addEventListener('pointerdown', setFrom);
+  svg.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType === 'mouse') setFrom(e); });
+  $('d-plot').replaceChildren(svg);
+
+  const iono = L.ionosphere({ hour: D.hour, ssn: D.ssn });
+  const rows = STATUS_BANDS.map((b) => ({ b, ...L.bandStatus(b.mhz, D.d, iono) }));
+  const { muf, luf } = rows[0];
+  $('d-status').replaceChildren(...rows.map((r) => {
+    const s = STATUS[r.status];
+    return h('span', { class: `st ${s.tone}` }, h('i', { 'aria-hidden': 'true' }),
+      h('b', {}, r.b.label), h('span', {}, s.word));
+  }));
+  const open = rows.filter((r) => r.status === 'open');
+  const best = open.at(-1);
+  const low = luf < 1.5 ? 'anything from the bottom of HF' : `about ${fmtMHz(luf)}`;
+  if (muf <= luf) {
+    say($('d-say'), 'closed', `At ${fmtHour(D.hour)}, a ${fmtKm(D.d)} path has `,
+      h('b', {}, 'no usable window'), ': everything low enough to come back is absorbed. Try another time of day.');
+  } else {
+    say($('d-say'), best ? 'good' : 'fair', `At ${fmtHour(D.hour)}, a ${fmtKm(D.d)} path can use `,
+      h('b', {}, `${low} up to ${fmtMHz(muf)}`), '.',
+      best ? [' Best bet: ', h('b', {}, best.b.label), open.length > 1
+        ? ` (${open.slice(0, -1).map((r) => r.b.label).join(', ')} ${open.length > 2 ? 'are' : 'is'} open too).`
+        : '.']
+        : ' No band sits comfortably inside the window, so anything that works will be marginal.');
+  }
+}
+const renderWindowSoon = perFrame(renderWindow);
+
+function renderClockTable() {
+  const hours = Array.from({ length: 12 }, (_, i) => i * 2);
+  const ionos = hours.map((hr) => L.ionosphere({ hour: hr, ssn: D.ssn }));
+  const t = $('d-table');
+  t.replaceChildren(
+    h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Band'),
+      ...hours.map((hr) => h('th', { scope: 'col' }, String(hr).padStart(2, '0'))))),
+    h('tbody', {}, ...STATUS_BANDS.map((b) => h('tr', {}, h('th', { scope: 'row' }, b.label),
+      ...ionos.map((io, i) => {
+        const s = STATUS[L.bandStatus(b.mhz, D.d, io).status];
+        return h('td', { class: s.tone, title: `${b.label} at ${String(hours[i]).padStart(2, '0')}:00 — ${s.word}` }, s.sym);
+      })))),
+  );
+}
+
+choices($('d-dist'), DISTANCES, D.d, (v) => { D.d = v; dRange.set(v); renderWindow(); renderClockTable(); });
+$('d-d').addEventListener('input', perFrame(() => {
+  const raw = dRange.get();
+  D.d = raw < 1000 ? Math.round(raw / 10) * 10 : Math.round(raw / 100) * 100;
+  renderWindow();
+  renderClockTable();
+}));
+$('d-s').addEventListener('input', perFrame(() => { D.ssn = Number($('d-s').value); renderWindow(); renderClockTable(); }));
+$('d-h').addEventListener('input', () => { D.hour = Number($('d-h').value); renderWindowSoon(); });
+
+// --- chapter 4: raise the dipole ----------------------------------------------
+
+const A = { band: '40m', height: 10, d: 150 };
+const ANT_BANDS = BANDS.filter((b) => ['80m', '40m', '20m', '10m'].includes(b.id));
+const ANT_DIST = [
+  { value: 150, label: 'Nearby · 150 km' },
+  { value: 1000, label: 'Regional · 1,000 km' },
+  { value: 3000, label: 'Far · 3,000 km' },
+];
+const dipole = byId('dipole');
+let patternKey = '', pattern = null;
+
+function renderAntenna() {
+  const band = BANDS.find((b) => b.id === A.band);
+  const f = band.mhz;
+  const lam = wavelength(f);
+  $('a-hout').textContent = `${A.height.toFixed(1)} m · ${(A.height / lam).toFixed(2)} λ`;
+
+  const key = `${f}/${A.height}`;
+  if (key !== patternKey) {
+    const built = buildAntenna(dipole, { designMHz: f, operatingMHz: f, params: { height: A.height } });
+    pattern = analyse(built.paths, f, { elevSteps: 91 });
+    patternKey = key;
+  }
+  // Broadside to the wire, which runs east–west, so the cut is at north.
+  const cut = pattern.elevCut(0, 91);
+  let peak = -Infinity, peakAt = 0;
+  cut.forEach((g, i) => { if (g > peak) { peak = g; peakAt = i; } });
+  const gainAt = (deg) => {
+    const x = deg, i = Math.min(89, Math.floor(x)), t = x - i;
+    return cut[i] + (cut[i + 1] - cut[i]) * t;
+  };
+  // The path can use one hop or one more; like the antenna page, credit the
+  // antenna with whichever of those its pattern favours.
+  const options = elevationsForDistance(A.d).map((deg) => ({ deg, rel: gainAt(deg) - peak }));
+  const bestOpt = options.reduce((a, o) => (o.rel > a.rel ? o : a));
+  const needed = options.map((o) => ({
+    deg: o.deg, main: o === bestOpt, label: o === bestOpt ? `${fmtKm(A.d)} needs ~${Math.round(o.deg)}°` : null,
+  }));
+
+  $('a-plot').replaceChildren(P.antennaSvg({
+    width: plotWidth('a-plot'), cut, peakDbi: peak, heightM: A.height, lambdaM: lam, needed,
+  }));
+
+  // The lowest lobe leads when it is as strong as any: higher up, a dipole's
+  // lobes come out equal, and naming whichever wins a rounding tie would steer
+  // someone away from the low angle that long distance needs.
+  const low = lowestLobe(cut);
+  const strongest = low && low.belowPeakDb <= 1 ? Math.round(low.elevationDeg) : peakAt;
+  const hl = A.height / lam;
+  const kind = strongest >= 60
+    ? ['almost straight up', '. That makes it an NVIS antenna, great within a few hundred kilometres']
+    : strongest >= 30
+      ? ['at a middle angle', '. That makes it a good all-rounder for roughly 500–2,000 km']
+      : ['at a low angle', '. That favours long distance'];
+  const lowNote = peakAt > strongest + 5
+    ? ` An equally strong lobe points higher, at ${peakAt}°: at this height the energy splits.`
+    : low && low.elevationDeg < strongest - 5 && low.belowPeakDb < 6
+      ? ` It also has a useful low lobe at ${Math.round(low.elevationDeg)}°.` : '';
+  const rel = bestOpt.rel;
+  const tone = rel > -3 ? 'good' : rel > -10 ? 'fair' : 'poor';
+  const match = rel > -3
+    ? ['a good match: ', h('b', {}, 'near full strength'), ' at the angle you need.']
+    : rel > -10
+      ? ['workable, but ', h('b', {}, `${Math.round(-rel)} dB down`), ' at the angle you need.']
+      : ['a poor match: ', h('b', {}, `${Math.round(-rel)} dB down`), ' at the angle you need. ',
+        bestOpt.deg > strongest ? 'Try it lower.' : 'Try it higher.'];
+  say($('a-say'), tone, `At ${hl.toFixed(2)} wavelengths up, the main lobe leaves `,
+    h('b', {}, `${kind[0]} (${strongest}°)`), `${kind[1]}.${lowNote} For ${fmtKm(A.d)} it is `, ...match);
+
+  const L2 = halfWave(f);
+  stats($('a-stats'), [
+    ['Main lobe', `${strongest}°`, strongest >= 60 ? 'NVIS' : strongest >= 30 ? 'all-rounder' : 'DX'],
+    ['Height', `${hl.toFixed(2)} λ`, `${A.height.toFixed(1)} m on ${band.label}`],
+    ['Cut the wire to', `${L2.toFixed(2)} m`, `${feetInches(L2)} in total, fed in the middle`],
+  ]);
+}
+const renderAntennaSoon = perFrame(renderAntenna);
+choices($('a-band'), ANT_BANDS.map((b) => ({ value: b.id, label: b.label })), A.band,
+  (v) => { A.band = v; renderAntenna(); });
+choices($('a-dist'), ANT_DIST, A.d, (v) => { A.d = v; renderAntenna(); });
+$('a-h').addEventListener('input', () => { A.height = Number($('a-h').value); renderAntennaSoon(); });
+
+// --- chapter 5: the S-meter ---------------------------------------------------
+
+const M = { watts: 100, ant: 'dipole', env: 'residential', mode: 'ssb' };
+const M_MHZ = 7.1;
+const mRange = logRange($('m-w'), 1, 1500);
+const WATT_CHIPS = [
+  { value: 5, label: '5 W · handheld' },
+  { value: 100, label: '100 W · typical radio' },
+  { value: 1500, label: '1,500 W · big amplifier' },
+];
+const niceWatts = (w) => (w < 10 ? Math.round(w * 2) / 2 : w < 100 ? Math.round(w) : Math.round(w / 10) * 10);
+
+function renderMeter() {
+  $('m-wout').textContent = `${niceWatts(M.watts).toLocaleString('en-US')} W`;
+  press($('m-wchips'), WATT_CHIPS.find((c) => c.value === M.watts)?.value ?? '');
+  const sig = L.receivedDbm({ watts: M.watts, antennaId: M.ant });
+  const noise = L.noiseDbm(M.env, M_MHZ);
+  const snr = sig - noise;
+  $('m-plot').replaceChildren(P.meterSvg({ width: plotWidth('m-plot'), signalDbm: sig, noiseDbm: noise }));
+  const s = L.sMeter(sig), n = L.sMeter(noise);
+  stats($('m-stats'), [
+    ['Your signal', s.label, `${Math.round(sig)} dBm`],
+    ['Their noise', n.label, `${Math.round(noise)} dBm`],
+    ['Above the noise', fmtDb(snr), 'the SNR'],
+  ]);
+
+  const mode = L.MODES.find((x) => x.id === M.mode);
+  const modeName = { ssb: 'voice', cw: 'Morse', ft8: 'FT8' }[M.mode];
+  const verdict = L.copyVerdict(snr, M.mode);
+  const extra = [];
+  const powerDb = L.dbFromRatio(M.watts / L.REFERENCE_WATTS);
+  if (Math.abs(powerDb) >= 0.5) {
+    extra.push(`Compared with 100 W, your power is worth ${fmtDb(powerDb)}, or ${Math.abs(powerDb / 6).toFixed(1)} S-units.`);
+  }
+  if (M.env !== 'quiet') {
+    const gain = noise - L.noiseDbm('quiet', M_MHZ);
+    extra.push(` If your friend lived in quiet countryside, the noise would be ${Math.round(gain)} dB lower, `
+      + `worth as much as ${Math.round(L.ratioFromDb(gain)).toLocaleString('en-US')} times your power.`);
+  }
+  const lead = {
+    comfortable: ['good', 'Easy copy. ', `Your signal stands ${fmtDb(snr)} above the noise, plenty for ${modeName}.`],
+    readable: ['fair', 'Readable, with effort. ', `${fmtDb(snr)} above the noise is enough for ${modeName}, but a little fading will cost you.`],
+    buried: ['closed', 'Buried in the noise. ', `${modeName[0].toUpperCase()}${modeName.slice(1)} needs roughly ${fmtDb(mode.readableDb)} over the noise, and this signal is at ${fmtDb(snr)}.`],
+  }[verdict];
+  const ft8 = verdict === 'buried' && M.mode !== 'ft8' && L.copyVerdict(snr, 'ft8') !== 'buried'
+    ? ' FT8 would still decode it.' : '';
+  say($('m-say'), lead[0], h('b', {}, lead[1]), lead[2], ft8,
+    extra.length ? h('span', { class: 'sub' }, ...extra) : null);
+}
+choices($('m-wchips'), WATT_CHIPS, M.watts, (v) => { M.watts = v; mRange.set(v); renderMeter(); });
+choices($('m-ant'), L.TX_ANTENNAS.map((a) => ({ value: a.id, label: a.label })), M.ant, (v) => { M.ant = v; renderMeter(); });
+choices($('m-env'), L.NOISE_ENVIRONMENTS.map((e) => ({ value: e.id, label: e.label })), M.env, (v) => { M.env = v; renderMeter(); });
+choices($('m-mode'), L.MODES.map((m) => ({ value: m.id, label: m.label })), M.mode, (v) => { M.mode = v; renderMeter(); });
+$('m-w').addEventListener('input', perFrame(() => { M.watts = niceWatts(mRange.get()); renderMeter(); }));
+
+// --- chapter 6: sun and storms ------------------------------------------------
+
+const S = { sfi: 120, kp: 2 };
+const PATH_WORDS = { good: 'normal', fair: 'degraded', poor: 'badly degraded', closed: 'likely closed' };
+
+function renderSun() {
+  $('s-sfiout').textContent = String(S.sfi);
+  const g = geomagneticScale(S.kp);
+  $('s-kpout').textContent = `${S.kp}${g ? ` · ${g}` : ''}`;
+  // Active regions drawn: a picture of "more activity", not a count of anything.
+  const spots = Math.max(0, Math.min(36, Math.round((S.sfi - 65) / 5)));
+  $('s-sunplot').replaceChildren(P.sunSvg({ width: plotWidth('s-sunplot'), spots }));
+  // Path fates follow describeKp's own wording, so the chips never contradict
+  // the paragraph under them: polar routes "may close" at G1 and are "closed"
+  // from G2; only at G3 does it call degradation widespread.
+  const polar = S.kp < 3 ? 'good' : S.kp < 5 ? 'fair' : S.kp < 6 ? 'poor' : 'closed';
+  const lowLat = S.kp >= 7 ? 'fair' : 'good';
+  $('s-aurplot').replaceChildren(P.auroraSvg({
+    width: plotWidth('s-aurplot'), kp: S.kp, ovalLatDeg: 66 - 2.5 * S.kp,
+    polarStatus: polar, lowStatus: lowLat,
+  }));
+  $('s-paths').replaceChildren(
+    h('span', { class: `st ${polar}` }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Polar path'), h('span', {}, PATH_WORDS[polar])),
+    h('span', { class: `st ${lowLat}` }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Low-latitude path'), h('span', {}, PATH_WORDS[lowLat])),
+  );
+  const fl = describeFlux(S.sfi), kp = describeKp(S.kp);
+  $('s-fluxhead').textContent = `Solar flux ${S.sfi}: ${fl.headline}`;
+  $('s-fluxbody').textContent = fl.detail;
+  $('s-kphead').textContent = `Kp ${S.kp}: ${kp.headline}`;
+  $('s-kpbody').textContent = kp.detail;
+  say($('s-say'), S.kp >= 5 ? 'poor' : S.kp >= 4 ? 'fair' : 'good', summarise({ sfi: S.sfi, kp: S.kp }));
+}
+$('s-sfi').addEventListener('input', perFrame(() => { S.sfi = Number($('s-sfi').value); renderSun(); }));
+$('s-kp').addEventListener('input', perFrame(() => { S.kp = Number($('s-kp').value); renderSun(); }));
+
+// --- today's real sun, offered, never imposed ----------------------------------
+//
+// The teaching tools start at typical values so the lessons read the same for
+// everyone. Where real figures are available, each tool offers them with their
+// source and age. Where they are not, it says so rather than inventing them.
+
+const ageOf = (iso) => (iso ? describeAge(Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000))) : 'age unknown');
+
+async function offerToday() {
+  let sw = null;
+  try { sw = await loadSpaceWeather({ timeoutMs: 6000 }); } catch { /* shown below */ }
+  const unavailable = 'No figures for today’s sun reached this page, so the sliders start at typical values.';
+
+  for (const [hintId, apply] of [
+    ['i-today', (v) => { I.ssn = v; $('i-s').value = String(v); renderIono(); }],
+    ['d-today', (v) => { D.ssn = v; $('d-s').value = String(v); renderWindow(); renderClockTable(); }],
+  ]) {
+    if (sw?.ssnIsReal && sw.ssnRaw !== null) {
+      const v = Math.max(0, Math.min(200, Math.round(sw.ssnRaw / 5) * 5));
+      const b = h('button', { type: 'button', class: 'btn quiet' }, `Use today’s sun (SSN ${Math.round(sw.ssnRaw)})`);
+      b.addEventListener('click', () => apply(v));
+      $(hintId).replaceChildren(b, ` KC2G, ${ageOf(sw.solar?.observedAt)}.`);
+    } else {
+      $(hintId).textContent = unavailable;
+    }
+  }
+
+  const sfi = sw?.solar?.sfi ?? sw?.flux?.f107 ?? null;
+  const kp = sw?.geomag?.kp ?? null;
+  if (sfi === null && kp === null) {
+    $('s-live').textContent = unavailable;
+    return;
+  }
+  const bits = [];
+  if (sfi !== null) {
+    bits.push(`solar flux ${Math.round(sfi)} (${sw.solar?.sfi !== undefined && sw.solar?.sfi !== null
+      ? `KC2G, ${ageOf(sw.solar.observedAt)}` : `NOAA, ${ageOf(sw.flux?.observedAt)}`})`);
+  }
+  if (kp !== null) bits.push(`Kp ${kp} (NOAA, ${ageOf(sw.geomag?.observedAt)})`);
+  const b = h('button', { type: 'button', class: 'btn quiet' }, 'Set the sliders to today');
+  b.addEventListener('click', () => {
+    if (sfi !== null) { S.sfi = Math.max(60, Math.min(250, Math.round(sfi))); $('s-sfi').value = String(S.sfi); }
+    if (kp !== null) { S.kp = Math.max(0, Math.min(9, Math.round(kp))); $('s-kp').value = String(S.kp); }
+    renderSun();
+  });
+  $('s-live').replaceChildren(`Today: ${bits.join(' · ')}. `, b);
+}
+
+// --- start ----------------------------------------------------------------------
+
+wRange.set(W.f);
+iRange.set(I.f);
+$('i-e').value = String(I.elev);
+$('i-h').value = String(I.hour);
+$('i-s').value = String(I.ssn);
+dRange.set(D.d);
+$('d-s').value = String(D.ssn);
+$('d-h').value = String(D.hour);
+$('a-h').value = String(A.height);
+mRange.set(M.watts);
+$('s-sfi').value = String(S.sfi);
+$('s-kp').value = String(S.kp);
+
+renderProgress();
+for (const q of document.querySelectorAll('.quiz')) renderQuiz(q);
+renderGlossary();
+wireTerms();
+
+renderWaves(); watchWidth('w-spectrum', renderWaves);
+renderIono(); watchWidth('i-plot', renderIono);
+renderWindow(); renderClockTable(); watchWidth('d-plot', renderWindow);
+renderAntenna(); watchWidth('a-plot', renderAntenna);
+renderMeter(); watchWidth('m-plot', renderMeter);
+renderSun(); watchWidth('s-sunplot', renderSun);
+
+void offerToday();
+</script>
+</body>
+</html>
