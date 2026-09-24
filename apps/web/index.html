@@ -27,6 +27,7 @@
     background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
     border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4)}
   a.card:hover{border-color:var(--hf-border-strong)}
+  a.card.start{border-left:3px solid var(--hf-accent-interactive)}
   a.card:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
   a.card b{font-size:var(--hf-font-size-lg)}
   a.card span{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
@@ -59,6 +60,13 @@
   <div>
     <h2>Tools</h2>
     <div class="cards">
+      <a class="card start" href="./learn.html">
+        <b>New to HF? Start here</b>
+        <span>A gentle guide to how HF radio works: waves and bands, the ionosphere, day and
+          night, antennas, noise and the sun. Six short chapters, each with something to play
+          with, plus a plain-English glossary.</span>
+        <em>beginner&rsquo;s guide &middot; about 30 minutes</em>
+      </a>
       <a class="card" href="./planner.html">
         <b>Path planner</b>
         <span>Pick two points, get 24 hours × nine bands of SNR margin. Computes live in
@@ -112,6 +120,9 @@
       not favour, because their gain does not follow from the thin-wire model. Coarse passes
       paint each sample across the block it stands for, so an early frame is a sketch until
       the finer passes land.</div>
+    <div>The <b>Learn</b> page&rsquo;s bounce simulator and band clock use a deliberately simple
+      <b>teaching model</b> of the ionosphere, not P.533. They show how propagation behaves, not
+      what your circuit will do, and they say so where they draw.</div>
     <div>The antenna visualiser is a <b>thin-wire model over perfect ground</b>, not NEC. It
       is pinned against the textbook constants it can be checked against &mdash; 2.15 dBi for a
       free-space dipole, 5.15 for a quarter wave over ground &mdash; and it reports directivity,

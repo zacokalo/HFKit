@@ -8,6 +8,7 @@ import { kpToken, describeKp } from './spacewx-copy.mjs';
 
 const PAGES = [
   ['./index.html', 'Home'],
+  ['./learn.html', 'Learn'],
   ['./reach.html', 'Reach map'],
   ['./planner.html', 'Path planner'],
   ['./antenna.html', 'Antennas'],

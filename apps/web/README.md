@@ -6,6 +6,7 @@ computes anything.
 | Page | What it is |
 |---|---|
 | `index.html` | Landing, with an honest note on what is real and what is not |
+| `learn.html` | **Beginner's guide.** Six short chapters — waves and bands, the ionosphere, day and night, antennas, power and noise, the sun — each built around an interactive tool: wavelength explorer, bounce simulator, band clock, dipole height, S-meter, sun and storms. Quizzes, a searchable glossary with hover definitions, and theme and text-size controls. Propagation widgets use a labelled teaching model, not P.533 ([ADR-0004](../../docs/adr/0004-teaching-model.md)). |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
 | `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, transmit power in watts and antenna gain as separate controls. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
 | `styleguide.html` | Every design token in all three themes |
