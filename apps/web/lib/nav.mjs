@@ -5,6 +5,7 @@
 
 import { loadSpaceWeather, describeAge } from './spacewx.mjs';
 import { kpToken, describeKp } from './spacewx-copy.mjs';
+import { applyMode, getMode, mountGuide, setMode } from './mode.mjs';
 
 const PAGES = [
   ['./index.html', 'Home'],
@@ -48,10 +49,40 @@ export function mountNav(container, currentFile) {
   const spacer = document.createElement('span');
   spacer.className = 'spacer';
   nav.append(spacer);
+  nav.append(modeSwitch());
 
+  applyMode();
   container.prepend(nav);
+  mountGuide(container, currentFile);
   void addConditions(nav);
   return nav;
+}
+
+/** Beginner / Experienced, on every page. See mode.mjs for what it changes. */
+function modeSwitch() {
+  const g = document.createElement('div');
+  g.className = 'modesw';
+  g.setAttribute('role', 'group');
+  g.setAttribute('aria-label', 'How much to explain');
+  const buttons = [
+    ['beginner', 'Beginner', 'Start from the basics, with a guide on every tool page'],
+    ['experienced', 'Experienced', 'Land on the tools, with no guides'],
+  ].map(([mode, label, title]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.mode = mode;
+    b.textContent = label;
+    b.title = title;
+    b.addEventListener('click', () => setMode(mode));
+    return b;
+  });
+  const sync = (m) => {
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  };
+  sync(getMode());
+  document.addEventListener('hfkit:mode', (e) => sync(e.detail));
+  g.append(...buttons);
+  return g;
 }
 
 async function addConditions(nav) {

@@ -7,6 +7,15 @@
 <meta name="description" content="HF propagation forecasting and planning. ITU-R P.533 runs on your device; nothing is computed on a server.">
 <link rel="stylesheet" href="./vendor/tokens.css">
 <link rel="stylesheet" href="./lib/nav.css">
+<script>
+  // Which home to show, decided before first paint so the wrong one never
+  // flashes. Beginner unless this browser has said otherwise; see lib/mode.mjs.
+  (() => {
+    let m = 'beginner';
+    try { if (localStorage.getItem('hfkit.mode') === 'experienced') m = 'experienced'; } catch { /* default */ }
+    document.documentElement.setAttribute('data-mode', m);
+  })();
+</script>
 <style>
   *,*::before,*::after{box-sizing:border-box}
   body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
@@ -46,18 +55,110 @@
     display:flex;flex-direction:column;gap:6px}
   code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
   a{color:var(--hf-accent-interactive)}
+
+  /* Two homes, one page: beginner (the default) and experienced. */
+  html[data-mode="experienced"] .beg-only{display:none}
+  html:not([data-mode="experienced"]) .exp-only{display:none}
+  section.beg-only{display:flex;flex-direction:column;gap:var(--hf-spacing-6)}
+
+  .hero{border-bottom:0;padding-bottom:0;gap:var(--hf-spacing-3)}
+  html[data-mode="experienced"] .beg-note{display:none}
+  .hero .lede{font-size:var(--hf-font-size-lg);line-height:1.65;max-width:60ch}
+  a.card.door{flex-direction:row;align-items:center;gap:var(--hf-spacing-5);
+    border-left:4px solid var(--hf-accent-interactive);padding:var(--hf-spacing-5) var(--hf-spacing-6)}
+  a.card.door .txt{display:flex;flex-direction:column;gap:6px;flex:1}
+  a.card.door b{font-size:var(--hf-font-size-xl);color:var(--hf-text-primary)}
+  a.card.door span{font-size:var(--hf-font-size-md);line-height:1.55}
+  a.card.door .go{font-family:inherit;font-size:var(--hf-font-size-md);white-space:nowrap;
+    background:var(--hf-button-background);color:var(--hf-button-foreground);
+    border-radius:var(--hf-button-radius);padding:10px 16px;font-weight:var(--hf-font-weight-semibold)}
+  a.card.door:hover .go{background:var(--hf-button-background-hover)}
+  @media (max-width:560px){a.card.door{flex-direction:column;align-items:flex-start}}
+  a.card.ask b{font-size:var(--hf-font-size-lg)}
+  a.card.ask span{font-size:var(--hf-font-size-md);line-height:1.5}
+  .chapters{list-style:none;margin:0;padding:0;display:grid;gap:var(--hf-spacing-2);
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));counter-reset:ch}
+  .chapters a{display:flex;gap:var(--hf-spacing-3);text-decoration:none;color:var(--hf-text-primary);
+    padding:var(--hf-spacing-2) var(--hf-spacing-3);border-radius:var(--hf-radius-sm);
+    font-size:var(--hf-font-size-md)}
+  .chapters a:hover{background:var(--hf-surface-raised)}
+  .chapters a:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
+  .chapters .n{font-family:var(--hf-font-family-mono);color:var(--hf-accent-interactive);
+    font-weight:var(--hf-font-weight-semibold)}
+  .hint{margin:var(--hf-spacing-3) 0 0;color:var(--hf-text-muted);font-size:var(--hf-font-size-sm)}
+  .switchnote{display:flex;flex-wrap:wrap;gap:var(--hf-spacing-3);align-items:center;
+    border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-5);
+    color:var(--hf-text-secondary);font-size:var(--hf-font-size-md)}
+  .switchnote b{color:var(--hf-text-primary)}
+  .switchnote button{background:transparent;color:var(--hf-accent-interactive);
+    border:1px solid var(--hf-border-default);border-radius:var(--hf-radius-sm);
+    padding:6px 12px;font:inherit;font-size:var(--hf-font-size-sm);cursor:pointer}
+  .switchnote button:hover{border-color:var(--hf-border-strong)}
+
+  /* The caveats: the same block in both modes, open for experienced visitors
+     and folded, never removed, for beginners. */
+  details.real>summary{cursor:pointer;padding:var(--hf-spacing-3) var(--hf-spacing-4);
+    background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+    border-left:3px solid var(--hf-status-fair-fill);border-radius:var(--hf-radius-md);
+    font-size:var(--hf-font-size-sm);color:var(--hf-text-primary);font-weight:var(--hf-font-weight-semibold)}
+  details.real>summary .sub{font-weight:var(--hf-font-weight-regular);color:var(--hf-text-secondary)}
+  details.real[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0}
+  details.real[open]>.flags{border-top-left-radius:0;border-top-right-radius:0;border-top:0;padding-top:0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <!-- Beginner home: where a first visit lands. -->
+  <section class="beg-only" aria-labelledby="beg-title">
+    <header class="hero">
+      <p class="kicker">Welcome to HFKit</p>
+      <h1 id="beg-title">Find out where your radio signal can reach</h1>
+      <p class="lede">HF radio, also called shortwave, can cross a country or circle the world
+        by bouncing off the upper atmosphere. Whether it works right now depends on the time of
+        day, the sun, your antenna and the frequency you pick. HFKit shows you how that works
+        and helps you plan. It&rsquo;s free and runs entirely in your browser.</p>
+    </header>
+
+    <a class="card door" href="./learn.html">
+      <span class="txt">
+        <b>New to HF? Start here</b>
+        <span>Learn how it all works in six short, hands-on chapters: waves and bands, the
+          ionosphere, day and night, antennas, noise and the sun. No maths, about half an hour.</span>
+      </span>
+      <span class="go">Start learning &rarr;</span>
+    </a>
+
+    <div>
+      <h2>Or jump straight to a question</h2>
+      <div class="cards">
+        <a class="card ask" href="./planner.html"><b>Will my signal get there?</b>
+          <span>Pick two places and see which bands work, hour by hour.</span></a>
+        <a class="card ask" href="./reach.html"><b>Where can I be heard?</b>
+          <span>A map of everywhere your station could reach, with day and night shown.</span></a>
+        <a class="card ask" href="./antenna.html"><b>Which antenna should I put up?</b>
+          <span>How long to cut it, how high to hang it, and where it sends your signal.</span></a>
+        <a class="card ask" href="./space.html"><b>What is the sun doing today?</b>
+          <span>Today&rsquo;s space weather and what it means for the bands, in plain English.</span></a>
+      </div>
+      <p class="hint">In beginner mode every tool opens with a short &ldquo;how to read this
+        page&rdquo; guide.</p>
+    </div>
+
+    <div>
+      <h2>The chapters</h2>
+      <ol class="chapters" id="chapters"></ol>
+    </div>
+  </section>
+
+  <!-- Experienced home: the tools hub. -->
+  <header class="exp-only">
     <p class="kicker">Phase 1 preview</p>
     <h1>HF propagation, computed on your device</h1>
     <p class="lede">ITU-R P.533 compiled to WebAssembly. Nothing is computed on a server,
       your location never leaves the browser, and once loaded it works offline.</p>
   </header>
 
-  <div>
+  <div class="exp-only">
     <h2>Tools</h2>
     <div class="cards">
       <a class="card start" href="./learn.html">
@@ -102,8 +203,10 @@
     </div>
   </div>
 
+  <details class="real" id="real">
+    <summary>What is real here, and what is not
+      <span class="sub beg-note">&mdash; what these tools can and can&rsquo;t tell you yet</span></summary>
   <div class="flags">
-    <div><b>What is real here, and what is not.</b></div>
     <div>Predictions come from the ITU's own reference implementation and are verified
       numerically identical to a native build of it. Distances, bearings, MUF and the
       diurnal behaviour all check out against reality.</div>
@@ -139,8 +242,15 @@
       the engine, scaled by geomagnetic latitude, which is the A-score's job and does not
       exist. Treat every prediction here as assuming quiet geomagnetic conditions.</div>
   </div>
+  </details>
 
-  <div>
+  <div class="beg-only switchnote">
+    <b>Done this before?</b> Experienced mode opens on the tools and technical notes, and
+    drops the guides. <button type="button" id="to-exp">Switch to experienced</button>
+    <span>You can switch back from the menu at any time.</span>
+  </div>
+
+  <div class="exp-only">
     <h2>Why it is built this way</h2>
     <ul>
       <li><b>On-device compute</b> means our cost does not scale with users, so this can stay
@@ -164,7 +274,31 @@
 </div>
 <script type="module">
   import { mountNav } from './lib/nav.mjs';
+  import { getMode, setMode } from './lib/mode.mjs';
+  import { CHAPTERS } from './vendor/learn-model.mjs';
   mountNav(document.querySelector('.wrap'), 'index.html');
+
+  // The caveats open by default for experienced visitors, folded for beginners.
+  const real = document.getElementById('real');
+  const fold = (m) => { real.open = m === 'experienced'; };
+  fold(getMode());
+  document.addEventListener('hfkit:mode', (e) => fold(e.detail));
+  document.getElementById('to-exp').addEventListener('click', () => {
+    setMode('experienced');
+    window.scrollTo({ top: 0 });
+  });
+
+  document.getElementById('chapters').replaceChildren(...CHAPTERS.map((c, i) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = `./learn.html#${c.id}`;
+    const n = document.createElement('span');
+    n.className = 'n';
+    n.textContent = String(i + 1);
+    a.append(n, c.title);
+    li.append(a);
+    return li;
+  }));
 </script>
 </body>
 </html>

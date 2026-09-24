@@ -5,11 +5,19 @@ computes anything.
 
 | Page | What it is |
 |---|---|
-| `index.html` | Landing, with an honest note on what is real and what is not |
+| `index.html` | Landing, in two modes. **Beginner** (the default for a new visitor): a plain-English welcome that sends newcomers to Learn, or straight to a tool by the question it answers. **Experienced**: the tools hub. The "what is real and what is not" notes are the same block in both, folded for beginners and open for experienced visitors. |
 | `learn.html` | **Beginner's guide.** Six short chapters — waves and bands, the ionosphere, day and night, antennas, power and noise, the sun — each built around an interactive tool: wavelength explorer, bounce simulator, band clock, dipole height, S-meter, sun and storms. Quizzes, a searchable glossary with hover definitions, and theme and text-size controls. Propagation widgets use a labelled teaching model, not P.533 ([ADR-0004](../../docs/adr/0004-teaching-model.md)). |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
 | `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, transmit power in watts and antenna gain as separate controls. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
 | `styleguide.html` | Every design token in all three themes |
+
+**Beginner and experienced modes.** A switch in the site menu, remembered per
+browser (`lib/mode.mjs`). Beginner is the default: the home page is the
+welcome, and every tool page opens with a folded "how to read this page" guide
+under its header, linking to the Learn chapter behind it. Experienced lands on
+the tools hub and drops the guides. The mode changes what is explained, never
+what is computed or which caveats exist. The guide copy describes each page's
+legend, units and time zone, so edit it when those change.
 
 ## Build
 
