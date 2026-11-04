@@ -89,10 +89,12 @@ export default async function run(browser, origin) {
     'a 3 m whip ranks below an NVIS wire for a 500–1000 km plan', names.join(' > '));
   const whipReasons = await page.$$eval('#ranking .rcard', (cards) => {
     const c = cards.find((x) => x.querySelector('.name').textContent === 'Manpack whip');
-    return [...c.querySelectorAll('.reasons li')].map((li) => li.textContent);
+    return [...c.querySelectorAll('.reasons li')].map((li) => ({
+      text: li.textContent, fix: li.querySelector('.fix')?.textContent ?? null,
+    }));
   });
-  t.check(whipReasons.some((r) => /Electrically short/.test(r)), 'and the whip is told why: electrically short', whipReasons[0]);
-  t.check(whipReasons.some((r) => /Fix:/.test(r)), 'with a fix attached');
+  t.check(whipReasons.some((r) => /Electrically short/.test(r.text)), 'and the whip is told why: electrically short', whipReasons[0]?.text);
+  t.check(whipReasons.some((r) => r.fix && /counterpoise/.test(r.fix)), 'with a fix attached', whipReasons[0]?.fix);
 
   const rows = await page.$$eval('#timeline tbody tr, #timeline tr', (e) => e.length);
   t.check(rows === 11, 'the timeline has a header and ten band rows', `${rows}`);
