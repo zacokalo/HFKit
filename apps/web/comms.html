@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HFKit — comms planner</title>
+<meta name="description" content="Where you are, who you need to reach, how much power you have and what you can put up: get a band for now, the antenna that serves every site, which way to point it, and the cut list to build it.">
+<meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
+<link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
+<link rel="stylesheet" href="./lib/nav.css">
+<link rel="stylesheet" href="./lib/antenna-plot.css">
+<link rel="stylesheet" href="./lib/radio-loader.css">
+<style>
+/* --- the three questions --- */
+.steps{display:grid;gap:var(--hf-spacing-4);grid-template-columns:1fr}
+@media(min-width:980px){.steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.step{display:flex;flex-direction:column;gap:var(--hf-spacing-3)}
+.step .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:var(--hf-accent-interactive);color:var(--hf-accent-on-accent);
+  font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  font-weight:var(--hf-font-weight-semibold);margin-right:8px;vertical-align:-4px}
+.step h2{margin:0;font-size:var(--hf-font-size-md);display:flex;align-items:center}
+.step .hint{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);margin:0}
+.search{position:relative}
+.sug{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:2px;
+  background:var(--hf-surface-overlay);border:1px solid var(--hf-border-default);
+  border-radius:var(--hf-radius-sm);max-height:260px;overflow:auto;
+  box-shadow:0 0 0 1px var(--hf-border-subtle)}
+.sug div{padding:7px 10px;cursor:pointer;font-size:var(--hf-font-size-sm);display:flex;
+  justify-content:space-between;gap:8px}
+.sug div:hover,.sug div[aria-selected=true]{background:var(--hf-surface-raised)}
+.sug .cc{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);white-space:nowrap}
+.now{display:flex;align-items:center;gap:8px;font-size:var(--hf-font-size-sm)}
+.now b{font-weight:var(--hf-font-weight-semibold)}
+.now .mono{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.sitelist{display:flex;flex-direction:column;gap:6px}
+.site{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:6px 8px 6px 10px;border:1px solid var(--hf-border-subtle);
+  border-radius:var(--hf-radius-sm);background:var(--hf-surface-sunken);font-size:var(--hf-font-size-sm)}
+.site .idx{font-family:var(--hf-font-family-mono);color:var(--hf-text-muted)}
+.site .meta{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted)}
+.site .x{appearance:none;background:none;border:0;color:var(--hf-text-muted);cursor:pointer;
+  font-size:16px;line-height:1;padding:2px 6px}
+.site .x:hover{color:var(--hf-text-primary)}
+.empty{font-size:var(--hf-font-size-sm);color:var(--hf-text-muted);font-style:italic}
+
+/* power */
+.power{display:flex;flex-direction:column;gap:2px}
+.power .big{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xl);
+  font-variant-numeric:tabular-nums;line-height:1.1;display:flex;align-items:baseline;gap:10px}
+.power .ticks{display:flex;justify-content:space-between;font-family:var(--hf-font-family-mono);
+  font-size:10px;color:var(--hf-text-muted)}
+
+/* antennas */
+.antlist{display:flex;flex-direction:column;gap:var(--hf-spacing-2);max-height:340px;overflow:auto;
+  padding-right:4px}
+.antgroup{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--hf-text-muted);margin:6px 0 0;font-weight:var(--hf-font-weight-semibold)}
+.ant{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;
+  padding:7px 10px;border:1px solid var(--hf-border-subtle);border-radius:var(--hf-radius-sm);
+  background:var(--hf-surface-sunken);cursor:pointer;font-size:var(--hf-font-size-sm)}
+.ant:has(input:checked){border-color:var(--hf-accent-interactive)}
+.ant input{margin:4px 0 0;accent-color:var(--hf-accent-interactive)}
+.ant .d{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);display:block}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+
+/* go */
+.gobar{display:flex;gap:var(--hf-spacing-4);align-items:center;flex-wrap:wrap}
+.gobar .status{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);flex:1;min-width:240px}
+.gobar .status .mono{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.progress{height:4px;background:var(--hf-surface-sunken);border-radius:2px;overflow:hidden;
+  margin-top:6px}
+.progress i{display:block;height:100%;background:var(--hf-accent-interactive);width:0;
+  transition:width var(--hf-duration-base) var(--hf-easing-standard)}
+.stale{display:flex;gap:10px;align-items:center}
+
+/* --- the answer --- */
+.answer{border-left:4px solid var(--hf-accent-interactive);padding:var(--hf-spacing-5)}
+.answer.good{border-left-color:var(--hf-status-good-fill)}
+.answer.fair{border-left-color:var(--hf-status-fair-fill)}
+.answer.poor{border-left-color:var(--hf-status-poor-fill)}
+.answer.closed{border-left-color:var(--hf-status-closed-fill)}
+.answer .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.answer .said{font-size:clamp(20px,3vw,28px);line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
+.answer .said b{font-weight:var(--hf-font-weight-semibold)}
+.answer .sub{color:var(--hf-text-secondary);margin-top:6px;text-wrap:pretty}
+.answer .facts{display:flex;gap:var(--hf-spacing-4);flex-wrap:wrap;margin-top:var(--hf-spacing-4)}
+.answer .facts .stat{min-width:120px}
+.answer .prov{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:var(--hf-spacing-4)}
+
+/* conditions */
+.wx{display:grid;gap:var(--hf-spacing-3);grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  align-items:stretch}
+.wx .stat .v{font-size:var(--hf-font-size-lg)}
+.wx .stat .v .dot{margin-right:6px}
+
+/* map */
+.planmap{width:100%;height:auto;display:block;border-radius:var(--hf-radius-sm)}
+.planmap .sea{fill:var(--hf-surface-sunken)}
+.planmap .grat line{stroke:var(--hf-border-subtle);stroke-width:1}
+.planmap .grat text{font-family:var(--hf-font-family-mono);font-size:10px;fill:var(--hf-text-muted)}
+.planmap .coast{fill:none;stroke:var(--hf-border-strong);stroke-width:1}
+.planmap .arc{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2;stroke-dasharray:6 4;
+  stroke-linecap:round}
+.planmap .site circle{fill:var(--hf-status-fair-fill);stroke:var(--hf-surface-raised);stroke-width:2}
+.planmap .site text,.planmap .station text{font-family:var(--hf-font-family-sans);font-size:12px;
+  fill:var(--hf-text-primary);paint-order:stroke;stroke:var(--hf-surface-sunken);stroke-width:3px}
+.planmap .station circle{fill:var(--hf-status-good-fill);stroke:var(--hf-surface-raised);stroke-width:2}
+.planmap .station .inner{fill:var(--hf-surface-raised);stroke:none}
+.planmap .wire line{stroke:var(--hf-text-primary);stroke-width:3;stroke-linecap:round}
+.planmap .wire .bs{stroke:var(--hf-status-good-text);stroke-width:2;fill:none}
+.planmap .rose line,.planmap .rose polyline{stroke:var(--hf-text-secondary);stroke-width:1.5;fill:none}
+.planmap .rose text{font-family:var(--hf-font-family-mono);font-size:11px;fill:var(--hf-text-secondary)}
+.maplegend{display:flex;gap:var(--hf-spacing-4);flex-wrap:wrap;font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:8px}
+
+/* timeline */
+.tl{overflow-x:auto}
+.tl table{border-collapse:separate;border-spacing:2px;width:100%;
+  font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);font-variant-numeric:tabular-nums}
+.tl th{font-weight:var(--hf-font-weight-regular);color:var(--hf-text-muted);padding:2px 0;text-align:center}
+.tl th.now{color:var(--hf-text-primary);font-weight:var(--hf-font-weight-semibold)}
+.tl td{height:22px;border-radius:3px;text-align:center;min-width:14px;padding:0}
+.tl td.band{text-align:left;white-space:nowrap;padding:0 8px 0 4px;color:var(--hf-text-secondary);
+  cursor:pointer;min-width:80px}
+.tl tr.sel td.band{color:var(--hf-text-primary);font-weight:var(--hf-font-weight-semibold)}
+.tl tr.sel td.band::before{content:'▸ ';color:var(--hf-accent-interactive)}
+.tl tr:hover td.band{color:var(--hf-text-primary)}
+.tl td.now{outline:2px solid var(--hf-text-primary);outline-offset:-2px}
+.tl td.c{cursor:pointer}
+.tl td.none{background:var(--hf-surface-sunken)}
+.tllegend{display:flex;gap:var(--hf-spacing-3);flex-wrap:wrap;font-size:var(--hf-font-size-xs);
+  color:var(--hf-text-muted);margin-top:8px;align-items:center}
+.tllegend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;vertical-align:-2px;margin-right:4px}
+
+/* ranking */
+.rank{display:grid;gap:var(--hf-spacing-3);grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.rcard{display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:border-color var(--hf-duration-fast) var(--hf-easing-standard)}
+.rcard:hover{border-color:var(--hf-border-strong)}
+.rcard.sel{border-color:var(--hf-accent-interactive);box-shadow:inset 0 0 0 1px var(--hf-accent-interactive)}
+.rcard .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.rcard .name{font-weight:var(--hf-font-weight-semibold);line-height:1.2}
+.rcard .line{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
+.rcard .line b{color:var(--hf-text-primary)}
+.rcard .num{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.reasons{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.reasons li{display:grid;grid-template-columns:10px 1fr;gap:8px;font-size:var(--hf-font-size-sm);
+  color:var(--hf-text-secondary)}
+.reasons li .dot{margin-top:6px}
+.reasons li .fix{display:block;color:var(--hf-text-muted);font-size:var(--hf-font-size-xs);margin-top:2px}
+.reasons li .fix::before{content:'Fix: ';color:var(--hf-text-secondary);font-weight:var(--hf-font-weight-semibold)}
+.rcard .ok{font-size:var(--hf-font-size-sm);color:var(--hf-status-good-text)}
+
+/* guide */
+.guide{display:grid;gap:var(--hf-spacing-5);grid-template-columns:1fr}
+@media(min-width:960px){.guide{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+.gsteps{counter-reset:s;display:flex;flex-direction:column;gap:var(--hf-spacing-4);margin:0;padding:0;list-style:none}
+.gsteps li{display:grid;grid-template-columns:30px 1fr;gap:12px}
+.gsteps li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;
+  width:26px;height:26px;border-radius:50%;background:var(--hf-surface-sunken);
+  border:1px solid var(--hf-border-default);font-family:var(--hf-font-family-mono);
+  font-size:var(--hf-font-size-xs);color:var(--hf-text-secondary)}
+.gsteps h3{margin:0 0 4px;font-size:var(--hf-font-size-md)}
+.gsteps p{margin:0;font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);text-wrap:pretty}
+.gsteps .items{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:8px}
+.gsteps .item{background:var(--hf-surface-sunken);border-radius:var(--hf-radius-sm);padding:8px 10px}
+.gsteps .item .k{font-size:var(--hf-font-size-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--hf-text-muted)}
+.gsteps .item .v{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-lg);font-variant-numeric:tabular-nums;line-height:1.2}
+.gsteps .item .v.text{font-family:var(--hf-font-family-sans);font-size:var(--hf-font-size-sm)}
+.gsteps .item .n{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+.gsteps .extra{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);margin-top:6px}
+.plots{display:flex;flex-direction:column;gap:var(--hf-spacing-4)}
+.plots .cap{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);margin:6px 0 0}
+.pointing svg{width:100%;max-width:360px;height:auto;display:block;margin:8px 0}
+.pointing .w{stroke:var(--hf-text-primary);stroke-width:4;stroke-linecap:round}
+.pointing .s{stroke:var(--hf-status-good-fill);stroke-width:2.5;fill:none}
+.pointing .k{stroke:var(--hf-status-poor-fill);stroke-width:2;stroke-dasharray:4 3;fill:none}
+.pointing text{font-family:var(--hf-font-family-sans);font-size:11px;fill:var(--hf-text-secondary)}
+.units{display:flex;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <h1>Comms planner</h1>
+    <p class="lede">Tell it where you are, who you need to reach, how much power you have and
+      what you can put up. It answers with a band for right now, the antenna that serves
+      every site, which way to run it, and what to cut.</p>
+  </div>
+
+  <div class="steps">
+    <!-- 1 ------------------------------------------------------------------>
+    <div class="card step">
+      <h2><span class="n">1</span>Your station</h2>
+      <div class="field search">
+        <label for="stn">Where you are</label>
+        <input id="stn" class="input" type="search" placeholder="Town, grid square, or lat, lon"
+               autocomplete="off" spellcheck="false">
+        <div class="sug" id="stnsug" role="listbox" hidden></div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn small" id="myloc">Use my location</button>
+        <div class="now" id="stnnow"><span class="empty">not set</span></div>
+      </div>
+      <div class="field">
+        <label for="pwr">Transmit power <span class="val" id="pwrval"></span></label>
+        <div class="power">
+          <div class="big"><span id="pwrbig">100 W</span><span class="tag" id="pwrtag" hidden></span></div>
+          <input id="pwr" class="range" type="range" min="0" max="11" step="1" value="5"
+                 aria-label="Transmit power">
+          <div class="ticks"><span>5 W</span><span>25</span><span>100</span><span>400</span><span>1.5 kW</span></div>
+        </div>
+        <div class="help">Changing power never recomputes anything &mdash; it is an exact offset on every margin.</div>
+      </div>
+    </div>
+
+    <!-- 2 ------------------------------------------------------------------>
+    <div class="card step">
+      <h2><span class="n">2</span>Who you need to reach</h2>
+      <div class="field search">
+        <label for="site">Add a site</label>
+        <input id="site" class="input" type="search" placeholder="Town, grid square, or lat, lon"
+               autocomplete="off" spellcheck="false">
+        <div class="sug" id="sitesug" role="listbox" hidden></div>
+        <div class="help">One or several. The plan has to work for all of them.</div>
+      </div>
+      <div class="sitelist" id="sites"></div>
+      <div class="field">
+        <span class="fl">Bands and frequencies to consider</span>
+        <div class="chips" id="bands"></div>
+        <div class="row" style="margin-top:6px">
+          <input type="text" id="addfreq" class="input mono" inputmode="decimal" placeholder="5357 or 5.357"
+                 aria-label="Add a frequency in MHz or kHz" style="width:11ch">
+          <button type="button" class="btn small" id="addbtn">Add frequency</button>
+          <span class="help" id="freqerr"></span>
+        </div>
+        <div class="help">Have an assigned frequency? Add it and it is planned like a band.</div>
+      </div>
+    </div>
+
+    <!-- 3 ------------------------------------------------------------------>
+    <div class="card step">
+      <h2><span class="n">3</span>What you can put up</h2>
+      <div class="presets">
+        <button type="button" class="btn small" data-preset="field">Field kit</button>
+        <button type="button" class="btn small" data-preset="ham">Typical shack</button>
+        <button type="button" class="btn small" data-preset="all">Everything</button>
+        <button type="button" class="btn small ghost" data-preset="none">Clear</button>
+      </div>
+      <div class="antlist" id="ants"></div>
+      <div class="field">
+        <label for="height">Highest support you have <span class="val" id="heightval"></span></label>
+        <input id="height" class="range" type="range" min="2" max="30" step="0.5" value="8">
+        <div class="help">Tree, mast or building. Antennas that need height are planned at this; NVIS wires sit lower by design.</div>
+      </div>
+      <div class="units">
+        <div class="seg small" id="units" role="group" aria-label="Units">
+          <button type="button" data-unit="m">metres</button>
+          <button type="button" data-unit="ft">ft / in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card gobar">
+    <button type="button" class="btn primary big" id="go">Plan</button>
+    <div class="status">
+      <div id="status">Loading…</div>
+      <div class="progress" id="progress" hidden><i></i></div>
+    </div>
+  </div>
+
+  <!-- results ------------------------------------------------------------->
+  <div id="results" hidden style="display:flex;flex-direction:column;gap:var(--hf-spacing-6)">
+    <div class="callout stale stale-note" id="stale" hidden>
+      <b>Inputs changed.</b> The plan below is for the previous inputs &mdash; press Plan again.
+    </div>
+
+    <div class="card answer" id="answer"></div>
+
+    <div class="card">
+      <h2 class="label">Today's sun, as used</h2>
+      <div class="wx" id="wx"></div>
+      <div id="wxnote" style="margin-top:var(--hf-spacing-3)"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2 class="label">The plan on a map</h2>
+        <div id="map"></div>
+        <div class="maplegend">
+          <span><span class="dot good"></span> you</span>
+          <span><span class="dot fair"></span> sites</span>
+          <span>&mdash; &mdash; great-circle path</span>
+          <span id="maplegendwire" hidden>&#9473; wire run, arrows = broadside (strong)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="label">When each band works &mdash; <span id="tlfor"></span></h2>
+        <div class="tl" id="timeline"></div>
+        <div class="tllegend" id="tllegend"></div>
+        <p class="help" style="margin:8px 0 0;font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)">
+          Each cell is the worst site's margin at that hour, with this antenna and your
+          power. Click a band to plan around it instead.</p>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="label">Your antennas, ranked</h2>
+      <div class="rank" id="ranking"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="label">How to set it up &mdash; <span id="guidefor"></span></h2>
+      <div class="guide">
+        <ol class="gsteps" id="gsteps"></ol>
+        <div class="plots">
+          <div>
+            <div id="diagram"></div>
+            <p class="cap">Side view, as built. Lengths in your chosen units.</p>
+          </div>
+          <div>
+            <div id="elev"></div>
+            <p class="cap" id="elevcap"></p>
+          </div>
+          <details class="more pointing" id="pointing">
+            <summary>What does &ldquo;pointing&rdquo; an antenna mean?</summary>
+            <div class="fine">
+              <div>A wire antenna is <b>strongest at right angles to the wire</b> (that is
+                <i>broadside</i>) and <b>weakest off its ends</b>. So &ldquo;point it at them&rdquo;
+                means <b>lay the wire across the direction</b> to the other station, not along it.</div>
+              <svg viewBox="0 0 360 150" aria-hidden="true">
+                <line class="w" x1="110" y1="75" x2="250" y2="75"/>
+                <text x="180" y="92" text-anchor="middle">the wire, seen from above</text>
+                <path class="s" d="M180 62 V 20 M172 28 L180 20 L188 28"/>
+                <path class="s" d="M180 88 V 130 M172 122 L180 130 L188 122"/>
+                <text x="192" y="24">strong (broadside)</text>
+                <text x="192" y="134">strong (broadside)</text>
+                <path class="k" d="M100 75 H 40 M48 69 L40 75 L48 81"/>
+                <path class="k" d="M260 75 H 320 M312 69 L320 75 L312 81"/>
+                <text x="8" y="60">weak</text>
+                <text x="300" y="60">weak</text>
+              </svg>
+              <div>A <b>vertical or whip</b> hears every direction about the same, so there is
+                nothing to point. An <b>NVIS</b> wire fires straight up and comes back down
+                within a few hundred kilometres, so direction barely matters either &mdash; the
+                planner says when that is the case.</div>
+              <div>The bearing given in step 2 is the <b>run</b> of the wire, end to end, read off
+                a compass. The arrows on the map show its broadside.</div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>How this is worked out, and what it cannot tell you</summary>
+      <div class="fine">
+        <div><b>The band answer comes from ITU-R P.533</b>, the same reference model the rest of
+          this site runs, computed in this browser for each path, every hour of today, at every
+          band you listed, using today's effective sunspot number. It gives an SNR margin against
+          the 24 dB in 3 kHz a voice contact needs. Your power is applied as an exact offset.</div>
+        <div><b>The antenna answer comes from a thin-wire model over perfect ground.</b> For each
+          site the distance sets the take-off angle the path needs; the pattern gives the gain at
+          that angle and bearing. The planner then subtracts a stated estimate of what real ground,
+          matching and electrical shortness cost, because the pattern alone would flatter a whip.
+          Those estimates are the same ones the antenna visualiser prints.</div>
+        <div><b>The two are added.</b> Engine margin plus antenna gain minus loss, per site, per
+          hour. The worst site decides, because a plan that reaches two of three people is not
+          the plan. Thresholds: ≥ +6 dB works, 0 to +6 marginal, −10 to 0 weak, below that no.</div>
+        <div><b>It is an SNR margin, not a probability.</b> The engine's own reliability column is
+          a known defect, and the calibrated score in the design docs does not exist yet.</div>
+        <div><b>Storms are shown, not applied.</b> Kp and alerts appear above with what they
+          usually mean, but every margin assumes quiet geomagnetic conditions. When Kp is high,
+          the higher bands and anything near the poles will read optimistic — pick the lower
+          fallback.</div>
+        <div><b>Wire antennas get an orientation</b> chosen to keep every site out of a null,
+          which is a compromise when sites are spread. Verticals and NVIS wires do not need one.
+          Beams are not modelled.</div>
+        <div><b>Cut long and trim.</b> Trust an antenna analyser over any model, including this
+          one. Where an issued antenna exists, its manual governs.</div>
+      </div>
+    </details>
+  </div>
+
+  <footer class="site-footer">
+    <div>Engine: ITU-R P.533 (ITURHFProp, WebAssembly) &middot; antenna model: thin wire over
+      perfect ground &middot; places: GeoNames (CC BY 4.0) &middot; coastlines: Natural Earth.</div>
+    <div>Predictions are estimates, not guarantees. Always plan an alternate frequency.</div>
+  </footer>
+</div>
+
+<script type="module">
+import {
+  AMATEUR_ANTENNAS, BANDS, FIELD_ANTENNAS, FIELD_GROUPS, GROUPS, analyse, buildAntenna, byId,
+  defaultParams, describePath, feetInches, powerOffsetDb, recommend, setupSteps, verdictFor,
+  VERDICT, wavelength,
+} from './vendor/antenna-model.mjs';
+import { constructionSvg, elevationSvg } from './lib/antenna-plot.mjs';
+import { mountNav } from './lib/nav.mjs';
+import { loadSpaceWeather, describeAge, describeSource } from './lib/spacewx.mjs';
+import { describeKp, describeFlux, kpToken, summarise } from './lib/spacewx-copy.mjs';
+import { GridPool } from './lib/gridpool.mjs';
+import { renderPlanMap } from './lib/comms-map.mjs';
+
+mountNav(document.querySelector('.wrap'), 'comms.html');
+
+const $ = (i) => document.getElementById(i);
+const STORE = 'hfkit.comms.v1';
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const REQUIRED_SNR_DB = 24;          // the same voice threshold every page uses
+const ENGINE_WATTS = 100;            // computed once here; power is applied as an offset
+const POWER = [5, 10, 20, 25, 50, 100, 200, 300, 400, 500, 1000, 1500];
+const STANDARD = BANDS.filter((b) => b.mhz <= 30).map((b) => ({ mhz: b.mhz, label: b.label }));
+
+// --- state ------------------------------------------------------------------
+const state = {
+  station: null,                       // { name, lat, lon }
+  sites: [],                           // [{ name, lat, lon }]
+  powerIndex: 5,                       // 100 W
+  antennaIds: ['nvis-inverted-v', 'whip-manpack', 'dipole', 'vertical-ground'],
+  heightM: 8,
+  freqs: STANDARD.filter((b) => b.mhz >= 3 && b.mhz <= 29),   // 80 m … 10 m
+  units: 'm',
+  override: { antennaId: null, bandMhz: null },
+};
+try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) ?? 'null') ?? {}); } catch { /* corrupt pref */ }
+state.antennaIds = state.antennaIds.filter((id) => byId(id));
+if (!Array.isArray(state.freqs) || !state.freqs.length) state.freqs = STANDARD.slice(1, 9);
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch { /* private */ } };
+
+const watts = () => POWER[Math.max(0, Math.min(POWER.length - 1, state.powerIndex))];
+const fmtW = (w) => (w >= 1000 ? `${(w / 1000).toFixed(1)} kW` : `${w} W`);
+const fmtLen = (m) => (state.units === 'ft' ? feetInches(m) : `${m.toFixed(2)} m`);
+const fmtKm = (km) => `${Math.round(km).toLocaleString()} km`;
+const hh = (h) => `${String(h).padStart(2, '0')}Z`;
+const mhzText = (f) => `${f.toFixed(3)} MHz`;
+const bandLabel = (b) => b.label ?? mhzText(b.mhz);
+
+// --- places: gazetteer, coordinates, grid squares ---------------------------
+let PLACES = [];
+let COAST = null;
+fetch('./data/geo/gazetteer-compact.json').then((r) => r.json()).then((g) => { PLACES = g.places; }).catch(() => {});
+fetch('./data/geo/coastline.geojson').then((r) => r.json()).then((c) => { COAST = c; }).catch(() => {});
+
+function maidenhead(lat, lon) {
+  const A = (n) => String.fromCharCode(65 + n);
+  let x = lon + 180, y = lat + 90;
+  const f1 = A(Math.floor(x / 20)), f2 = A(Math.floor(y / 10));
+  x %= 20; y %= 10;
+  const s1 = Math.floor(x / 2), s2 = Math.floor(y);
+  x = (x % 2) * 60; y = (y % 1) * 60;
+  return `${f1}${f2}${s1}${s2}${String.fromCharCode(97 + Math.floor(x / 5))}${String.fromCharCode(97 + Math.floor(y / 2.5))}`;
+}
+/** Centre of a 4- or 6-character Maidenhead locator. */
+function fromMaidenhead(s) {
+  const m = /^([A-R]{2})(\d{2})([A-X]{2})?$/i.exec(s.trim());
+  if (!m) return null;
+  const g = m[1].toUpperCase(), n = m[2], sub = m[3]?.toLowerCase();
+  let lon = (g.charCodeAt(0) - 65) * 20 - 180 + Number(n[0]) * 2;
+  let lat = (g.charCodeAt(1) - 65) * 10 - 90 + Number(n[1]);
+  if (sub) {
+    lon += (sub.charCodeAt(0) - 97) * (2 / 24) + 1 / 24;
+    lat += (sub.charCodeAt(1) - 97) * (1 / 24) + 1 / 48;
+  } else { lon += 1; lat += 0.5; }
+  return { lat, lon };
+}
+function fromCoords(s) {
+  const m = /^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(s);
+  if (!m) return null;
+  const lat = Number(m[1]), lon = Number(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat, lon };
+}
+
+function wireSearch(inputId, sugId, onPick) {
+  const inp = $(inputId), sug = $(sugId);
+  const show = (hits) => {
+    sug.replaceChildren();
+    if (!hits.length) { sug.hidden = true; return; }
+    for (const h of hits) {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'option');
+      d.innerHTML = `<span>${h.name}</span><span class="cc">${h.sub}</span>`;
+      d.addEventListener('mousedown', (e) => { e.preventDefault(); sug.hidden = true; inp.value = ''; onPick(h); });
+      sug.append(d);
+    }
+    sug.hidden = false;
+  };
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim();
+    if (q.length < 2) { sug.hidden = true; return; }
+    const hits = [];
+    const c = fromCoords(q);
+    if (c) hits.push({ name: `${c.lat.toFixed(3)}, ${c.lon.toFixed(3)}`, sub: maidenhead(c.lat, c.lon), ...c });
+    const g = fromMaidenhead(q);
+    if (g) hits.push({ name: `Grid ${q.toUpperCase().slice(0, 4)}${q.slice(4).toLowerCase()}`, sub: `${g.lat.toFixed(2)}, ${g.lon.toFixed(2)}`, ...g });
+    const ql = q.toLowerCase();
+    const starts = [], contains = [];
+    for (const p of PLACES) {
+      const n = p[0].toLowerCase();
+      if (n.startsWith(ql)) starts.push(p); else if (n.includes(ql)) contains.push(p);
+      if (starts.length >= 10) break;
+    }
+    for (const p of [...starts, ...contains].slice(0, 10)) {
+      hits.push({ name: p[0], sub: `${p[1]} · ${p[3].toFixed(1)}, ${p[4].toFixed(1)}`, lat: p[3], lon: p[4] });
+    }
+    show(hits);
+  });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const first = sug.querySelector('[role=option]');
+      if (first && !sug.hidden) first.dispatchEvent(new MouseEvent('mousedown'));
+    }
+    if (e.key === 'Escape') sug.hidden = true;
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; }, 150));
+}
+
+wireSearch('stn', 'stnsug', (h) => { state.station = { name: h.name, lat: h.lat, lon: h.lon }; changed(); });
+wireSearch('site', 'sitesug', (h) => {
+  if (state.sites.length >= 6) { $('site').placeholder = 'Six is plenty'; return; }
+  state.sites.push({ name: h.name, lat: h.lat, lon: h.lon });
+  changed();
+});
+
+$('myloc').addEventListener('click', () => {
+  if (!navigator.geolocation) { $('stnnow').innerHTML = '<span class="empty">no geolocation in this browser</span>'; return; }
+  $('myloc').disabled = true; $('myloc').textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    state.station = { name: `My location`, lat, lon };
+    $('myloc').disabled = false; $('myloc').textContent = 'Use my location';
+    changed();
+  }, (err) => {
+    $('myloc').disabled = false; $('myloc').textContent = 'Use my location';
+    $('stnnow').innerHTML = `<span class="empty">${err.code === err.PERMISSION_DENIED
+      ? 'location permission denied — search instead' : 'could not get a location'}</span>`;
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+});
+
+// --- frequencies -------------------------------------------------------------
+function parseFreq(raw) {
+  const s = String(raw).trim().toLowerCase().replace(/,/g, '');
+  if (!s) return { error: 'Enter a frequency' };
+  const num = Number.parseFloat(s);
+  if (!Number.isFinite(num) || num <= 0) return { error: 'Not a number' };
+  let mhz = /k/.test(s) ? num / 1000 : /m/.test(s) ? num : num > 100 ? num / 1000 : num;
+  mhz = Math.round(mhz * 1000) / 1000;
+  if (mhz < 1.5 || mhz > 30) return { error: `${mhz} MHz is outside HF (1.5–30)` };
+  return { mhz };
+}
+function addFreq() {
+  const { mhz, error } = parseFreq($('addfreq').value);
+  if (error) { $('freqerr').textContent = error; return; }
+  if (state.freqs.some((f) => Math.abs(f.mhz - mhz) < 0.0005)) { $('freqerr').textContent = 'Already listed'; return; }
+  if (state.freqs.length >= 14) { $('freqerr').textContent = 'Fourteen is plenty'; return; }
+  state.freqs = [...state.freqs, { mhz, custom: true }].sort((a, b) => a.mhz - b.mhz);
+  $('addfreq').value = ''; $('freqerr').textContent = '';
+  changed();
+}
+$('addbtn').addEventListener('click', addFreq);
+$('addfreq').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addFreq(); } });
+
+function renderBands() {
+  const box = $('bands');
+  box.replaceChildren();
+  for (const b of STANDARD) {
+    const on = state.freqs.some((f) => Math.abs(f.mhz - b.mhz) < 1e-6);
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `chip mono${on ? ' on' : ''}`;
+    chip.setAttribute('aria-pressed', String(on));
+    chip.textContent = b.label;
+    chip.title = `${b.mhz} MHz`;
+    chip.addEventListener('click', () => {
+      state.freqs = on ? state.freqs.filter((f) => Math.abs(f.mhz - b.mhz) > 1e-6)
+        : [...state.freqs, { mhz: b.mhz, label: b.label }].sort((a, b2) => a.mhz - b2.mhz);
+      changed();
+    });
+    box.append(chip);
+  }
+  for (const f of state.freqs.filter((x) => x.custom)) {
+    const chip = document.createElement('span');
+    chip.className = 'chip mono on';
+    chip.append(document.createTextNode(mhzText(f.mhz)));
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.textContent = '×';
+    x.setAttribute('aria-label', `Remove ${mhzText(f.mhz)}`);
+    x.addEventListener('click', () => { state.freqs = state.freqs.filter((y) => y !== f); changed(); });
+    chip.append(x);
+    box.append(chip);
+  }
+}
+
+// --- antennas ---------------------------------------------------------------
+const PRESETS = {
+  field: ['nvis-inverted-v', 'nvis-dipole', 'whip-manpack', 'whip-vehicle', 'field-longwire', 'field-inverted-l'],
+  ham: ['dipole', 'inverted-v', 'efhw', 'vertical-ground', 'g5rv', 'doublet'],
+  all: [...FIELD_ANTENNAS, ...AMATEUR_ANTENNAS].map((a) => a.id),
+  none: [],
+};
+for (const b of document.querySelectorAll('[data-preset]')) {
+  b.addEventListener('click', () => { state.antennaIds = [...PRESETS[b.dataset.preset]]; changed(); });
+}
+
+/** The parameter the "highest support" slider drives, per antenna. */
+function heightParam(a) {
+  return a.params.find((p) => p.type === 'length' && /height|apex/i.test(p.id)) ?? null;
+}
+function paramsFor(a) {
+  const p = defaultParams(a);
+  const hp = heightParam(a);
+  if (hp) p[hp.id] = Math.max(hp.min, Math.min(hp.max, state.heightM));
+  return p;
+}
+/** Multiband wires are cut once, for the lowest band in the plan. */
+function designFor(a) {
+  if (a.group !== 'Multiband compromises') return null;
+  const low = state.freqs.map((f) => f.mhz).filter((m) => m >= 3.4);
+  return low.length ? Math.min(...low) : Math.min(...state.freqs.map((f) => f.mhz));
+}
+
+function renderAntennas() {
+  const box = $('ants');
+  box.replaceChildren();
+  const groups = [
+    ...FIELD_GROUPS.map((g) => [g, FIELD_ANTENNAS.filter((a) => a.group === g)]),
+    ...GROUPS.map((g) => [g, AMATEUR_ANTENNAS.filter((a) => a.group === g)]),
+  ];
+  for (const [g, list] of groups) {
+    const h = document.createElement('div');
+    h.className = 'antgroup';
+    h.textContent = g;
+    box.append(h);
+    for (const a of list) {
+      const lab = document.createElement('label');
+      lab.className = 'ant';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = state.antennaIds.includes(a.id);
+      cb.dataset.ant = a.id;
+      cb.addEventListener('change', () => {
+        state.antennaIds = cb.checked ? [...state.antennaIds, a.id] : state.antennaIds.filter((x) => x !== a.id);
+        changed();
+      });
+      const t = document.createElement('span');
+      t.innerHTML = `${a.name}<span class="d">${a.blurb.split(/(?<=\.)\s/)[0]}</span>`;
+      lab.append(cb, t);
+      box.append(lab);
+    }
+  }
+}
+
+// --- controls that do not need a re-plan ------------------------------------
+$('pwr').addEventListener('input', () => {
+  state.powerIndex = Number($('pwr').value); save(); renderPower();
+  if (plan) { rerank(); }
+});
+function renderPower() {
+  const w = watts();
+  $('pwr').value = state.powerIndex;
+  $('pwrbig').textContent = fmtW(w);
+  const tag = $('pwrtag');
+  tag.hidden = w > 10;
+  tag.textContent = 'QRP';
+  tag.title = 'Low power: 10 W or less. Every margin is 10 dB or more below a 100 W station.';
+  $('pwrval').textContent = `${(10 * Math.log10(w)).toFixed(0)} dBW`;
+}
+$('height').addEventListener('input', () => {
+  state.heightM = Number($('height').value); $('heightval').textContent = fmtLen(state.heightM); changed();
+});
+$('units').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-unit]');
+  if (!b) return;
+  state.units = b.dataset.unit; save(); paintUnits();
+  if (plan) renderGuide();
+});
+function paintUnits() {
+  for (const b of $('units').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.unit === state.units));
+  $('heightval').textContent = fmtLen(state.heightM);
+}
+
+// --- rendering the inputs ---------------------------------------------------
+function renderInputs() {
+  const s = state.station;
+  $('stnnow').innerHTML = s
+    ? `<span class="dot good"></span><b>${s.name}</b><span class="mono">${maidenhead(s.lat, s.lon)} · ${s.lat.toFixed(2)}, ${s.lon.toFixed(2)}</span>`
+    : '<span class="empty">not set</span>';
+  const box = $('sites');
+  box.replaceChildren();
+  if (!state.sites.length) {
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'No sites yet.'; box.append(e);
+  }
+  state.sites.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'site';
+    const p = s ? describePath(s, t) : null;
+    row.innerHTML = `<span class="idx">${i + 1}</span><span><b>${t.name}</b>`
+      + `<span class="meta" style="display:block">${p ? `${fmtKm(p.distanceKm)} · ${Math.round(p.bearingDeg)}° · needs ${Math.round(p.elevations[0])}° take-off` : `${t.lat.toFixed(2)}, ${t.lon.toFixed(2)}`}</span></span>`;
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', `Remove ${t.name}`);
+    x.addEventListener('click', () => { state.sites.splice(i, 1); changed(); });
+    row.append(x);
+    box.append(row);
+  });
+  renderBands();
+  renderAntennas();
+  renderPower();
+  paintUnits();
+  $('height').value = state.heightM;
+  $('go').disabled = !ready();
+}
+function ready() { return !!state.station && state.sites.length > 0 && state.antennaIds.length > 0 && state.freqs.length > 0; }
+function changed() {
+  state.override = { antennaId: null, bandMhz: null };
+  save();
+  renderInputs();
+  if (plan) $('stale').hidden = false;
+  setStatus();
+}
+function setStatus(extra) {
+  if (extra) { $('status').textContent = extra; return; }
+  if (!state.station) $('status').textContent = 'Start with where you are.';
+  else if (!state.sites.length) $('status').textContent = 'Add at least one site to reach.';
+  else if (!state.antennaIds.length) $('status').textContent = 'Tick at least one antenna you could put up.';
+  else if (!state.freqs.length) $('status').textContent = 'Pick at least one band or frequency.';
+  else $('status').innerHTML = `Ready. ${state.sites.length} site${state.sites.length > 1 ? 's' : ''}, `
+    + `${state.antennaIds.length} antenna${state.antennaIds.length > 1 ? 's' : ''}, ${state.freqs.length} bands. `
+    + `<span class="mono">${engineState}</span>`;
+}
+
+// --- the antenna worker -----------------------------------------------------
+const antWorker = new Worker('./antennaworker.mjs', { type: 'module' });
+let askId = 0;
+const pending = new Map();
+antWorker.onmessage = (e) => {
+  const p = pending.get(e.data.id);
+  if (!p) return;
+  pending.delete(e.data.id);
+  e.data.error ? p.reject(new Error(e.data.error)) : p.resolve(e.data.result);
+};
+const evaluateInWorker = (msg) => new Promise((resolve, reject) => {
+  const id = ++askId;
+  pending.set(id, { resolve, reject });
+  antWorker.postMessage({ cmd: 'evaluate', id, ...msg });
+});
+
+// --- the engine -------------------------------------------------------------
+const pool = new GridPool({ size: Math.max(1, Math.min(2, navigator.hardwareConcurrency || 1)) });
+let engineState = 'engine: not started';
+let spaceWx = null;
+const spaceWxReady = loadSpaceWeather().then((sw) => { spaceWx = sw; return sw; });
+
+// --- planning ---------------------------------------------------------------
+let plan = null;          // { station, sites, paths, freqs, evaluations, engine, nowHour }
+let planVersion = 0;
+
+$('go').addEventListener('click', () => void runPlan());
+
+async function runPlan() {
+  if (!ready()) return;
+  const v = ++planVersion;
+  const station = { ...state.station }, sites = state.sites.map((s) => ({ ...s }));
+  const freqs = state.freqs.map((f) => ({ ...f }));
+  const paths = sites.map((s) => describePath(station, s));
+  const siteNames = sites.map((s) => s.name);
+  const nowHour = new Date().getUTCHours();
+  plan = { station, sites, paths, freqs, siteNames, evaluations: [], engine: null, nowHour, antennaIds: [...state.antennaIds] };
+  state.override = { antennaId: null, bandMhz: null };
+  $('stale').hidden = true;
+  $('results').hidden = false;
+  $('go').disabled = true;
+  $('progress').hidden = false;
+  const bar = $('progress').firstElementChild;
+  bar.style.width = '2%';
+
+  // Antennas and the engine run side by side; the page renders a geometry-only
+  // answer as soon as the antennas are in, and upgrades it when the engine lands.
+  const sw = await spaceWxReady;
+  const freqsMHz = freqs.map((f) => f.mhz);
+  let antDone = 0;
+  const antWork = (async () => {
+    for (const id of plan.antennaIds) {
+      const a = byId(id);
+      const result = await evaluateInWorker({
+        antennaId: id, params: paramsFor(a), freqsMHz, paths, siteNames, designMHz: designFor(a),
+      });
+      if (v !== planVersion) return;
+      plan.evaluations.push(result);
+      antDone++;
+      bar.style.width = `${2 + 48 * (antDone / plan.antennaIds.length)}%`;
+      setStatus(`Modelling antennas… ${antDone} of ${plan.antennaIds.length}`);
+    }
+  })();
+
+  const engineWork = (async () => {
+    try {
+      engineState = 'engine: starting (first run downloads ~11 MB of ITU data)';
+      setStatus(`Modelling antennas… ${antDone} of ${plan.antennaIds.length} · ${engineState}`);
+      await pool.boot();
+      if (v !== planVersion) return;
+      const now = new Date();
+      const engine = [];
+      for (let i = 0; i < sites.length; i++) {
+        const cell = await pool.point({
+          tx: { latitude: station.lat, longitude: station.lon }, lat: sites[i].lat, lon: sites[i].lon,
+          freqs: freqsMHz, hours: HOURS, month: now.getUTCMonth() + 1, year: now.getUTCFullYear(),
+          ssn: sw.ssn, powerW: ENGINE_WATTS, reqSnr: REQUIRED_SNR_DB,
+        });
+        if (v !== planVersion) return;
+        // cell: [lat, lon, perHour]; perHour[h] = [[margin per freq], muf]
+        engine.push(cell ? cell[2].map((h) => h[0]) : HOURS.map(() => freqsMHz.map(() => null)));
+        bar.style.width = `${50 + 50 * ((i + 1) / sites.length)}%`;
+        setStatus(`Predicting propagation… ${i + 1} of ${sites.length} paths`);
+      }
+      plan.engine = engine;
+      engineState = `engine: P.533 · SSN ${sw.ssn} (${sw.tierLabel}, ${describeAge(sw.ageSeconds)})`;
+    } catch (e) {
+      engineState = `engine failed: ${e.message}`;
+      plan.engineError = e.message;
+    }
+  })();
+
+  await antWork;
+  if (v !== planVersion) return;
+  rerank();                                   // geometry-only answer, immediately
+  await engineWork;
+  if (v !== planVersion) return;
+  rerank();
+  $('progress').hidden = true;
+  $('go').disabled = false;
+  setStatus();
+  document.body.dataset.planned = 'true';
+}
+
+// --- recommendation and rendering -------------------------------------------
+let rec = null;
+function rerank() {
+  if (!plan || !plan.evaluations.length) return;
+  rec = recommend({
+    evaluations: plan.evaluations,
+    engine: plan.engine,
+    nowHour: plan.nowHour,
+    bandLabels: plan.freqs.map(bandLabel),
+    powerOffsetDb: powerOffsetDb(watts(), ENGINE_WATTS),
+  });
+  renderAll();
+}
+
+/** What is selected: the recommendation, unless the user clicked something else. */
+function chosen() {
+  const r = rec.ranked.find((x) => x.antennaId === state.override.antennaId) ?? rec.best;
+  const bi = state.override.bandMhz !== null
+    ? plan.freqs.findIndex((f) => Math.abs(f.mhz - state.override.bandMhz) < 1e-6) : -1;
+  const band = bi >= 0 ? r.perBand[bi] : r.best;
+  return { r, band, bandIndex: band.bandIndex, ev: plan.evaluations.find((e) => e.antennaId === r.antennaId) };
+}
+
+function renderAll() {
+  renderAnswer();
+  renderWx();
+  renderMap();
+  renderTimeline();
+  renderRanking();
+  renderGuide();
+}
+
+function tagEl(verdict) {
+  const t = document.createElement('span');
+  t.className = `tag ${verdict.token}`;
+  t.textContent = verdict.word;
+  return t;
+}
+
+function renderAnswer() {
+  const { r, band, ev } = chosen();
+  const be = ev.bands[band.bandIndex];
+  const box = $('answer');
+  box.className = `card answer ${band.verdict.token}`;
+  box.replaceChildren();
+  const head = document.createElement('div');
+  head.className = 'head';
+  head.append(tagEl(band.verdict));
+  if (r !== rec.best || band !== r.best) {
+    const o = document.createElement('span'); o.className = 'tag'; o.textContent = 'your pick';
+    head.append(o);
+  }
+  if (rec.geometryOnly) {
+    const o = document.createElement('span'); o.className = 'tag stale';
+    o.textContent = plan.engineError ? 'antenna geometry only — engine unavailable' : 'antenna geometry only — propagation still computing';
+    head.append(o);
+  }
+  box.append(head);
+
+  const said = document.createElement('div');
+  said.className = 'said';
+  const point = be.directional
+    ? ` with the wire running <b>${Math.round(be.orientationDeg)}°–${Math.round(be.orientationDeg + 180) % 360}°</b>`
+    : '';
+  said.innerHTML = rec.geometryOnly
+    ? `Put up the <b>${r.name}</b>${point}.`
+    : `Use <b>${band.label}</b> now, on the <b>${r.name}</b>${point}.`;
+  box.append(said);
+
+  const sub = document.createElement('div');
+  sub.className = 'sub';
+  if (rec.geometryOnly) {
+    sub.textContent = 'Ranked on how well each antenna points at your sites. Which band is open comes from the propagation engine, below, when it finishes.';
+  } else {
+    const worst = band.hours[plan.nowHour];
+    const worstSite = worst.perSite.reduce((bi, m, i) => (m !== null && (bi === null || m < worst.perSite[bi]) ? i : bi), null);
+    const alt = r.alternatives.find((a) => a.nowMargin !== null && a.nowMargin >= 0);
+    sub.textContent = (band.nowMargin !== null
+      ? `${band.nowMargin >= 0 ? '+' : ''}${band.nowMargin.toFixed(0)} dB of margin at ${hh(plan.nowHour)} to the hardest site`
+        + `${worstSite !== null ? ` (${plan.siteNames[worstSite]})` : ''} at ${fmtW(watts())}.`
+      : 'The engine could not predict one of these paths on this band.')
+      + (band.open.length ? ` This band works ${band.open.map((w) => w.text).join(', ')}.` : ' It does not open to every site today.')
+      + (alt ? ` Fallback: ${alt.label} (${alt.nowMargin >= 0 ? '+' : ''}${alt.nowMargin.toFixed(0)} dB).` : '');
+  }
+  box.append(sub);
+
+  const facts = document.createElement('div');
+  facts.className = 'facts';
+  const stat = (k, v, u) => {
+    const d = document.createElement('div'); d.className = 'stat';
+    d.innerHTML = `<div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div>`;
+    return d;
+  };
+  facts.append(stat('Power', fmtW(watts()), watts() <= 10 ? 'QRP' : `${powerOffsetDb(watts()).toFixed(0) >= 0 ? '+' : ''}${powerOffsetDb(watts()).toFixed(0)} dB vs 100 W`));
+  facts.append(stat('Sites', String(plan.sites.length), `${fmtKm(Math.min(...plan.paths.map((p) => p.distanceKm)))}–${fmtKm(Math.max(...plan.paths.map((p) => p.distanceKm)))}`));
+  facts.append(stat('Antenna gain', `${be.minEffectiveDbi >= 0 ? '+' : ''}${be.minEffectiveDbi.toFixed(1)}`, `dBi toward the hardest site, after ${be.loss.mid.toFixed(0)} dB est. loss`));
+  if (!rec.geometryOnly) facts.append(stat('Hours open', `${band.hoursOpen}/24`, 'all sites ≥ 0 dB'));
+  box.append(facts);
+
+  const prov = document.createElement('div');
+  prov.className = 'prov';
+  const sw = spaceWx;
+  prov.textContent = `${rec.geometryOnly ? 'Thin-wire antenna model' : 'ITU-R P.533 + thin-wire antenna model'} · `
+    + `${sw ? describeSource(sw) : 'space weather loading'} · ${hh(plan.nowHour)} UTC · SNR margin vs ${REQUIRED_SNR_DB} dB/3 kHz · not a probability`;
+  box.append(prov);
+}
+
+function renderWx() {
+  const sw = spaceWx;
+  const box = $('wx');
+  box.replaceChildren();
+  if (!sw) return;
+  const kp = sw.geomag?.kp ?? null, sfi = sw.solar?.sfi ?? sw.flux?.f107 ?? null;
+  const stat = (k, v, u, tok) => {
+    const d = document.createElement('div'); d.className = 'stat';
+    d.innerHTML = `<div class="k">${k}</div><div class="v">${tok ? `<span class="dot ${tok}"></span>` : ''}${v}</div><div class="u">${u}</div>`;
+    return d;
+  };
+  box.append(stat('Sunspot number', sw.ssnIsReal ? sw.ssn : `${sw.ssn}*`, sw.ssnIsReal ? `drives the engine · ${sw.tierLabel}` : 'placeholder — no feed reached this device'));
+  box.append(stat('Kp', kp ?? '—', kp !== null ? describeKp(kp).headline : 'unavailable', kp !== null ? kpToken(kp) : 'stale'));
+  box.append(stat('Solar flux', sfi ?? '—', sfi !== null ? describeFlux(sfi).headline : 'unavailable'));
+  box.append(stat('Alerts', String(sw.alerts?.length ?? 0), sw.alerts?.length ? 'from NOAA, see space weather' : 'none active'));
+  box.append(stat('Age', describeAge(sw.ageSeconds), sw.degraded ? 'some sources missing or stale' : 'all sources present'));
+
+  const note = $('wxnote');
+  note.replaceChildren();
+  const c = document.createElement('div');
+  c.className = `callout ${kp !== null ? kpToken(kp) : 'stale'}`;
+  const k = kp !== null ? describeKp(kp) : null;
+  c.innerHTML = `<b>${summarise({ sfi, kp })}</b> ${k ? k.detail : ''}`
+    + (kp !== null && kp >= 4
+      ? ' <b>The margins below assume quiet conditions and will read optimistic</b> — favour the lower band in the plan and keep a fallback ready.'
+      : '');
+  note.append(c);
+}
+
+function renderMap() {
+  const { ev, bandIndex } = chosen();
+  const be = ev.bands[bandIndex];
+  renderPlanMap($('map'), {
+    coast: COAST, station: plan.station, sites: plan.sites,
+    orientationDeg: be.orientationDeg, directional: be.directional,
+  });
+  $('maplegendwire').hidden = !be.directional;
+}
+
+function renderTimeline() {
+  const { r, band } = chosen();
+  $('tlfor').textContent = r.name;
+  const box = $('timeline');
+  box.replaceChildren();
+  if (rec.geometryOnly) {
+    const p = document.createElement('p'); p.className = 'empty';
+    p.textContent = plan.engineError ? `The propagation engine could not run: ${plan.engineError}` : 'Waiting for the propagation engine…';
+    box.append(p);
+    $('tllegend').replaceChildren();
+    return;
+  }
+  const t = document.createElement('table');
+  const head = t.insertRow();
+  head.insertCell().outerHTML = '<th></th>';
+  for (const h of HOURS) head.insertCell().outerHTML = `<th class="${h === plan.nowHour ? 'now' : ''}">${h % 3 === 0 ? String(h).padStart(2, '0') : ''}</th>`;
+  const rows = [...r.perBand].sort((a, b) => b.mhz - a.mhz);
+  for (const pb of rows) {
+    const tr = t.insertRow();
+    if (pb === band) tr.className = 'sel';
+    const td = tr.insertCell();
+    td.className = 'band';
+    td.textContent = pb.label;
+    td.title = `${pb.mhz} MHz — click to plan around this band`;
+    const pick = () => { state.override = { ...state.override, antennaId: r.antennaId, bandMhz: pb.mhz }; save(); renderAll(); };
+    td.addEventListener('click', pick);
+    for (const h of HOURS) {
+      const c = tr.insertCell();
+      const m = pb.hours?.[h]?.min ?? null;
+      c.className = `c${h === plan.nowHour ? ' now' : ''}${m === null ? ' none' : ''}`;
+      if (m !== null) {
+        const tok = verdictFor(m).token;
+        c.style.background = `var(--hf-status-${tok}-fill)`;
+        c.style.color = `var(--hf-status-${tok}-on)`;
+        c.textContent = Math.abs(m) < 100 ? (m > 0 ? '+' : '') + m.toFixed(0) : '';
+      }
+      c.title = `${pb.label} at ${hh(h)}: ${m === null ? 'no prediction' : `${m >= 0 ? '+' : ''}${m.toFixed(1)} dB to the worst site`}`;
+      c.addEventListener('click', pick);
+    }
+  }
+  box.append(t);
+  $('tllegend').innerHTML = VERDICT.map((v) =>
+    `<span><span class="sw" style="background:var(--hf-status-${v.token}-fill)"></span>${v.word}`
+    + `${Number.isFinite(v.minDb) ? ` ≥ ${v.minDb > 0 ? '+' : ''}${v.minDb} dB` : ''}</span>`).join('')
+    + '<span>▢ now</span>';
+}
+
+function renderRanking() {
+  const { r: sel } = chosen();
+  const box = $('ranking');
+  box.replaceChildren();
+  rec.ranked.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = `card rcard${r === sel ? ' sel' : ''}`;
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.dataset.ant = r.antennaId;
+    const top = document.createElement('div');
+    top.className = 'top';
+    top.innerHTML = `<div><div class="num">#${i + 1}</div><div class="name">${r.name}</div></div>`;
+    top.append(tagEl(r.best.verdict));
+    card.append(top);
+    const line = document.createElement('div');
+    line.className = 'line';
+    const be = plan.evaluations.find((e) => e.antennaId === r.antennaId).bands[r.best.bandIndex];
+    line.innerHTML = rec.geometryOnly
+      ? `Best on <b>${r.best.label}</b>: ${be.minEffectiveDbi >= 0 ? '+' : ''}${be.minEffectiveDbi.toFixed(1)} dBi toward the hardest site`
+      : `Best on <b>${r.best.label}</b>: ${r.best.nowMargin === null ? 'no prediction' : `${r.best.nowMargin >= 0 ? '+' : ''}${r.best.nowMargin.toFixed(0)} dB now`}`
+        + ` · open ${r.best.hoursOpen}/24 h`
+        + (r.alternatives[0] && r.alternatives[0].nowMargin !== null ? ` · then ${r.alternatives[0].label} (${r.alternatives[0].nowMargin >= 0 ? '+' : ''}${r.alternatives[0].nowMargin.toFixed(0)})` : '');
+    card.append(line);
+    if (r.reasons.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'reasons';
+      for (const x of r.reasons.slice(0, 4)) {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="dot ${x.severity === 'blocker' ? 'closed' : 'fair'}"></span>`
+          + `<span>${x.text}${x.fix ? `<span class="fix">${x.fix}</span>` : ''}</span>`;
+        ul.append(li);
+      }
+      if (r.reasons.length > 4) {
+        const li = document.createElement('li');
+        li.innerHTML = `<span></span><span class="num">and ${r.reasons.length - 4} more</span>`;
+        ul.append(li);
+      }
+      card.append(ul);
+    } else {
+      const ok = document.createElement('div');
+      ok.className = 'ok';
+      ok.textContent = rec.geometryOnly ? 'Points where every site needs it.' : 'Nothing holding it back on this band.';
+      card.append(ok);
+    }
+    const pick = () => { state.override = { antennaId: r.antennaId, bandMhz: null }; save(); renderAll(); $('answer').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    box.append(card);
+  });
+}
+
+function renderGuide() {
+  if (!rec) return;
+  const { r, band, ev, bandIndex } = chosen();
+  const be = ev.bands[bandIndex];
+  const antenna = byId(r.antennaId);
+  const f = plan.freqs[bandIndex].mhz;
+  $('guidefor').textContent = `${r.name} on ${band.label}`;
+  const built = buildAntenna(antenna, { designMHz: designFor(antenna) ?? f, operatingMHz: f, params: ev.params });
+  const steps = setupSteps({
+    antenna, built, band: { label: band.label }, orientationDeg: be.orientationDeg,
+    directional: be.directional, paths: plan.paths, siteNames: plan.siteNames, loss: be.loss, fmt: fmtLen,
+  });
+  const ol = $('gsteps');
+  ol.replaceChildren(...steps.map((s) => {
+    const li = document.createElement('li');
+    const body = document.createElement('div');
+    body.innerHTML = `<h3>${s.title}</h3><p>${s.body}</p>`;
+    if (s.items.length) {
+      const items = document.createElement('div');
+      items.className = 'items';
+      for (const it of s.items) {
+        const d = document.createElement('div');
+        d.className = 'item';
+        const isText = /[a-z]{3,}/i.test(it.value) && !/^\d/.test(it.value);
+        d.innerHTML = `<div class="k">${it.label}</div><div class="v${isText ? ' text' : ''}">${it.value}</div>${it.note ? `<div class="n">${it.note}</div>` : ''}`;
+        items.append(d);
+      }
+      body.append(items);
+    }
+    for (const x of s.extra ?? []) {
+      const p = document.createElement('p'); p.className = 'extra'; p.textContent = x; body.append(p);
+    }
+    li.append(body);
+    return li;
+  }));
+
+  $('diagram').replaceChildren(constructionSvg(built, { width: 640, height: 250, interactive: false, fmt: fmtLen }));
+  try {
+    const pattern = analyse(built.paths, f, { perWavelength: 20 });
+    const markers = plan.paths.map((p, i) => ({
+      elevationDeg: be.perSite[i].elevationDeg, label: `${Math.round(be.perSite[i].elevationDeg)}° ${plan.siteNames[i]}`, kind: 'need',
+    }));
+    $('elev').replaceChildren(elevationSvg(pattern, { azimuthDeg: pattern.peak.azimuthDeg, markers }));
+    $('elevcap').textContent = 'Side view of where the signal goes. Further from the centre is stronger; each dashed line is the angle one of your sites needs.';
+  } catch (e) {
+    $('elev').replaceChildren();
+    $('elevcap').textContent = `Pattern unavailable: ${e.message}`;
+  }
+}
+
+// --- go -----------------------------------------------------------------------
+renderInputs();
+setStatus();
+document.body.dataset.ready = 'true';
+</script>
+</body>
+</html>

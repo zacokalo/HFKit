@@ -8,7 +8,9 @@
 <!-- Space weather mothership. Empty or absent = no live tier; the site then
      uses the snapshot published with this build, labelled with its age. -->
 <meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
 <link rel="stylesheet" href="./lib/radio-loader.css">
 <style>
@@ -453,6 +455,7 @@ import { gridKey, saveSession, loadSession, putGrid, getGrid, pruneGrids }
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
 import { loadAurora, renderAurora, auroraAt } from './lib/aurora.mjs';
 import { mountNav } from './lib/nav.mjs';
+import { getTheme, setTheme } from './lib/theme.mjs';
 import { PatternGain, MODELLED, modelled, MIN_ELEVATION_DEG, elevationForDistance }
   from './lib/antenna-gain.mjs';
 mountNav(document.querySelector('.app'), 'reach.html');
@@ -492,15 +495,22 @@ let zoom = 1, panX = 0, panY = 0;
 const MINZ = 1, MAXZ = 12;
 
 // --- theme ---------------------------------------------------------------
-const systemLight = matchMedia('(prefers-color-scheme: light)');
+// The preference is site-wide (lib/theme.mjs); this page's selector is one
+// more way to set it, and the map repaints because its grid image is drawn in
+// theme colours.
 function applyTheme() {
-  const t = $('theme').value;
-  document.documentElement.setAttribute(
-    'data-theme', t === 'auto' ? (systemLight.matches ? 'field-light' : 'field-dark') : t);
+  setTheme($('theme').value);
   gridVersion++;            // the grid image is painted in theme colours
   schedule(true);
 }
-systemLight.addEventListener('change', applyTheme);
+document.addEventListener('hfkit:theme', () => {
+  if ($('theme').value !== getTheme()) $('theme').value = getTheme();
+  gridVersion++;
+  schedule(true);
+});
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (getTheme() === 'auto') { gridVersion++; schedule(true); }
+});
 
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const ramp = () => Array.from({ length: 8 }, (_, i) => cssv('--hf-sequential-' + i));
@@ -1843,6 +1853,8 @@ $('theme').addEventListener('change', () => { applyTheme(); persist(); });
     receivers = Array.isArray(s.receivers) ? s.receivers : [];
     applySpan();
   }
+  // The site-wide preference wins over whatever this page's session last saved.
+  $('theme').value = getTheme();
   applyTheme();
 
   if (s?.tx) {

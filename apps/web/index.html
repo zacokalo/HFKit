@@ -1,150 +1,223 @@
 <!doctype html>
-<html lang="en" data-theme="field-dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HFKit — HF propagation forecasting</title>
 <meta name="description" content="HF propagation forecasting and planning. ITU-R P.533 runs on your device; nothing is computed on a server.">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
 <style>
-  *,*::before,*::after{box-sizing:border-box}
-  body{margin:0;background:var(--hf-surface-default);color:var(--hf-text-primary);
-    font-family:var(--hf-font-family-sans);line-height:1.55;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:920px;margin:0 auto;padding:clamp(20px,5vw,56px);
-    display:flex;flex-direction:column;gap:var(--hf-spacing-6)}
-  header{display:flex;flex-direction:column;gap:var(--hf-spacing-2);
-    border-bottom:1px solid var(--hf-border-subtle);padding-bottom:var(--hf-spacing-5)}
-  h1{margin:0;font-size:clamp(26px,5vw,40px);letter-spacing:-.02em;text-wrap:balance}
-  .lede{margin:0;color:var(--hf-text-secondary);font-size:var(--hf-font-size-lg);max-width:56ch}
-  .kicker{font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);
-    text-transform:uppercase;letter-spacing:.1em;color:var(--hf-text-muted)}
-  h2{margin:0 0 var(--hf-spacing-3);font-size:var(--hf-font-size-sm);text-transform:uppercase;
-    letter-spacing:.06em;color:var(--hf-text-muted);font-weight:var(--hf-font-weight-semibold)}
-  .cards{display:grid;gap:var(--hf-spacing-4);
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-  a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+  .wrap{max-width:1080px;gap:var(--hf-spacing-8)}
+  .hero{display:grid;gap:var(--hf-spacing-5);align-items:center;
+    padding-top:var(--hf-spacing-4)}
+  @media(min-width:860px){.hero{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}}
+  .hero h1{font-size:clamp(30px,5vw,46px)}
+  .hero .lede{font-size:var(--hf-font-size-lg)}
+  .hero .cta{display:flex;gap:var(--hf-spacing-3);flex-wrap:wrap;margin-top:var(--hf-spacing-2)}
+  .hero .facts{display:flex;gap:var(--hf-spacing-4);flex-wrap:wrap;margin-top:var(--hf-spacing-3);
+    font-family:var(--hf-font-family-mono);font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+  .hero .facts span::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--hf-status-good-fill);margin-right:6px;vertical-align:1px}
+
+  /* Hero figure: a station, three hops, a target. Drawn in tokens. */
+  .figure{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
+    border-radius:var(--hf-radius-md);padding:var(--hf-spacing-3);overflow:hidden}
+  .figure svg{width:100%;height:auto;display:block}
+  .figure .gnd{stroke:var(--hf-border-strong);stroke-width:1.5}
+  .figure .layer{stroke:var(--hf-border-default);stroke-width:1;stroke-dasharray:4 4}
+  .figure .ray{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2;stroke-linejoin:round}
+  .figure .ray.dim{stroke:var(--hf-text-muted);stroke-dasharray:3 3;stroke-width:1.5;opacity:.7}
+  .figure .node{fill:var(--hf-status-good-fill);stroke:var(--hf-surface-raised);stroke-width:1.5}
+  .figure .mast{stroke:var(--hf-text-secondary);stroke-width:2;stroke-linecap:round}
+  .figure text{font-family:var(--hf-font-family-mono);font-size:10px;fill:var(--hf-text-muted)}
+
+  .tools{display:grid;gap:var(--hf-spacing-4);grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  a.tool{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;
     background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
-    border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4)}
-  a.card:hover{border-color:var(--hf-border-strong)}
-  a.card:focus-visible{outline:2px solid var(--hf-focus-ring);outline-offset:2px}
-  a.card b{font-size:var(--hf-font-size-lg)}
-  a.card span{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
-  a.card em{font-style:normal;font-family:var(--hf-font-family-mono);
-    font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
-  ul{margin:0;padding-left:1.1em;color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm)}
-  li{margin-bottom:6px}
-  .flags{display:flex;flex-direction:column;gap:var(--hf-spacing-2);
-    background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
-    border-left:3px solid var(--hf-status-fair-fill);
     border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4);
-    font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary)}
-  .flags b{color:var(--hf-text-primary)}
-  footer{border-top:1px solid var(--hf-border-subtle);padding-top:var(--hf-spacing-4);
-    color:var(--hf-text-muted);font-size:var(--hf-font-size-xs);
-    display:flex;flex-direction:column;gap:6px}
-  code{font-family:var(--hf-font-family-mono);color:var(--hf-text-secondary)}
-  a{color:var(--hf-accent-interactive)}
+    transition:border-color var(--hf-duration-fast) var(--hf-easing-standard)}
+  a.tool:hover{border-color:var(--hf-border-strong);color:inherit}
+  a.tool.featured{border-color:var(--hf-accent-interactive);grid-column:1/-1}
+  @media(min-width:760px){a.tool.featured{display:grid;grid-template-columns:auto 1fr;column-gap:var(--hf-spacing-5);align-items:start}
+    a.tool.featured .ico{grid-row:1/4}}
+  a.tool .ico{width:40px;height:40px;border-radius:var(--hf-radius-sm);
+    background:var(--hf-surface-sunken);display:grid;place-items:center;flex:none}
+  a.tool .ico svg{width:22px;height:22px;fill:none;stroke:var(--hf-accent-interactive);
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  a.tool b{font-size:var(--hf-font-size-lg);line-height:1.2}
+  a.tool span{color:var(--hf-text-secondary);font-size:var(--hf-font-size-sm);text-wrap:pretty}
+  a.tool em{font-style:normal;font-family:var(--hf-font-family-mono);
+    font-size:var(--hf-font-size-xs);color:var(--hf-text-muted)}
+
+  .honest{display:grid;gap:var(--hf-spacing-3);grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .honest .card{display:flex;flex-direction:column;gap:4px;font-size:var(--hf-font-size-sm);
+    color:var(--hf-text-secondary)}
+  .honest .card b{color:var(--hf-text-primary)}
+  .honest .card .t{display:flex;align-items:center;gap:8px}
+  .why{display:grid;gap:var(--hf-spacing-3);grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .why div{font-size:var(--hf-font-size-sm);color:var(--hf-text-secondary);
+    border-top:2px solid var(--hf-border-default);padding-top:var(--hf-spacing-2)}
+  .why div b{display:block;color:var(--hf-text-primary);margin-bottom:2px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <p class="kicker">Phase 1 preview</p>
-    <h1>HF propagation, computed on your device</h1>
-    <p class="lede">ITU-R P.533 compiled to WebAssembly. Nothing is computed on a server,
-      your location never leaves the browser, and once loaded it works offline.</p>
-  </header>
+  <section class="hero">
+    <div>
+      <p class="kicker">Phase 1 preview</p>
+      <h1>Which band, which antenna, pointed where.</h1>
+      <p class="lede">HF planning for people who need to get a message through, not a
+        physics degree. The ITU's own propagation model runs in your browser, on today's
+        sun, and tells you what it is sure about and what it is not.</p>
+      <div class="cta">
+        <a class="btn primary big" href="./comms.html">Plan a link</a>
+        <a class="btn big" href="./reach.html">See where I can be heard</a>
+      </div>
+      <div class="facts">
+        <span>computed on your device</span>
+        <span>works offline once loaded</span>
+        <span>your location never leaves the browser</span>
+      </div>
+    </div>
+    <div class="figure" aria-hidden="true">
+      <svg viewBox="0 0 420 200">
+        <line class="layer" x1="0" y1="40" x2="420" y2="40"/>
+        <text x="6" y="34">F layer · ~300 km</text>
+        <line class="gnd" x1="0" y1="170" x2="420" y2="170"/>
+        <polyline class="ray" points="40,166 150,40 260,166 370,40 400,80"/>
+        <polyline class="ray dim" points="40,166 100,40 160,166 220,40 280,166"/>
+        <line class="mast" x1="40" y1="170" x2="40" y2="140"/>
+        <line class="mast" x1="24" y1="150" x2="56" y2="150"/>
+        <circle class="node" cx="40" cy="166" r="5"/>
+        <circle class="node" cx="260" cy="166" r="5"/>
+        <text x="30" y="190">you</text>
+        <text x="226" y="190">1 hop · 2,200 km</text>
+        <text x="330" y="190">2 hops · 4,400</text>
+        <text x="60" y="118">take-off 12°</text>
+      </svg>
+    </div>
+  </section>
 
-  <div>
-    <h2>Tools</h2>
-    <div class="cards">
-      <a class="card" href="./planner.html">
-        <b>Path planner</b>
-        <span>Pick two points, get 24 hours × nine bands of SNR margin. Computes live in
-          this browser in about a third of a second.</span>
-        <em>live engine &middot; ~11 MB first load</em>
+  <section>
+    <h2 class="label">Tools</h2>
+    <div class="tools">
+      <a class="tool featured" href="./comms.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <b>Comms planner</b>
+        <span>Where you are, who you need to reach, how much power you have and what you
+          can put up. Get a band for right now, the antenna that serves every site, which
+          way to point it, and the cut list to build it &mdash; with the reasons the other
+          options fall short.</span>
+        <em>live engine &middot; today's sun &middot; all-in-one</em>
       </a>
-      <a class="card" href="./reach.html">
+      <a class="tool" href="./reach.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
         <b>Reach map</b>
-        <span>Where any station can be heard, with a day/night overlay. Computes across
-          worker threads and fills the map in as it goes &mdash; coarse first, then sharper.</span>
+        <span>Where any station can be heard, band by band, with day and night drawn in.
+          Fills in as it computes.</span>
         <em>live engine &middot; pan &amp; zoom</em>
       </a>
-      <a class="card" href="./antenna.html">
+      <a class="tool" href="./planner.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 4v16"/></svg></div>
+        <b>Path planner</b>
+        <span>One path, 24 hours, nine bands. The full table behind a recommendation,
+          for when you want to see every hour.</span>
+        <em>live engine &middot; ~11 MB first load</em>
+      </a>
+      <a class="tool" href="./antenna.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 21V9M4 9l8-6 8 6M4 9h16"/><path d="M7 21h10"/></svg></div>
         <b>Antenna visualiser</b>
-        <span>What to cut, the pattern it produces, and whether that pattern points
-          where your path needs it. Works by band for wire antennas, verticals and
-          multiband compromises &mdash; or by frequency, for field-expedient NVIS,
-          whip and long-wire options.</span>
+        <span>What to cut, the pattern it makes, and whether that pattern points where
+          your path needs it. Wire antennas, verticals, whips and NVIS.</span>
         <em>computed on device &middot; no data needed</em>
       </a>
-      <a class="card" href="./space.html">
+      <a class="tool" href="./space.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></div>
         <b>Space weather</b>
-        <span>What the sun and the geomagnetic field are doing, the Kp forecast, and NOAA's
-          alerts &mdash; with what each usually means for the bands.</span>
+        <span>What the sun and the geomagnetic field are doing, the Kp forecast, and
+          NOAA's alerts &mdash; with what each means for the bands.</span>
         <em>live &middot; refreshed hourly</em>
       </a>
-      <a class="card" href="./styleguide.html">
+      <a class="tool" href="./styleguide.html">
+        <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></div>
         <b>Style guide</b>
-        <span>Every design token in all three themes. The reskin test: one token file
-          drives the whole app.</span>
+        <span>Every design token in all three themes. One token file drives the whole app.</span>
         <em>design system</em>
       </a>
     </div>
-  </div>
+  </section>
 
-  <div class="flags">
-    <div><b>What is real here, and what is not.</b></div>
-    <div>Predictions come from the ITU's own reference implementation and are verified
-      numerically identical to a native build of it. Distances, bearings, MUF and the
-      diurnal behaviour all check out against reality.</div>
-    <div>The engine's <b>reliability</b> output is a known open defect &mdash; it reads zero
-      for every circuit tested and ignores the required-SNR input &mdash; so nothing here
-      displays it. What you see is <b>SNR margin</b>, which is verified responsive.</div>
-    <div>The <b>A-score</b> described in the design docs does not exist yet. It is meant to be
-      a calibrated probability, and calibrating it depends on resolving that defect first.</div>
-    <div>Reach maps are computed for whatever transmitter you pick, at 100 W into an isotropic
-      antenna. Power is applied on top as an exact offset. <b>Wire antennas now carry their
-      real elevation pattern</b>, applied per map cell &mdash; the distance to a cell sets the
-      take-off angle that path needs, and the pattern gives the gain there. Beams still use
-      peak gain applied flat, and still read optimistic on paths whose take-off angle they do
-      not favour, because their gain does not follow from the thin-wire model. Coarse passes
-      paint each sample across the block it stands for, so an early frame is a sketch until
-      the finer passes land.</div>
-    <div>The antenna visualiser is a <b>thin-wire model over perfect ground</b>, not NEC. It
-      is pinned against the textbook constants it can be checked against &mdash; 2.15 dBi for a
-      free-space dipole, 5.15 for a quarter wave over ground &mdash; and it reports directivity,
-      so every gain figure on it is a lossless upper bound.</div>
-    <div>Solar activity is <b>live</b>: effective sunspot number from KC2G, refreshed hourly
-      by our own service so your browser never contacts theirs. Every page states which
-      source it used and how old it is, and falls back &mdash; to the snapshot published with
-      the build, then to a clearly-labelled placeholder &mdash; rather than quietly reverting
-      to a default sun.</div>
-    <div>Only the <b>sunspot number</b> is live in the sense that matters &mdash; it is the one
-      input P.533 actually takes. Kp, solar flux and NOAA's alerts are fetched and delivered
-      to your browser, but nothing reads them yet: they are neither displayed nor applied to
-      a prediction. Making a geomagnetic storm change the map means a penalty layer on top of
-      the engine, scaled by geomagnetic latitude, which is the A-score's job and does not
-      exist. Treat every prediction here as assuming quiet geomagnetic conditions.</div>
-  </div>
+  <section>
+    <h2 class="label">Straight answers about what this is</h2>
+    <div class="honest">
+      <div class="card">
+        <div class="t"><span class="dot good"></span><b>The predictions are real.</b></div>
+        They come from the ITU's reference implementation of P.533, verified numerically
+        identical to a native build. Distances, bearings, MUF and the day/night behaviour
+        all check out.
+      </div>
+      <div class="card">
+        <div class="t"><span class="dot good"></span><b>The sun is live.</b></div>
+        Effective sunspot number from KC2G, refreshed hourly by our own service so your
+        browser never contacts theirs. Every page says which source it used and how old
+        it is.
+      </div>
+      <div class="card">
+        <div class="t"><span class="dot fair"></span><b>You see SNR margin, not odds.</b></div>
+        The engine's own "reliability" column is a known defect, so nothing shows it. The
+        calibrated probability score in the design docs does not exist yet.
+      </div>
+      <div class="card">
+        <div class="t"><span class="dot fair"></span><b>Storms are shown, not applied.</b></div>
+        Kp and NOAA alerts are displayed with what they usually mean, but every prediction
+        still assumes quiet geomagnetic conditions. When Kp is high, plan a lower fallback.
+      </div>
+    </div>
+    <details class="more" style="margin-top:var(--hf-spacing-3)">
+      <summary>The full list of limits</summary>
+      <div class="fine">
+        <div><b>Reliability.</b> The engine's reliability output reads zero for every circuit
+          tested and ignores the required-SNR input. It is an open defect, so nothing here
+          displays it. What you see is SNR margin, which is verified responsive.</div>
+        <div><b>A-score.</b> The calibrated probability described in the design docs depends
+          on resolving that defect first, so it does not exist yet.</div>
+        <div><b>Reach maps</b> are computed at 100 W into an isotropic antenna. Power is applied
+          on top as an exact offset. Wire antennas carry their real elevation pattern, applied
+          per map cell. Beams still use peak gain applied flat and read optimistic on paths
+          whose take-off angle they do not favour. Coarse passes paint each sample across the
+          block it stands for, so an early frame is a sketch.</div>
+        <div><b>Antenna model.</b> A thin-wire model over perfect ground, not NEC. Pinned against
+          the textbook constants it can be checked against (2.15 dBi free-space dipole, 5.15
+          quarter wave over ground). It reports directivity, so every gain figure is a lossless
+          upper bound; where real ground costs you, the pages say so and the planner subtracts
+          a stated estimate.</div>
+        <div><b>Space weather.</b> Only the sunspot number reaches the engine, because it is the
+          one input P.533 takes. Kp, solar flux and alerts are delivered and displayed, with
+          guidance, but no prediction is bent by them. Making a storm change the numbers is a
+          penalty layer scaled by geomagnetic latitude, which is the A-score's job.</div>
+      </div>
+    </details>
+  </section>
 
-  <div>
-    <h2>Why it is built this way</h2>
-    <ul>
-      <li><b>On-device compute</b> means our cost does not scale with users, so this can stay
-        free without a funding story.</li>
-      <li><b>Almost no server</b> &mdash; static files plus one small scheduled worker that
-        fetches space weather. It exists so that your browser never contacts NOAA or KC2G:
-        their load is a fixed 24 requests a day no matter how many people use this.</li>
-      <li><b>Offline by construction</b>, which matters for the emergency and field work this
-        is aimed at, where there is no signal.</li>
-      <li><b>Nothing hides uncertainty</b>: data age, model limits, and known defects are
-        shown rather than smoothed over.</li>
-    </ul>
-  </div>
+  <section>
+    <h2 class="label">Why it is built this way</h2>
+    <div class="why">
+      <div><b>On-device compute</b> Our cost does not scale with users, so this stays free
+        without a funding story.</div>
+      <div><b>Almost no server</b> Static files plus one small scheduled job that fetches
+        space weather, so NOAA and KC2G see a fixed 24 requests a day however many people
+        use this.</div>
+      <div><b>Offline by construction</b> Which matters for the emergency and field work this
+        is aimed at, where there is no signal.</div>
+      <div><b>Nothing hides uncertainty</b> Data age, model limits and known defects are shown
+        rather than smoothed over.</div>
+    </div>
+  </section>
 
-  <footer>
+  <footer class="site-footer">
     <div>Engine: <code>ITU-R P.533-14.2 / P.372-14.3</code> (ITURHFProp, compiled to WebAssembly).</div>
     <div>Space weather: NOAA SWPC (public domain). Effective sunspot number: KC2G.
       Coastlines: Natural Earth (public domain). Places: GeoNames (CC BY 4.0).</div>
