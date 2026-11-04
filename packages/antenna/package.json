@@ -11,6 +11,6 @@
   },
   "main": "./index.mjs",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   }
 }

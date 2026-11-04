@@ -730,6 +730,11 @@ export function cautions(built) {
   const lam = wavelength(built.operatingMHz);
   const buried = built.radials?.onGround;
 
+  // Every caution that names a loss in its text also carries it as a number,
+  // `lossDb: [low, high]`, so the planner can subtract it from a margin instead
+  // of asking the reader to. The figures are the ones the prose states; the two
+  // must not drift apart, which is why each pair sits beside its sentence.
+
   // A low horizontal antenna is either a mistake or the entire design intent,
   // and the same sentence cannot serve both. Telling an NVIS operator their
   // antenna is too low — when 0.18 λ is exactly where it belongs — would get a
@@ -737,6 +742,8 @@ export function cautions(built) {
   if (!cm.vertical && cm.heightWavelengths < 0.2 && built.antenna.nvis) {
     out.push({
       severity: 'info',
+      code: 'ground-nvis',
+      lossDb: [1, 3],
       text: `${cm.heightWavelengths.toFixed(2)} wavelengths up `
         + `(${cm.heightM.toFixed(1)} m against a ${lam.toFixed(1)} m wavelength) is `
         + 'the right height for NVIS — this is the design, not a compromise. Real '
@@ -747,6 +754,8 @@ export function cautions(built) {
   } else if (!cm.vertical && cm.heightWavelengths < 0.2) {
     out.push({
       severity: cm.heightWavelengths < 0.1 ? 'high' : 'moderate',
+      code: 'ground-low',
+      lossDb: cm.heightWavelengths < 0.1 ? [3, 6] : [2, 4],
       text: `The current maximum is ${cm.heightWavelengths.toFixed(2)} wavelengths up `
         + `(${cm.heightM.toFixed(1)} m against a ${lam.toFixed(1)} m wavelength). `
         + 'Below about 0.2 λ a horizontal antenna couples strongly into the soil '
@@ -756,8 +765,11 @@ export function cautions(built) {
     });
   }
   if (buried) {
+    const n = built.radials.count;
     out.push({
       severity: 'high',
+      code: 'ground-radials',
+      lossDb: n >= 32 ? [2, 3] : n >= 16 ? [3, 4] : [4, 6],
       text: 'A ground-mounted vertical returns its current through the soil. Over '
         + `average ground with ${built.radials.count} radials, expect roughly `
         + `${built.radials.count >= 32 ? '2–3' : built.radials.count >= 16 ? '3–4' : '4–6'} dB `
@@ -768,6 +780,8 @@ export function cautions(built) {
   if (cm.vertical && !buried && cm.heightWavelengths < 0.05 && !built.antenna.nvis) {
     out.push({
       severity: 'moderate',
+      code: 'ground-return',
+      lossDb: [2, 4],
       text: 'A vertical this close to the ground still needs a return path. '
         + 'Without radials or a counterpoise, the loss goes wherever the current '
         + 'can find a way back — usually the coax shield and the soil.',
@@ -784,6 +798,8 @@ export function cautions(built) {
     const [best, worst] = short.lossDb;
     out.push({
       severity: short.heightWavelengths < 0.08 ? 'high' : 'moderate',
+      code: 'short',
+      lossDb: [-best, -worst],
       text: `Electrically short: ${wireM.toFixed(1)} m is `
         + `${short.heightWavelengths.toFixed(3)} wavelengths here, giving a radiation `
         + `resistance of about ${short.radiationResistanceOhms.toFixed(1)} Ω. Against the `
@@ -799,6 +815,8 @@ export function cautions(built) {
   if (built.antenna.terminated) {
     out.push({
       severity: 'high',
+      code: 'terminated',
+      lossDb: [3, 6],
       text: 'The terminating resistor absorbs the power that would otherwise be '
         + 'reflected — that is what keeps the match flat across the whole range, '
         + 'and that power is gone. Expect to lose a third to two-thirds of your '

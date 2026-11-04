@@ -1,20 +1,30 @@
-/* Site navigation. Shared so the four pages cannot drift apart, and so adding a
-   fifth is one edit rather than four.
+/* Site navigation. One bar on every page, so adding a page is one edit.
 
-   Tokens only. The current page is marked with aria-current="page" rather than a
-   class, because that is what a screen reader announces. */
+   Tokens only. The current page is marked with aria-current="page" rather than
+   a class, because that is what a screen reader announces. */
 
-.sitenav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--hf-spacing-1);
-  align-items: center;
-  margin-bottom: var(--hf-spacing-5);
-  padding-bottom: var(--hf-spacing-3);
+.sitebar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--hf-surface-default);
   border-bottom: 1px solid var(--hf-border-subtle);
 }
 
+.sitenav {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 44px);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: var(--hf-spacing-1);
+}
+
 .sitenav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--hf-font-family-mono);
   font-weight: var(--hf-font-weight-semibold);
   font-size: var(--hf-font-size-sm);
@@ -22,9 +32,27 @@
   color: var(--hf-text-primary);
   text-decoration: none;
   margin-right: var(--hf-spacing-3);
+  flex: none;
 }
+.sitenav .brand svg { width: 20px; height: 20px; display: block }
+.sitenav .brand .mark { fill: none; stroke: var(--hf-accent-interactive); stroke-width: 1.8; stroke-linecap: round }
+.sitenav .brand .core { fill: var(--hf-accent-interactive) }
 
-.sitenav a:not(.brand) {
+/* The link row scrolls sideways on a phone rather than wrapping into a wall. */
+.sitenav .links {
+  display: flex;
+  align-items: center;
+  gap: var(--hf-spacing-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 6px 0;
+}
+.sitenav .links::-webkit-scrollbar { display: none }
+
+.sitenav .links a {
   display: inline-block;
   padding: var(--hf-spacing-1) var(--hf-spacing-3);
   border-radius: var(--hf-radius-sm);
@@ -32,32 +60,27 @@
   text-decoration: none;
   color: var(--hf-text-secondary);
   border: 1px solid transparent;
+  white-space: nowrap;
+}
+.sitenav .links a:hover { color: var(--hf-text-primary); background: var(--hf-surface-raised) }
+.sitenav a:focus-visible, .sitenav button:focus-visible {
+  outline: var(--hf-focus-ring-width) solid var(--hf-focus-ring-color);
+  outline-offset: var(--hf-focus-ring-offset);
 }
 
-.sitenav a:not(.brand):hover {
-  color: var(--hf-text-primary);
-  background: var(--hf-surface-raised);
-}
-
-.sitenav a:focus-visible {
-  outline: 2px solid var(--hf-focus-ring);
-  outline-offset: 2px;
-}
-
-/* You are here. Marked with weight and a rule rather than colour alone, so it
-   still reads without colour vision. */
-.sitenav a[aria-current='page'] {
+/* You are here. Weight and a rule, not colour alone. */
+.sitenav .links a[aria-current='page'] {
   color: var(--hf-text-primary);
   background: var(--hf-surface-raised);
   border-color: var(--hf-border-default);
   font-weight: var(--hf-font-weight-semibold);
 }
 
-.sitenav .spacer { flex: 1 }
+.sitenav .spacer { flex: 0 0 var(--hf-spacing-2) }
 
-/* Live conditions, shown in the nav on every page so the state of the sun is
-   never more than a glance away. Absent until the bundle loads — never a
-   placeholder number that might be mistaken for a reading. */
+/* Live conditions, on every page so the state of the sun is never more than a
+   glance away. Absent until the bundle loads — never a placeholder number that
+   might be mistaken for a reading. */
 .sitenav a.wx {
   display: inline-flex;
   align-items: center;
@@ -68,14 +91,35 @@
   text-decoration: none;
   padding: var(--hf-spacing-1) var(--hf-spacing-2);
   border-radius: var(--hf-radius-sm);
+  white-space: nowrap;
+  flex: none;
 }
 .sitenav a.wx:hover { background: var(--hf-surface-raised); color: var(--hf-text-primary) }
 .sitenav a.wx b { font-weight: var(--hf-font-weight-semibold); color: var(--hf-text-secondary) }
-.sitenav a.wx .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  border: 1px solid var(--hf-border-default);
-}
+.sitenav a.wx .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--hf-border-default) }
 
-@media (max-width: 560px) {
-  .sitenav .spacer { flex-basis: 100%; height: 0 }
+/* Theme switch: cycles auto → dark → light → night. */
+.sitenav .theme {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--hf-border-subtle);
+  border-radius: var(--hf-radius-sm);
+  color: var(--hf-text-secondary);
+  font: inherit;
+  font-size: var(--hf-font-size-xs);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.sitenav .theme:hover { background: var(--hf-surface-raised); color: var(--hf-text-primary); border-color: var(--hf-border-default) }
+.sitenav .theme svg { width: 14px; height: 14px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+
+@media (max-width: 640px) {
+  .sitenav .brand span { display: none }
+  .sitenav a.wx span:not(.dot) { display: none }
+  .sitenav a.wx .dot { width: 10px; height: 10px }
+  .sitenav .theme span { display: none }
 }

@@ -5,10 +5,17 @@ computes anything.
 
 | Page | What it is |
 |---|---|
-| `index.html` | Landing, with an honest note on what is real and what is not |
+| `index.html` | Landing: what the tools are, and what is real and what is not |
+| `comms.html` | **Live engine.** The all-in-one planner: your station and power, the sites you need, the bands or assigned frequencies, and the antennas you could put up. Runs P.533 for every path and hour and the thin-wire model for every antenna, then answers with a band for now, the antenna that serves every site, which way to run it, and the cut list — with the reasons each other option falls short. |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
 | `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, transmit power in watts and antenna gain as separate controls. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
+| `antenna.html` | Antenna visualiser: dimensions by band or by frequency, the pattern, and whether it points where a path needs it |
+| `space.html` | Space weather, with what each index usually means for the bands |
 | `styleguide.html` | Every design token in all three themes |
+
+Every page shares `lib/site.css` (page vocabulary), `lib/nav.css` + `lib/nav.mjs`
+(the bar, live conditions, theme switch) and `lib/theme.mjs` (one theme preference
+for the whole site, applied before first paint by `lib/theme-boot.js`).
 
 ## Build
 

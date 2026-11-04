@@ -6,8 +6,11 @@
 <title>HFKit — antenna visualiser</title>
 <meta name="description" content="HF antenna dimensions by band or by frequency, the radiation pattern that results, and the take-off angle your path actually needs. Amateur wire antennas, verticals, multiband compromises, and field-expedient NVIS, whip and long-wire options.">
 <meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
+<link rel="stylesheet" href="./lib/antenna-plot.css">
 <style>
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -51,36 +54,6 @@ input[type=range]{width:100%;accent-color:var(--hf-accent-interactive)}
 .panel{background:var(--hf-surface-raised);border:1px solid var(--hf-border-subtle);
   border-radius:var(--hf-radius-md);padding:var(--hf-spacing-4);min-width:0}
 .panel .cap{font-size:var(--hf-font-size-xs);color:var(--hf-text-muted);margin-top:6px}
-
-/* --- shared plot styling: every colour is a token --- */
-.ant-diagram,.ant-polar{width:100%;height:auto;display:block;overflow:visible}
-.ant-diagram .gnd{stroke:var(--hf-border-strong);stroke-width:1.5}
-.ant-diagram .gnd-hatch{stroke:var(--hf-border-subtle);stroke-width:1}
-.ant-diagram .mast{stroke:var(--hf-text-muted);stroke-width:2;stroke-dasharray:3 3}
-.ant-diagram .wire{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2.5;
-  stroke-linejoin:round;stroke-linecap:round}
-.ant-diagram .wire.radial{stroke:var(--hf-categorical-3);stroke-width:1.8}
-.ant-diagram .radial.buried{stroke:var(--hf-categorical-3);stroke-width:1.5;
-  stroke-dasharray:4 3}
-.ant-diagram .feed{fill:var(--hf-status-good-fill);stroke:var(--hf-surface-raised);
-  stroke-width:1.5}
-.ant-diagram .dim{stroke:var(--hf-text-muted);stroke-width:1}
-.lbl{font-family:var(--hf-font-family-mono);font-size:10px;fill:var(--hf-text-secondary)}
-.lbl.muted,.lbl.ring-lbl,.lbl.spoke-lbl{fill:var(--hf-text-muted);font-size:9px}
-.lbl.feed-lbl{fill:var(--hf-status-good-text)}
-.lbl.compass{fill:var(--hf-text-secondary);font-size:11px;
-  font-weight:var(--hf-font-weight-semibold)}
-.lbl.axis-lbl{fill:var(--hf-text-muted);font-size:10px}
-.lbl.marker-lbl{fill:var(--hf-status-fair-text);font-weight:var(--hf-font-weight-semibold)}
-.ant-polar .ring{fill:none;stroke:var(--hf-border-subtle);stroke-width:1}
-.ant-polar .spoke{stroke:var(--hf-border-subtle);stroke-width:1}
-.ant-polar .horizon{stroke:var(--hf-border-strong);stroke-width:1.5}
-.ant-polar .trace{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2.5;
-  stroke-linejoin:round}
-.ant-polar .trace.envelope{stroke:var(--hf-text-muted);stroke-width:1;
-  stroke-dasharray:3 3;opacity:.8}
-.ant-polar .trace.filled{fill:var(--hf-accent-interactive);fill-opacity:.16}
-.ant-polar .marker{stroke:var(--hf-status-fair-fill);stroke-width:2;stroke-dasharray:5 3}
 
 /* --- numbers --- */
 .stats{display:grid;gap:var(--hf-spacing-3);
@@ -387,8 +360,6 @@ import { mountNav } from './lib/nav.mjs';
 import { elevationsForDistance } from './lib/antenna-gain.mjs';
 
 mountNav(document.querySelector('.wrap'), 'antenna.html');
-document.documentElement.setAttribute('data-theme',
-  matchMedia('(prefers-color-scheme: light)').matches ? 'field-light' : 'field-dark');
 
 const $ = (i) => document.getElementById(i);
 const LAYER_KM = 300;

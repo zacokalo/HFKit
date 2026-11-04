@@ -8,7 +8,9 @@
 <!-- Space weather mothership. Empty or absent = no live tier; the page then
      uses the snapshot published with this build, labelled with its age. -->
 <meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
 <style>
 *,*::before,*::after{box-sizing:border-box}
@@ -203,10 +205,6 @@ const tok = (k) => getComputedStyle(document.documentElement)
   .getPropertyValue(`--hf-status-${k}-fill`).trim();
 const tokOn = (k) => getComputedStyle(document.documentElement)
   .getPropertyValue(`--hf-status-${k}-on`).trim();
-
-// Match the viewer's theme the same way the rest of the site does.
-document.documentElement.setAttribute('data-theme',
-  matchMedia('(prefers-color-scheme: light)').matches ? 'field-light' : 'field-dark');
 
 function card({ label, value, unit, age, pill, pillToken, bad }) {
   const el = document.createElement('div');

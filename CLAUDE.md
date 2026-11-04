@@ -2,9 +2,10 @@
 
 Guidance for Claude/AI agents working in this repo. Read this before changing anything.
 
-> **Status: planning phase.** There is no product code yet — only `docs/`.
-> Sections marked *(pending)* activate once Phase 0 begins. Keep this file
-> updated as the code lands; it is maintained like code, not written once.
+> **Status: Phase 1 preview.** A deployable static site (`apps/web/`) runs the
+> ITU-R P.533 engine on-device, with an antenna model, a space weather Worker,
+> and a comms planner that combines them. Keep this file updated as the code
+> lands; it is maintained like code, not written once.
 
 ## What this project is
 
@@ -78,11 +79,19 @@ always beats fresh-looking-and-wrong.
 - Plain language in user-facing copy; jargon on hover. The glossary in
   `docs/08-domain-model.md` doubles as tooltip copy.
 
-## Commands *(pending — fill in as the code lands)*
+## Commands
 
 ```
-# install / test / lint / run — TBD in Phase 0
+npm install                 # workspaces: packages/*, apps/*, workers/*
+npm test                    # hermetic unit tests (node --test, vitest); no network
+npm run build:web           # theme + engine, then assembles apps/web/ (fetches ~11 MB ITU data)
+npm run test:web            # browser end-to-end against the real engine; needs a build, not in CI
+cd pipeline && pytest       # the Python pipeline's gates
 ```
+
+The site is plain static files: `python3 -m http.server -d apps/web` after a build
+serves it. The antenna model (`packages/antenna`) is dependency-free ESM shipped
+as source, so the browser and the unit tests run the same file.
 
 ## Definition of done for a PR
 
