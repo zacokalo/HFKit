@@ -1,0 +1,33 @@
+/* Antenna drawings: the construction side view and the polar pattern plots
+   produced by lib/antenna-plot.mjs. Shared by the antenna visualiser and the
+   comms planner, so the two cannot drift. Every colour is a token. */
+
+.ant-diagram,.ant-polar{width:100%;height:auto;display:block;overflow:visible}
+.ant-diagram .gnd{stroke:var(--hf-border-strong);stroke-width:1.5}
+.ant-diagram .gnd-hatch{stroke:var(--hf-border-subtle);stroke-width:1}
+.ant-diagram .mast{stroke:var(--hf-text-muted);stroke-width:2;stroke-dasharray:3 3}
+.ant-diagram .wire{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2.5;
+  stroke-linejoin:round;stroke-linecap:round}
+.ant-diagram .wire.radial{stroke:var(--hf-categorical-3);stroke-width:1.8}
+.ant-diagram .radial.buried{stroke:var(--hf-categorical-3);stroke-width:1.5;
+  stroke-dasharray:4 3}
+.ant-diagram .feed{fill:var(--hf-status-good-fill);stroke:var(--hf-surface-raised);
+  stroke-width:1.5}
+.ant-diagram .dim{stroke:var(--hf-text-muted);stroke-width:1}
+.lbl{font-family:var(--hf-font-family-mono);font-size:10px;fill:var(--hf-text-secondary)}
+.lbl.muted,.lbl.ring-lbl,.lbl.spoke-lbl{fill:var(--hf-text-muted);font-size:9px}
+.lbl.feed-lbl{fill:var(--hf-status-good-text)}
+.lbl.compass{fill:var(--hf-text-secondary);font-size:11px;
+  font-weight:var(--hf-font-weight-semibold)}
+.lbl.axis-lbl{fill:var(--hf-text-muted);font-size:10px}
+.lbl.marker-lbl{fill:var(--hf-status-fair-text);font-weight:var(--hf-font-weight-semibold)}
+.ant-polar .ring{fill:none;stroke:var(--hf-border-subtle);stroke-width:1}
+.ant-polar .spoke{stroke:var(--hf-border-subtle);stroke-width:1}
+.ant-polar .horizon{stroke:var(--hf-border-strong);stroke-width:1.5}
+.ant-polar .trace{fill:none;stroke:var(--hf-accent-interactive);stroke-width:2.5;
+  stroke-linejoin:round}
+.ant-polar .trace.envelope{stroke:var(--hf-text-muted);stroke-width:1;
+  stroke-dasharray:3 3;opacity:.8}
+.ant-polar .trace.filled{fill:var(--hf-accent-interactive);fill-opacity:.16}
+.ant-polar .marker{stroke:var(--hf-status-fair-fill);stroke-width:2;stroke-dasharray:5 3}
+

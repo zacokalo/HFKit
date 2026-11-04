@@ -43,6 +43,15 @@ export function setMode(mode) {
  * words, its units, its time zone — so it has to change when the page does.
  */
 export const GUIDES = {
+  'comms.html': {
+    points: [
+      'Fill in the three boxes: where you are, who you need to reach, and what you could put up. Set your power. Press Plan.',
+      'The big card is the answer: a band to use right now and the antenna to put up. Below it, the timeline shows when each band works today (hours are in UTC) and the ranked list says why each other antenna falls short, with a fix.',
+      'The build sheet at the bottom is what to cut, which way to run the wire, how high, and how to feed it. The bearing is the run of the wire; a wire is strongest at right angles to itself.',
+      'Everything is an SNR margin, not a probability: +6 dB or more is comfortable, 0 to +6 might work, below zero probably will not.',
+    ],
+    learn: ['antennas', 'Antennas: where your signal goes'],
+  },
   'planner.html': {
     points: [
       'Choose where you are transmitting from and who you want to reach, then press Predict 24 h.',
@@ -114,6 +123,6 @@ export function mountGuide(container, currentFile) {
 
   const header = [...container.children].find((c) => c.tagName === 'HEADER');
   if (header) header.after(d);
-  else container.querySelector('.sitenav')?.after(d);
+  else container.prepend(d);
   return d;
 }

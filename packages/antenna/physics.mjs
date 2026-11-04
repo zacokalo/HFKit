@@ -451,3 +451,48 @@ export function countLobes(cut, { floorDb = 6, wrap = false } = {}) {
   }
   return lobes;
 }
+
+// --- path geometry ---------------------------------------------------------
+//
+// Great-circle distance and bearing between two points. The engine package has
+// its own distance function, but this module is deliberately dependency-free so
+// the browser and the tests import the same file, and the planner needs the
+// bearing as well — the engine does not provide one.
+
+/** Great-circle distance in km between two {lat, lon} points (WGS84 degrees). */
+export function greatCircleKm(a, b, earthRadiusKm = EARTH_RADIUS_KM) {
+  const p1 = rad(a.lat), p2 = rad(b.lat);
+  const dp = p2 - p1, dl = rad(b.lon - a.lon);
+  const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Initial great-circle bearing from a to b, degrees true, 0 = north. */
+export function initialBearingDeg(a, b) {
+  const p1 = rad(a.lat), p2 = rad(b.lat), dl = rad(b.lon - a.lon);
+  const y = Math.sin(dl) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return ((deg(Math.atan2(y, x)) % 360) + 360) % 360;
+}
+
+/**
+ * Elevations a path of this length could plausibly use, one per hop count.
+ *
+ * Two options — the fewest hops that can span the distance, and one more — is
+ * the depth that survives measurement (see apps/web/lib/antenna-gain.mjs for
+ * why not three). Each is floored at `minElevationDeg`, because a horizontal
+ * antenna over the perfect ground this model assumes has an absolute null at
+ * the horizon that real ground does not.
+ */
+export function candidateElevations(distanceKm, {
+  layerHeightKm = 300, maxHops = 2, minElevationDeg = 3,
+} = {}) {
+  if (!(distanceKm > 1)) return [90];
+  const first = minimumHops(distanceKm, layerHeightKm);
+  const out = [];
+  for (let h = first; h < first + maxHops; h++) {
+    const e = takeoffAngle(distanceKm, { layerHeightKm, hops: h });
+    if (e > 0 && e <= 90) out.push(Math.max(minElevationDeg, e));
+  }
+  return out.length ? out : [minElevationDeg];
+}

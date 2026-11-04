@@ -5,11 +5,18 @@ computes anything.
 
 | Page | What it is |
 |---|---|
-| `index.html` | Landing, in two modes. **Beginner** (the default for a new visitor): a plain-English welcome that sends newcomers to Learn, or straight to a tool by the question it answers. **Experienced**: the tools hub. The "what is real and what is not" notes are the same block in both, folded for beginners and open for experienced visitors. |
+| `index.html` | Landing, in two modes. **Beginner** (the default for a new visitor): a plain-English welcome that sends newcomers to Learn, or straight to a tool by the question it answers. **Experienced**: the hub, leading with the comms planner. The "what is real and what is not" notes are the same block in both, folded for beginners and open for experienced visitors. |
 | `learn.html` | **Beginner's guide.** Six short chapters — waves and bands, the ionosphere, day and night, antennas, power and noise, the sun — each built around an interactive tool: wavelength explorer, bounce simulator, band clock, dipole height, S-meter, sun and storms. Quizzes, a searchable glossary with hover definitions, and theme and text-size controls. Propagation widgets use a labelled teaching model, not P.533 ([ADR-0004](../../docs/adr/0004-teaching-model.md)). |
+| `comms.html` | **Live engine.** The all-in-one planner: your station and power, the sites you need, the bands or assigned frequencies, and the antennas you could put up. Runs P.533 for every path and hour and the thin-wire model for every antenna, then answers with a band for now, the antenna that serves every site, which way to run it, and the cut list — with the reasons each other option falls short. |
 | `planner.html` | **Live engine.** Two points → 24 h × 9 bands of SNR margin, computed on-device. "Use my location" sets the transmitter. |
 | `reach.html` | **Live engine.** Reach map for any transmitter, computed across a worker pool and painted progressively as passes land. Adjustable detail, 4- or 24-hour span, night-shading opacity, transmit power in watts and antenna gain as separate controls. Click the map for a detail panel (per-band margins, MUF, add-as-receiver / set-as-transmitter, 24-hour circuit chart); hover a receiver for its circuit. Pan and zoom. |
+| `antenna.html` | Antenna visualiser: dimensions by band or by frequency, the pattern, and whether it points where a path needs it |
+| `space.html` | Space weather, with what each index usually means for the bands |
 | `styleguide.html` | Every design token in all three themes |
+
+Every page shares `lib/site.css` (page vocabulary), `lib/nav.css` + `lib/nav.mjs`
+(the bar, live conditions, theme switch) and `lib/theme.mjs` (one theme preference
+for the whole site, applied before first paint by `lib/theme-boot.js`).
 
 **Beginner and experienced modes.** A switch in the site menu, remembered per
 browser (`lib/mode.mjs`). Beginner is the default: the home page is the

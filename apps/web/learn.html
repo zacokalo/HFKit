@@ -6,18 +6,16 @@
 <title>HFKit — learn HF radio</title>
 <meta name="description" content="A beginner's guide to HF radio: how signals travel, why the bands change through the day, how antennas decide where your signal goes, and what the sun has to do with it — with interactive tools to play with.">
 <meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
 <script>
-  // Reading preferences, applied before first paint so the page never flashes
-  // the wrong theme. Anything unexpected in storage falls back to the defaults.
+  // Text-size preference, applied before first paint so the page never
+  // reflows. The theme is site-wide and handled by lib/theme-boot.js above.
   (() => {
     let p = {};
     try { p = JSON.parse(localStorage.getItem('hfkit.learn.v1') || '{}') || {}; } catch { /* none */ }
-    const named = ['field-dark', 'field-light', 'night-ops'];
-    const theme = named.includes(p.theme) ? p.theme
-      : (matchMedia('(prefers-color-scheme: light)').matches ? 'field-light' : 'field-dark');
-    document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-text', p.text === 'large' ? 'large' : 'normal');
   })();
 </script>
@@ -828,6 +826,7 @@ import { loadSpaceWeather, describeAge } from './lib/spacewx.mjs';
 import { describeFlux, describeKp, geomagneticScale, summarise } from './lib/spacewx-copy.mjs';
 import * as P from './lib/learn-plots.mjs';
 import { mountNav } from './lib/nav.mjs';
+import { getTheme, setTheme } from './lib/theme.mjs';
 
 mountNav(document.querySelector('.wrap'), 'learn.html');
 
@@ -932,22 +931,15 @@ function savePrefs() {
   try { localStorage.setItem(STORE, JSON.stringify(prefs)); } catch { /* private mode */ }
 }
 
-const systemLight = matchMedia('(prefers-color-scheme: light)');
-function applyTheme() {
-  const t = ['field-dark', 'field-light', 'night-ops'].includes(prefs.theme) ? prefs.theme
-    : (systemLight.matches ? 'field-light' : 'field-dark');
-  document.documentElement.setAttribute('data-theme', t);
-}
-systemLight.addEventListener('change', applyTheme);
-press($('pref-theme'), prefs.theme ?? 'auto');
+// Colours are the site-wide preference (lib/theme.mjs), so a choice made here
+// follows the reader to every other page and the nav switch follows it back.
+press($('pref-theme'), getTheme());
+document.addEventListener('hfkit:theme', () => press($('pref-theme'), getTheme()));
 press($('pref-text'), prefs.text === 'large' ? 'large' : 'normal');
 $('pref-theme').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-v]');
   if (!b) return;
-  prefs.theme = b.dataset.v;
-  press($('pref-theme'), b.dataset.v);
-  applyTheme();
-  savePrefs();
+  setTheme(b.dataset.v);
 });
 $('pref-text').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-v]');

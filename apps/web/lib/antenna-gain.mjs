@@ -19,7 +19,7 @@
 // approximation they are.
 
 import {
-  analyse, buildAntenna, byId, defaultParams, minimumHops, takeoffAngle,
+  analyse, buildAntenna, byId, candidateElevations, defaultParams,
 } from '../vendor/antenna-model.mjs';
 
 const LAYER_KM = 300;
@@ -80,14 +80,7 @@ export const GAIN_FLOOR_DBI = -20;
  * a 20 m dipole still spans 13 dB from its best distance to its worst.
  */
 export function elevationsForDistance(km, maxHops = 2) {
-  if (!(km > 1)) return [90];
-  const first = minimumHops(km, LAYER_KM);
-  const out = [];
-  for (let h = first; h < first + maxHops; h++) {
-    const e = takeoffAngle(km, { layerHeightKm: LAYER_KM, hops: h });
-    if (e > 0 && e <= 90) out.push(Math.max(MIN_ELEVATION_DEG, e));
-  }
-  return out.length ? out : [MIN_ELEVATION_DEG];
+  return candidateElevations(km, { layerHeightKm: LAYER_KM, maxHops, minElevationDeg: MIN_ELEVATION_DEG });
 }
 
 /** The single angle a path most likely uses — the fewest hops that can span it. */

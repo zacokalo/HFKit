@@ -17,6 +17,7 @@ import spaceSpec from './space.spec.mjs';
 import antennaSpec from './antenna.spec.mjs';
 import fieldSpec from './field.spec.mjs';
 import patternGainSpec from './patterngain.spec.mjs';
+import commsSpec from './comms.spec.mjs';
 import learnSpec from './learn.spec.mjs';
 import modeSpec from './mode.spec.mjs';
 
@@ -72,6 +73,7 @@ for (const [name, spec] of [['reach map', reachSpec], ['map popups', popupSpec],
                             ['antenna visualiser', antennaSpec],
                             ['field mode', fieldSpec],
                             ['pattern gain', patternGainSpec],
+                            ['comms planner', commsSpec],
                             ['learn page', learnSpec],
                             ['modes', modeSpec]]) {
   console.log(`\n${name}`);

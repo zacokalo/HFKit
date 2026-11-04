@@ -1,85 +1,79 @@
 <!doctype html>
-<html lang="en" data-theme="field-dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HFKit — on-device propagation demo</title>
+<title>HFKit — path planner</title>
+<meta name="description" content="One HF path, 24 hours, nine bands of SNR margin. ITU-R P.533 running in WebAssembly, in this browser.">
 <meta name="hfkit-spacewx" content="">
+<script src="./lib/theme-boot.js"></script>
 <link rel="stylesheet" href="./vendor/tokens.css">
+<link rel="stylesheet" href="./lib/site.css">
 <link rel="stylesheet" href="./lib/nav.css">
 <style>
   /* Every value below is a semantic token. No hardcoded colours (docs/06). */
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: var(--hf-spacing-6);
-    background: var(--hf-surface-default); color: var(--hf-text-primary);
-    font-family: var(--hf-font-family-sans); font-size: var(--hf-font-size-md);
-    line-height: 1.5;
-  }
-  header { border-bottom: 1px solid var(--hf-border-subtle); padding-bottom: var(--hf-spacing-4); margin-bottom: var(--hf-spacing-5); }
-  h1 { margin: 0 0 var(--hf-spacing-1); font-size: var(--hf-font-size-xl); }
-  .sub { color: var(--hf-text-muted); font-size: var(--hf-font-size-sm); margin: 0; }
-  .row { display: flex; flex-wrap: wrap; gap: var(--hf-spacing-4); align-items: flex-end; margin-bottom: var(--hf-spacing-5); }
-  label { display: block; font-size: var(--hf-font-size-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--hf-text-muted); margin-bottom: 2px; }
-  select, input {
-    background: var(--hf-surface-sunken); color: var(--hf-text-primary);
-    border: 1px solid var(--hf-border-default); border-radius: var(--hf-radius-sm);
-    padding: var(--hf-spacing-2) var(--hf-spacing-3); font-family: var(--hf-font-family-mono);
-    font-size: var(--hf-font-size-sm);
-  }
-  button {
-    background: var(--hf-accent-interactive); color: var(--hf-accent-onAccent);
-    border: none; border-radius: var(--hf-radius-sm);
-    padding: var(--hf-spacing-2) var(--hf-spacing-4);
-    font-weight: var(--hf-font-weight-semibold); font-size: var(--hf-font-size-sm); cursor: pointer;
-  }
-  button:disabled { background: var(--hf-text-disabled); cursor: default; }
-  button:focus-visible { outline: 2px solid var(--hf-focus-ring); outline-offset: 2px; }
-  .card { background: var(--hf-surface-raised); border: 1px solid var(--hf-border-subtle); border-radius: var(--hf-radius-md); padding: var(--hf-spacing-4); margin-bottom: var(--hf-spacing-4); }
-  .status { font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-sm); color: var(--hf-text-secondary); white-space: pre-wrap; }
-  table { border-collapse: collapse; font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-xs); font-variant-numeric: tabular-nums; }
-  th, td { padding: 3px 6px; text-align: right; border: 1px solid var(--hf-border-subtle); }
-  th { color: var(--hf-text-muted); font-weight: var(--hf-font-weight-semibold); }
-  th.corner { text-align: left; }
-  td.hour { color: var(--hf-text-muted); text-align: left; }
-  .legend { display: flex; gap: var(--hf-spacing-3); flex-wrap: wrap; margin-top: var(--hf-spacing-3); font-size: var(--hf-font-size-xs); color: var(--hf-text-muted); align-items: center; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; }
-  .sw { width: 14px; height: 14px; border-radius: var(--hf-radius-sm); border: 1px solid var(--hf-border-default); display: inline-block; }
-  .meta { color: var(--hf-text-muted); font-size: var(--hf-font-size-xs); font-family: var(--hf-font-family-mono); margin-top: var(--hf-spacing-2); }
-  .warn { color: var(--hf-status-fair-text); }
+  .wrap { max-width: 1000px }
+  .controls { display: grid; gap: var(--hf-spacing-4); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end }
+  .controls .field.go { grid-column: 1 / -1; flex-direction: row; gap: var(--hf-spacing-3); align-items: center }
+  .status { font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-xs); color: var(--hf-text-secondary); white-space: pre-wrap; margin: 0 }
+  .scroll { overflow-x: auto }
+  table { border-collapse: separate; border-spacing: 2px; font-family: var(--hf-font-family-mono); font-size: var(--hf-font-size-xs); font-variant-numeric: tabular-nums }
+  th, td { padding: 4px 7px; text-align: right; border-radius: 3px }
+  th { color: var(--hf-text-muted); font-weight: var(--hf-font-weight-semibold) }
+  th.corner { text-align: left }
+  td.hour { color: var(--hf-text-muted); text-align: left }
+  tr.now td.hour { color: var(--hf-text-primary); font-weight: var(--hf-font-weight-semibold) }
+  tr.now td.hour::after { content: ' ◂ now'; color: var(--hf-accent-interactive) }
+  .legend { display: flex; gap: var(--hf-spacing-3); flex-wrap: wrap; margin-top: var(--hf-spacing-3); font-size: var(--hf-font-size-xs); color: var(--hf-text-muted); align-items: center }
+  .legend .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; vertical-align: -2px; margin-right: 4px }
+  .meta { color: var(--hf-text-muted); font-size: var(--hf-font-size-xs); font-family: var(--hf-font-family-mono); margin-top: var(--hf-spacing-2) }
 </style>
 </head>
 <body>
-<div class="app">
-<header>
-  <h1>HFKit — on-device propagation</h1>
-  <p class="sub">ITU-R P.533 running in WebAssembly, in this browser. No server computes anything.</p>
-  <p class="sub warn">Phase 1 demo — shows SNR margin, not the A-score. The engine's reliability column is a known open defect.</p>
-</header>
+<div class="wrap app">
+  <header class="page-head">
+    <h1>Path planner</h1>
+    <p class="lede">One path, every hour of the day, nine bands. This is the full table
+      behind a recommendation &mdash; the <a href="./comms.html">comms planner</a> turns it
+      into an answer.</p>
+  </header>
 
-<div class="row">
-  <div><label for="from">From (transmitter)</label><select id="from"></select></div>
-  <div><label for="myloc">&nbsp;</label><button id="myloc" type="button">Use my location</button></div>
-  <div><label for="to">To</label><select id="to"></select></div>
-  <div><label for="pwr">Power (W)</label><input id="pwr" type="number" value="100" min="1" max="10000" style="width:7rem"></div>
-  <div><button id="go" disabled>Predict 24 h</button></div>
-  <div><label for="theme">Theme</label><select id="theme">
-    <option value="field-dark">field-dark</option>
-    <option value="field-light">field-light</option>
-    <option value="night-ops">night-ops</option>
-  </select></div>
-</div>
+  <div class="card controls">
+    <div class="field"><label for="from">From (transmitter)</label><select id="from" class="input mono"></select></div>
+    <div class="field"><span class="fl">&nbsp;</span><button id="myloc" type="button" class="btn">Use my location</button></div>
+    <div class="field"><label for="to">To</label><select id="to" class="input mono"></select></div>
+    <div class="field"><label for="pwr">Power (W)</label><input id="pwr" class="input mono" type="number" value="100" min="1" max="10000"></div>
+    <div class="field go">
+      <button id="go" class="btn primary" disabled>Predict 24 h</button>
+      <p class="status" id="status">Loading engine…</p>
+    </div>
+  </div>
 
-<div class="card"><div class="status" id="status">Loading engine…</div></div>
-<div class="card" id="resultCard" hidden>
-  <div id="grid"></div>
-  <div class="legend" id="legend"></div>
-  <div class="meta" id="meta"></div>
+  <div class="card" id="resultCard" hidden>
+    <div class="scroll"><div id="grid"></div></div>
+    <div class="legend" id="legend"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <details class="more">
+    <summary>What the numbers are</summary>
+    <div class="fine">
+      <div><b>Each cell is an SNR margin</b> in dB: the signal-to-noise ratio the engine predicts
+        for that band at that hour, minus the 24 dB in 3 kHz a voice contact needs. Above zero
+        is workable; above ten is comfortable.</div>
+      <div><b>It is not a probability.</b> The engine's reliability column is a known defect and
+        is not shown. The calibrated score the design docs describe does not exist yet.</div>
+      <div><b>Isotropic antennas</b> at both ends, so a real station with a decent antenna does
+        better than this table. The comms planner adds your antenna's pattern on top.</div>
+      <div><b>Quiet geomagnetic conditions</b> are assumed. When Kp is high, the higher bands
+        and polar paths will read optimistic.</div>
+    </div>
+  </details>
 </div>
 
 <script src="./vendor/iturhfprop.js"></script>
 <script type="module">
-import { HFEngine, BrowserDataProvider, setModuleFactory, greatCircleDistanceKm }
+import { HFEngine, BrowserDataProvider, setModuleFactory }
   from './vendor/engine/browser.js';
 import { loadSpaceWeather, describeSource, FALLBACK_SSN } from './lib/spacewx.mjs';
 import { mountNav } from './lib/nav.mjs';
@@ -87,10 +81,8 @@ mountNav(document.querySelector('.app'), 'planner.html');
 
 // Solar activity from the mothership, with the same fallback chain as the reach
 // map. Loaded before the engine is ready, so no prediction can beat it.
-let spaceWx = null;
 let SSN = FALLBACK_SSN;
 const spaceWxReady = loadSpaceWeather().then((sw) => {
-  spaceWx = sw;
   SSN = sw.ssn;
   log(describeSource(sw));
 });
@@ -121,8 +113,7 @@ $('to').value = 'London, UK';
 // --- "use my location" ---------------------------------------------------
 // Browser geolocation, used purely as a convenience for filling in the
 // transmitter. The position never leaves this device: prediction runs here in
-// WebAssembly (ADR-0001), so there is no request to send it in. That is the
-// privacy posture in docs/09 enforced structurally rather than promised.
+// WebAssembly (ADR-0001), so there is no request to send it in.
 function maidenhead(lat, lon){
   const A=(n)=>String.fromCharCode(65+n);
   let x=lon+180, y=lat+90;
@@ -156,25 +147,19 @@ $('myloc').addEventListener('click', () => {
       $('myloc').disabled = false;
       $('myloc').textContent = 'Use my location';
       log(err.code === err.PERMISSION_DENIED
-        ? 'location permission denied — pick a site from the list, or enter coordinates'
+        ? 'location permission denied — pick a site from the list'
         : `could not get location: ${err.message}`);
     },
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
   );
 });
-$('theme').addEventListener('change', (e) =>
-  document.documentElement.setAttribute('data-theme', e.target.value));
 
 // Shows SNR MARGIN (available SNR minus required SNR), in dB.
 //
 // Deliberately NOT the engine's reliability field: that column reads 0 for
 // every circuit/hour/frequency tested and does not respond to requiredSnrDb --
-// an open defect (see packages/engine/README.md). SNR, field strength, power
-// and MUF are all verified responsive and physically sensible, so this shows
-// those instead of a number known to be wrong.
-//
-// This is also NOT the A-score (docs/07), which is a calibrated probability
-// and does not exist yet.
+// an open defect (see packages/engine/README.md). This is also NOT the A-score
+// (docs/07), which is a calibrated probability and does not exist yet.
 const REQUIRED_SNR_DB = 24;
 function marginToken(m) {
   if (m >= 10) return 'good';
@@ -190,8 +175,7 @@ let engine;
     const t0 = performance.now();
     engine = await HFEngine.create({ dataProvider: new BrowserDataProvider('./data/itu') });
     await spaceWxReady;
-    log(`engine instantiated in ${Math.round(performance.now() - t0)} ms`);
-    log('ready — first prediction also fetches ~11 MB of ITU data for the month');
+    log(`engine ready in ${Math.round(performance.now() - t0)} ms — first prediction also fetches ~11 MB of ITU data for the month`);
     $('go').disabled = false;
   } catch (e) { log('FAILED: ' + e.message); }
 })();
@@ -209,7 +193,7 @@ $('go').addEventListener('click', async () => {
       time: { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, hoursUtc: HOURS },
       frequenciesMHz: FREQS,
       transmitPowerWatts: Number($('pwr').value),
-      requiredSnrDb: 24,               // CW-ish threshold
+      requiredSnrDb: REQUIRED_SNR_DB,
       requiredSnrBandwidthHz: 3000,
       manMadeNoise: 'residential',
       modulation: 'analog',
@@ -217,17 +201,14 @@ $('go').addEventListener('click', async () => {
       label: { pathName: `${fromName} - ${toName}` },
     });
     const ms = performance.now() - t0;
-    log(`${fromName} → ${toName}  ${Math.round(res.circuit.distanceKm)} km`);
-    log(`${res.predictions.length} predictions in ${Math.round(ms)} ms (${(ms / res.predictions.length).toFixed(2)} ms each)`);
-    const tm = engine.timings;
-    log(`engine init ${tm.initMs.toFixed(1)} ms · data load ${tm.dataLoadMs.toFixed(1)} ms · run ${tm.runMs.toFixed(1)} ms`);
+    log(`${fromName} → ${toName}  ${Math.round(res.circuit.distanceKm)} km · ${res.predictions.length} predictions in ${Math.round(ms)} ms`);
     if (res.circuit.exceedsValidRange) log('⚠ ' + (res.circuit.validityWarning ?? 'beyond P.533 valid range'));
-    render(res, ms);
+    render(res, ms, now.getUTCHours());
   } catch (e) { log('prediction failed: ' + e.message); }
   $('go').disabled = false;
 });
 
-function render(res, ms) {
+function render(res, ms, nowHour) {
   const byHour = new Map();
   for (const p of res.predictions) {
     if (!byHour.has(p.hourUtc)) byHour.set(p.hourUtc, new Map());
@@ -240,6 +221,7 @@ function render(res, ms) {
   head.insertCell().outerHTML = '<th>MUF</th>';
   for (const hour of HOURS) {
     const tr = t.insertRow();
+    if (hour === nowHour) tr.className = 'now';
     const h = tr.insertCell(); h.className = 'hour';
     h.textContent = String(hour).padStart(2, '0') + 'Z';
     let muf;
@@ -259,17 +241,16 @@ function render(res, ms) {
   }
   $('grid').replaceChildren(t);
   $('legend').innerHTML =
-    ['good','fair','poor','closed'].map((k) =>
-      `<span class="chip"><span class="sw" style="background:var(--hf-status-${k}-fill)"></span>${k}</span>`).join('')
-    + `<span>cell = SNR margin in dB vs ${REQUIRED_SNR_DB} dB required · isotropic antennas, so pessimistic vs a real station</span>`;
+    [['good', '≥ +10 comfortable'], ['fair', '0 to +10 workable'], ['poor', '−15 to 0 weak'], ['closed', 'below −15 closed']].map(([k, l]) =>
+      `<span><span class="sw" style="background:var(--hf-status-${k}-fill)"></span>${l}</span>`).join('')
+    + `<span>dB of SNR margin vs ${REQUIRED_SNR_DB} dB required · isotropic antennas</span>`;
   const mufs = res.predictions.map((p) => p.basicMufMHz).filter((x) => typeof x === 'number');
   $('meta').textContent =
     `${res.engine.p533Version ?? 'ITU-R P.533'} · path ${Math.round(res.circuit.distanceKm)} km · `
     + (mufs.length ? `MUF ${Math.min(...mufs).toFixed(1)}–${Math.max(...mufs).toFixed(1)} MHz · ` : '')
-    + `computed on-device in ${Math.round(ms)} ms`;
+    + `SSN ${SSN} · computed on-device in ${Math.round(ms)} ms`;
   $('resultCard').hidden = false;
 }
 </script>
-</div>
 </body>
 </html>
