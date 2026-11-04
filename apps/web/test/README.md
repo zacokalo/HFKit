@@ -50,6 +50,8 @@ npm i -D playwright
 | `field.spec.mjs` | Mode switch shortens the antenna list · frequency entry in MHz, kHz and with suffixes · duplicate and out-of-band rejection · cut lengths in either unit · distance stays metric · NVIS verdict and per-frequency rows · whip efficiency caution · low NVIS height reported as design not fault · interactive diagram parts |
 | `patterngain.spec.mjs` | Fixed-gain path unchanged · modelled antennas change coverage without re-running P.533 · height and orientation both redraw · vertical hides the controls it has no use for · popup names the take-off angle and the gain there · selection survives a reload |
 | `comms.spec.mjs` | Empty state refuses to plan · gazetteer, coordinate and grid-square entry · assigned frequency in kHz · presets · a real plan from engine + antenna worker · whip ranked below NVIS with its reason and fix · 24 × bands timeline in status tokens · five-step guide, drawing, pattern markers, map · QRP is exactly −13 dB and a kilowatt +10 with no recompute · override honoured and flagged · stale marking · all three themes · inputs restored on reload, results not |
+| `mode.spec.mjs` | A fresh visit lands on the beginner welcome, Learn first, every chapter one click away · the "what is real" notes are folded, not removed · each tool page gets a folded guide under its header, linking to its chapter · switching to experienced shows the tools hub with the notes open, is remembered, and removes the guides · switching back works from any page · fits a 360 px phone |
+| `learn.spec.mjs` | Loads clean · every underlined term reaches the glossary · no hardcoded colour, all three themes · each simulator shows its chapter's lesson (escape above the MUF, noon absorption, skip zone, NVIS) · Play a day runs once and restores the clock, and steps under reduced motion · band clock statuses and table twin · dipole main lobe · S-meter arithmetic · live space weather offered with age, absence stated · quiz progress, theme and text size survive a reload · fits a 360 px phone |
 | `antenna.spec.mjs` | Dimensions match the handbook · lobe angle tracks height · take-off verdict and its advice · ground-loss cautions attach to the antennas that earn them · multiband lobing · every antenna on every band · no hardcoded colour, all three themes · per-antenna parameter memory |
 
 ## Five bugs these caught
@@ -99,6 +101,10 @@ chasing down an error the suite itself was reporting. A test that only checked
   redraw after them is scheduled on a frame, so a wait long enough on an idle
   machine is not long enough on a loaded one. `patterngain.spec.mjs` has a
   `waitForRepaint` helper that samples the canvas until it changes.
+- Click the map through `clickCanvas` / `hoverCanvas`, never raw coordinates. They
+  scroll the canvas into view first; in beginner mode (the default for a fresh
+  browser, so for every test) each tool page has a guide above the map, and a
+  point aimed below the fold hits nothing.
 - Do not assert wall-clock timings. `catalogue.test.mjs` used to fail a 700 ms
   budget at ~780 ms on a slower sandbox, which said nothing about the code. It
   measures the worst case as a multiple of the simplest one now, which catches a

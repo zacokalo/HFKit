@@ -1,15 +1,17 @@
-// Renders the site navigation: brand, page links, a live conditions readout,
-// and the theme switch.
+// Renders the site navigation: brand, page links, the beginner/experienced
+// switch, a live conditions readout, and the theme switch.
 //
 // One implementation for every page: a link added here appears everywhere,
-// which is the whole reason this is not six copies of the same markup.
+// which is the whole reason this is not eight copies of the same markup.
 
 import { loadSpaceWeather, describeAge } from './spacewx.mjs';
 import { kpToken, describeKp } from './spacewx-copy.mjs';
 import { THEMES, applyTheme, cycleTheme, getTheme } from './theme.mjs';
+import { applyMode, getMode, mountGuide, setMode } from './mode.mjs';
 
 const PAGES = [
   ['./index.html', 'Home'],
+  ['./learn.html', 'Learn'],
   ['./comms.html', 'Comms planner'],
   ['./reach.html', 'Reach map'],
   ['./planner.html', 'Path planner'],
@@ -36,11 +38,12 @@ const THEME_ICON = {
 };
 
 /**
- * Insert the nav at the top of the document and start loading conditions.
+ * Insert the nav at the top of the document, the page's beginner guide under
+ * its header, and start loading conditions.
  *
- * `container` is accepted for compatibility with pages that pass their
- * content wrapper; the bar itself is placed on <body> so it can span the full
- * width and stay put while the page scrolls.
+ * `container` is the page's content wrapper. The bar itself is placed on
+ * <body> so it can span the full width and stay put while the page scrolls;
+ * the guide goes inside the container, after its <header>.
  *
  * The conditions readout is added only once real data arrives. A dash or a
  * spinner sitting where a Kp value goes invites being read as a Kp value, and
@@ -49,6 +52,7 @@ const THEME_ICON = {
  */
 export function mountNav(container, currentFile) {
   applyTheme();
+  applyMode();
 
   const bar = document.createElement('header');
   bar.className = 'sitebar';
@@ -78,6 +82,8 @@ export function mountNav(container, currentFile) {
   spacer.className = 'spacer';
   nav.append(spacer);
 
+  nav.append(modeSwitch());
+
   const theme = document.createElement('button');
   theme.type = 'button';
   theme.className = 'theme';
@@ -97,8 +103,36 @@ export function mountNav(container, currentFile) {
   document.body.prepend(bar);
   // Scroll the current page's link into view on narrow screens.
   links.querySelector('[aria-current]')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
+  if (container) mountGuide(container, currentFile);
   void addConditions(nav, theme);
   return nav;
+}
+
+/** Beginner / Experienced, on every page. See mode.mjs for what it changes. */
+function modeSwitch() {
+  const g = document.createElement('div');
+  g.className = 'modesw';
+  g.setAttribute('role', 'group');
+  g.setAttribute('aria-label', 'How much to explain');
+  const buttons = [
+    ['beginner', 'Beginner', 'Start from the basics, with a guide on every tool page'],
+    ['experienced', 'Experienced', 'Land on the tools, with no guides'],
+  ].map(([mode, label, title]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.mode = mode;
+    b.textContent = label;
+    b.title = title;
+    b.addEventListener('click', () => setMode(mode));
+    return b;
+  });
+  const sync = (m) => {
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  };
+  sync(getMode());
+  document.addEventListener('hfkit:mode', (e) => sync(e.detail));
+  g.append(...buttons);
+  return g;
 }
 
 async function addConditions(nav, before) {
@@ -138,5 +172,6 @@ async function addConditions(nav, before) {
     sw.degraded ? 'Some sources are missing or stale.' : null,
   ].filter(Boolean).join('\n');
 
-  nav.insertBefore(a, before);
+  // Conditions sit between the mode switch and the theme button.
+  nav.insertBefore(a, nav.querySelector('.modesw') ?? before);
 }

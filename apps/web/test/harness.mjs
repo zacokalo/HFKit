@@ -119,8 +119,13 @@ export async function canvasRect(page) {
   });
 }
 
-/** Canvas coordinates -> viewport coordinates. */
+/** Canvas coordinates -> viewport coordinates.
+ *  Scrolls the map into view first, as a person would before clicking it. A
+ *  click aimed below the fold lands on nothing, so without this anything added
+ *  above the map — the beginner guide did it — breaks every coordinate-based
+ *  test. `nearest` leaves an already-visible map exactly where it was. */
 export async function atCanvas(page, cx, cy) {
+  await page.evaluate(() => document.getElementById('cv').scrollIntoView({ block: 'nearest' }));
   const r = await canvasRect(page);
   return [r.x + cx * (r.w / CANVAS_W), r.y + cy * (r.h / CANVAS_H)];
 }

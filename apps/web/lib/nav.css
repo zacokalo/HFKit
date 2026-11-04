@@ -98,6 +98,36 @@
 .sitenav a.wx b { font-weight: var(--hf-font-weight-semibold); color: var(--hf-text-secondary) }
 .sitenav a.wx .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--hf-border-default) }
 
+/* Beginner / Experienced. Small and quiet: it is a preference, not a feature. */
+.sitenav .modesw {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--hf-border-subtle);
+  border-radius: var(--hf-radius-sm);
+  overflow: hidden;
+  margin-left: var(--hf-spacing-1);
+}
+.sitenav .modesw button {
+  background: transparent;
+  color: var(--hf-text-muted);
+  border: 0;
+  border-right: 1px solid var(--hf-border-subtle);
+  padding: 4px 9px;
+  font: inherit;
+  font-size: var(--hf-font-size-xs);
+  cursor: pointer;
+  min-height: 26px;
+  white-space: nowrap;
+}
+.sitenav .modesw button:last-child { border-right: 0 }
+.sitenav .modesw button:hover { color: var(--hf-text-primary); background: var(--hf-surface-raised) }
+.sitenav .modesw button[aria-pressed='true'] {
+  background: var(--hf-surface-raised);
+  color: var(--hf-text-primary);
+  font-weight: var(--hf-font-weight-semibold);
+}
+.sitenav .modesw button:focus-visible { outline-offset: -2px }
+
 /* Theme switch: cycles auto → dark → light → night. */
 .sitenav .theme {
   appearance: none;
@@ -112,14 +142,65 @@
   font: inherit;
   font-size: var(--hf-font-size-xs);
   padding: 4px 8px;
+  margin-left: var(--hf-spacing-1);
   cursor: pointer;
 }
 .sitenav .theme:hover { background: var(--hf-surface-raised); color: var(--hf-text-primary); border-color: var(--hf-border-default) }
 .sitenav .theme svg { width: 14px; height: 14px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .sitenav .brand span { display: none }
   .sitenav a.wx span:not(.dot) { display: none }
   .sitenav a.wx .dot { width: 10px; height: 10px }
   .sitenav .theme span { display: none }
+  /* On a phone the mode switch shows one letter per mode; the title says the rest. */
+  .sitenav .modesw button { padding: 4px 7px; font-size: 0 }
+  .sitenav .modesw button::first-letter { font-size: var(--hf-font-size-xs) }
+}
+
+/* "How to read this page": folded to one line until opened, and gone
+   entirely in experienced mode. Sits under the page header. */
+.guide {
+  background: var(--hf-surface-raised);
+  border: 1px solid var(--hf-border-subtle);
+  border-left: 3px solid var(--hf-accent-interactive);
+  border-radius: var(--hf-radius-md);
+  padding: var(--hf-spacing-2) var(--hf-spacing-4);
+  font-size: var(--hf-font-size-md);
+  line-height: 1.55;
+  color: var(--hf-text-secondary);
+}
+html[data-mode='experienced'] .guide { display: none }
+.guide > summary {
+  cursor: pointer;
+  color: var(--hf-text-primary);
+  font-weight: var(--hf-font-weight-semibold);
+  padding: 4px 0;
+}
+.guide > summary:focus-visible { outline: var(--hf-focus-ring-width) solid var(--hf-focus-ring-color); outline-offset: 2px }
+.guide-badge {
+  font-family: var(--hf-font-family-mono);
+  font-size: var(--hf-font-size-xs);
+  font-weight: var(--hf-font-weight-regular);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--hf-text-muted);
+  border: 1px solid var(--hf-border-default);
+  border-radius: var(--hf-radius-full);
+  padding: 1px 8px;
+  margin: 0 var(--hf-spacing-2) 0 var(--hf-spacing-1);
+}
+.guide ul { margin: var(--hf-spacing-2) 0; padding-left: 1.2em; max-width: 78ch }
+.guide li { margin-bottom: 6px }
+.guide p { margin: var(--hf-spacing-2) 0; max-width: 78ch }
+.guide a { color: var(--hf-accent-interactive) }
+.guide .guide-off { font-size: var(--hf-font-size-sm); color: var(--hf-text-muted) }
+.guide .guide-off button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--hf-accent-interactive);
+  text-decoration: underline;
+  cursor: pointer;
 }

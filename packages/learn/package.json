@@ -1,0 +1,14 @@
+{
+  "name": "@hfkit/learn",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Teaching models and copy for the Learn page: a mirror-and-secant ionosphere, S-meter and noise arithmetic, the HF band map, glossary and quizzes. Illustrative, never a prediction.",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "main": "./index.mjs",
+  "scripts": {
+    "test": "node --test"
+  }
+}
